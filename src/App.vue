@@ -8,46 +8,12 @@ import {
 } from "@/components/ui/resizable";
 import { Button } from "@/components/ui/button";
 import { X, Minus, Square } from "lucide-vue-next";
-import FileTreeItem from "@/components/FileTreeItem.vue";
+import { Tree, Folder, File } from "@/components/ui/file-tree";
 
 const scriptContent = ref("");
 
 // Mock logs data
 const logs = ref(["Welcome to Riptide", "Ready to execute scripts..."]);
-
-// Mock file tree data
-const fileTree = ref([
-    {
-        name: "Scripts",
-        type: "folder",
-        expanded: true,
-        children: [
-            { name: "example.lua", type: "file" },
-            { name: "test.lua", type: "file" },
-            {
-                name: "Utils",
-                type: "folder",
-                expanded: false,
-                children: [{ name: "helper.lua", type: "file" }],
-            },
-        ],
-    },
-    {
-        name: "AutoExec",
-        type: "folder",
-        expanded: true,
-        children: [
-            { name: "script1.lua", type: "file" },
-            { name: "script2.lua", type: "file" },
-        ],
-    },
-]);
-
-const toggleFolder = (item: any) => {
-    if (item.type === "folder") {
-        item.expanded = !item.expanded;
-    }
-};
 </script>
 
 <template>
@@ -140,17 +106,26 @@ const toggleFolder = (item: any) => {
                             <h2 class="text-sm font-semibold">File Explorer</h2>
                         </div>
                         <div class="flex-1 overflow-auto p-2">
-                            <div
-                                v-for="(item, index) in fileTree"
-                                :key="index"
-                                class="mb-1"
+                            <Tree
+                                :initial-selected-id="'scripts'"
+                                :initial-expanded-items="[
+                                    'scripts',
+                                    'autoexec',
+                                ]"
+                                :elements="fileTreeElements"
                             >
-                                <FileTreeItem
-                                    :item="item"
-                                    :level="0"
-                                    @toggle="toggleFolder"
-                                />
-                            </div>
+                                <Folder id="scripts" name="Scripts">
+                                    <File id="1" name="example.lua" />
+                                    <File id="2" name="test.lua" />
+                                    <Folder id="3" name="Utils">
+                                        <File id="4" name="helper.lua" />
+                                    </Folder>
+                                </Folder>
+                                <Folder id="autoexec" name="AutoExec">
+                                    <File id="5" name="script1.lua" />
+                                    <File id="6" name="script2.lua" />
+                                </Folder>
+                            </Tree>
                         </div>
                     </div>
                 </ResizablePanel>
