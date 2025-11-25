@@ -13,7 +13,7 @@ import FileTreeItem from "@/components/FileTreeItem.vue";
 const scriptContent = ref("");
 
 // Mock logs data
-const logs = ref(["Welcome to Script Executor", "Ready to execute scripts..."]);
+const logs = ref(["Welcome to Riptide", "Ready to execute scripts..."]);
 
 // Mock file tree data
 const fileTree = ref([
@@ -56,7 +56,7 @@ const toggleFolder = (item: any) => {
         <div
             class="h-10 bg-muted/50 border-b flex items-center justify-between px-4"
         >
-            <div class="text-sm font-medium">Script Executor</div>
+            <div class="text-sm font-medium">Riptide</div>
             <div class="flex items-center gap-2">
                 <button
                     class="h-6 w-6 flex items-center justify-center hover:bg-muted rounded transition-colors"
