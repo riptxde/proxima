@@ -85,11 +85,11 @@ const toggleFolder = (item: any) => {
                         <ResizablePanelGroup direction="vertical">
                             <!-- Script Editor -->
                             <ResizablePanel :default-size="70" :min-size="30">
-                                <div class="h-full p-4 overflow-hidden">
+                                <div class="h-full overflow-hidden">
                                     <Textarea
                                         v-model="scriptContent"
                                         placeholder="-- Write your script here..."
-                                        class="h-full w-full resize-none font-mono text-sm"
+                                        class="h-full w-full resize-none font-mono text-sm rounded-none border-0 px-4 py-3 shadow-none focus-visible:ring-0"
                                     />
                                 </div>
                             </ResizablePanel>
