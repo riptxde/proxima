@@ -7,7 +7,7 @@ import {
     ResizableHandle,
 } from "@/components/ui/resizable";
 import { Button } from "@/components/ui/button";
-import { X, Minus, Square } from "lucide-vue-next";
+import { X, Minus, Square, CodeXml, Library, Settings } from "lucide-vue-next";
 import { Tree, Folder, File } from "@/components/ui/file-tree";
 
 const scriptContent = ref("");
@@ -43,93 +43,138 @@ const logs = ref(["Welcome to Riptide", "Ready to execute scripts..."]);
         </div>
 
         <!-- Main Content Area -->
-        <div class="flex-1 overflow-hidden">
-            <ResizablePanelGroup direction="horizontal">
-                <!-- Editor Panel -->
-                <ResizablePanel :default-size="70" :min-size="30">
-                    <div class="h-full flex flex-col">
-                        <ResizablePanelGroup direction="vertical">
-                            <!-- Script Editor -->
-                            <ResizablePanel :default-size="70" :min-size="30">
-                                <div class="h-full overflow-hidden">
-                                    <Textarea
-                                        v-model="scriptContent"
-                                        placeholder="-- Write your script here..."
-                                        class="h-full w-full resize-none font-mono text-sm rounded-none border-0 px-4 py-3 shadow-none focus-visible:ring-0"
-                                    />
-                                </div>
-                            </ResizablePanel>
+        <div class="flex-1 overflow-hidden flex">
+            <!-- Sidebar -->
+            <div
+                class="w-16 bg-sidebar border-r border-sidebar-border flex flex-col items-center py-4 gap-2"
+            >
+                <button
+                    class="h-12 w-12 flex items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-accent-foreground transition-colors"
+                    title="Editor"
+                >
+                    <CodeXml :size="20" />
+                </button>
+                <button
+                    class="h-12 w-12 flex items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/60 transition-colors"
+                    title="Script Hub"
+                >
+                    <Library :size="20" />
+                </button>
+                <button
+                    class="h-12 w-12 flex items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/60 transition-colors"
+                    title="Settings"
+                >
+                    <Settings :size="20" />
+                </button>
+            </div>
 
-                            <ResizableHandle />
-
-                            <!-- Logs Panel -->
-                            <ResizablePanel :default-size="30" :min-size="15">
-                                <div class="h-full flex flex-col bg-muted/20">
-                                    <div class="px-4 py-2 border-b">
-                                        <h3 class="text-sm font-semibold">
-                                            Logs
-                                        </h3>
+            <!-- Editor Page Content -->
+            <div class="flex-1 overflow-hidden">
+                <ResizablePanelGroup direction="horizontal">
+                    <!-- Editor Panel -->
+                    <ResizablePanel :default-size="70" :min-size="30">
+                        <div class="h-full flex flex-col">
+                            <ResizablePanelGroup direction="vertical">
+                                <!-- Script Editor -->
+                                <ResizablePanel
+                                    :default-size="70"
+                                    :min-size="30"
+                                >
+                                    <div class="h-full overflow-hidden">
+                                        <Textarea
+                                            v-model="scriptContent"
+                                            placeholder="-- Write your script here..."
+                                            class="h-full w-full resize-none font-mono text-sm rounded-none border-0 px-4 py-3 shadow-none focus-visible:ring-0"
+                                        />
                                     </div>
+                                </ResizablePanel>
+
+                                <ResizableHandle />
+
+                                <!-- Logs Panel -->
+                                <ResizablePanel
+                                    :default-size="30"
+                                    :min-size="15"
+                                >
                                     <div
-                                        class="flex-1 overflow-auto p-4 font-mono text-sm"
+                                        class="h-full flex flex-col bg-muted/20"
                                     >
+                                        <div class="px-4 py-2 border-b">
+                                            <h3 class="text-sm font-semibold">
+                                                Logs
+                                            </h3>
+                                        </div>
                                         <div
-                                            v-for="(log, index) in logs"
-                                            :key="index"
-                                            class="text-muted-foreground mb-1"
+                                            class="flex-1 overflow-auto p-4 font-mono text-sm"
                                         >
-                                            {{ log }}
+                                            <div
+                                                v-for="(log, index) in logs"
+                                                :key="index"
+                                                class="text-muted-foreground mb-1"
+                                            >
+                                                {{ log }}
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </ResizablePanel>
-                        </ResizablePanelGroup>
+                                </ResizablePanel>
+                            </ResizablePanelGroup>
 
-                        <!-- Dock with buttons -->
-                        <div
-                            class="border-t bg-muted/30 p-2 flex items-center gap-2"
-                        >
-                            <Button variant="default" size="sm">Execute</Button>
-                            <Button variant="outline" size="sm">Clear</Button>
-                            <Button variant="outline" size="sm">Open</Button>
-                            <Button variant="outline" size="sm">Save</Button>
-                        </div>
-                    </div>
-                </ResizablePanel>
-
-                <ResizableHandle with-handle />
-
-                <!-- File Tree Panel -->
-                <ResizablePanel :default-size="30" :min-size="20">
-                    <div class="h-full flex flex-col bg-muted/20">
-                        <div class="p-3 border-b">
-                            <h2 class="text-sm font-semibold">File Explorer</h2>
-                        </div>
-                        <div class="flex-1 overflow-auto p-2">
-                            <Tree
-                                :initial-selected-id="'scripts'"
-                                :initial-expanded-items="[
-                                    'scripts',
-                                    'autoexec',
-                                ]"
-                                :elements="fileTreeElements"
+                            <!-- Dock with buttons -->
+                            <div
+                                class="border-t bg-muted/30 p-2 flex items-center gap-2"
                             >
-                                <Folder id="scripts" name="Scripts">
-                                    <File id="1" name="example.lua" />
-                                    <File id="2" name="test.lua" />
-                                    <Folder id="3" name="Utils">
-                                        <File id="4" name="helper.lua" />
-                                    </Folder>
-                                </Folder>
-                                <Folder id="autoexec" name="AutoExec">
-                                    <File id="5" name="script1.lua" />
-                                    <File id="6" name="script2.lua" />
-                                </Folder>
-                            </Tree>
+                                <Button variant="default" size="sm"
+                                    >Execute</Button
+                                >
+                                <Button variant="outline" size="sm"
+                                    >Clear</Button
+                                >
+                                <Button variant="outline" size="sm"
+                                    >Open</Button
+                                >
+                                <Button variant="outline" size="sm"
+                                    >Save</Button
+                                >
+                            </div>
                         </div>
-                    </div>
-                </ResizablePanel>
-            </ResizablePanelGroup>
+                    </ResizablePanel>
+
+                    <ResizableHandle with-handle />
+
+                    <!-- File Tree Panel -->
+                    <ResizablePanel :default-size="30" :min-size="20">
+                        <div class="h-full flex flex-col bg-muted/20">
+                            <div class="p-3 border-b">
+                                <h2 class="text-sm font-semibold">
+                                    File Explorer
+                                </h2>
+                            </div>
+                            <div class="flex-1 overflow-auto p-2">
+                                <Tree
+                                    :initial-selected-id="'scripts'"
+                                    :initial-expanded-items="[
+                                        'scripts',
+                                        'autoexec',
+                                    ]"
+                                    :elements="fileTreeElements"
+                                >
+                                    <Folder id="scripts" name="Scripts">
+                                        <File id="1" name="example.lua" />
+                                        <File id="2" name="test.lua" />
+                                        <Folder id="3" name="Utils">
+                                            <File id="4" name="helper.lua" />
+                                        </Folder>
+                                    </Folder>
+                                    <Folder id="autoexec" name="AutoExec">
+                                        <File id="5" name="script1.lua" />
+                                        <File id="6" name="script2.lua" />
+                                    </Folder>
+                                </Tree>
+                            </div>
+                        </div>
+                    </ResizablePanel>
+                </ResizablePanelGroup>
+            </div>
         </div>
     </div>
 </template>
