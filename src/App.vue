@@ -6,7 +6,7 @@ import {
     ResizablePanel,
     ResizableHandle,
 } from "@/components/ui/resizable";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { X, Minus, Square } from "lucide-vue-next";
 import FileTreeItem from "@/components/FileTreeItem.vue";
 
@@ -85,6 +85,15 @@ const toggleFolder = (item: any) => {
                                 placeholder="-- Write your script here..."
                                 class="h-full w-full resize-none font-mono text-sm"
                             />
+                        </div>
+                        <!-- Dock with buttons -->
+                        <div
+                            class="border-t bg-muted/30 p-2 flex items-center gap-2"
+                        >
+                            <Button variant="default" size="sm">Execute</Button>
+                            <Button variant="outline" size="sm">Clear</Button>
+                            <Button variant="outline" size="sm">Open</Button>
+                            <Button variant="outline" size="sm">Save</Button>
                         </div>
                     </div>
                 </ResizablePanel>
