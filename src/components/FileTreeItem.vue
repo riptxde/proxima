@@ -34,23 +34,16 @@ const handleClick = () => {
                 <ChevronRight
                     v-if="!item.expanded"
                     :size="16"
-                    class="text-muted-foreground flex-shrink-0"
+                    class="text-muted-foreground shrink-0"
                 />
                 <ChevronDown
                     v-else
                     :size="16"
-                    class="text-muted-foreground flex-shrink-0"
+                    class="text-muted-foreground shrink-0"
                 />
-                <Folder
-                    :size="16"
-                    class="text-muted-foreground flex-shrink-0"
-                />
+                <Folder :size="16" class="text-muted-foreground shrink-0" />
             </template>
-            <File
-                v-else
-                :size="16"
-                class="text-muted-foreground flex-shrink-0"
-            />
+            <File v-else :size="16" class="text-muted-foreground shrink-0" />
             <span class="truncate">{{ item.name }}</span>
         </div>
 
