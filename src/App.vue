@@ -12,6 +12,9 @@ import FileTreeItem from "@/components/FileTreeItem.vue";
 
 const scriptContent = ref("");
 
+// Mock logs data
+const logs = ref(["Welcome to Script Executor", "Ready to execute scripts..."]);
+
 // Mock file tree data
 const fileTree = ref([
     {
@@ -79,13 +82,43 @@ const toggleFolder = (item: any) => {
                 <!-- Editor Panel -->
                 <ResizablePanel :default-size="70" :min-size="30">
                     <div class="h-full flex flex-col">
-                        <div class="p-4 flex-1 overflow-hidden">
-                            <Textarea
-                                v-model="scriptContent"
-                                placeholder="-- Write your script here..."
-                                class="h-full w-full resize-none font-mono text-sm"
-                            />
-                        </div>
+                        <ResizablePanelGroup direction="vertical">
+                            <!-- Script Editor -->
+                            <ResizablePanel :default-size="70" :min-size="30">
+                                <div class="h-full p-4 overflow-hidden">
+                                    <Textarea
+                                        v-model="scriptContent"
+                                        placeholder="-- Write your script here..."
+                                        class="h-full w-full resize-none font-mono text-sm"
+                                    />
+                                </div>
+                            </ResizablePanel>
+
+                            <ResizableHandle />
+
+                            <!-- Logs Panel -->
+                            <ResizablePanel :default-size="30" :min-size="15">
+                                <div class="h-full flex flex-col bg-muted/20">
+                                    <div class="px-4 py-2 border-b">
+                                        <h3 class="text-sm font-semibold">
+                                            Logs
+                                        </h3>
+                                    </div>
+                                    <div
+                                        class="flex-1 overflow-auto p-4 font-mono text-sm"
+                                    >
+                                        <div
+                                            v-for="(log, index) in logs"
+                                            :key="index"
+                                            class="text-muted-foreground mb-1"
+                                        >
+                                            {{ log }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </ResizablePanel>
+                        </ResizablePanelGroup>
+
                         <!-- Dock with buttons -->
                         <div
                             class="border-t bg-muted/30 p-2 flex items-center gap-2"
