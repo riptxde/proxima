@@ -5,7 +5,7 @@
             class="relative h-full overflow-auto px-2"
             :dir="direction"
         >
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col gap-1.5">
                 <slot />
             </div>
         </div>
