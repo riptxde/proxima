@@ -33,7 +33,7 @@ const fileTree = ref([
         ],
     },
     {
-        name: "Workspace",
+        name: "AutoExec",
         type: "folder",
         expanded: true,
         children: [
