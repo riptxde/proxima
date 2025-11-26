@@ -8,7 +8,8 @@ import TitleBar from "@/components/TitleBar.vue";
 import Sidebar from "@/components/Sidebar.vue";
 import ScriptEditor from "@/components/ScriptEditor.vue";
 import FileExplorer from "@/components/FileExplorer.vue";
-import Dock from "@/components/Dock.vue";
+import DockArea from "@/components/DockArea.vue";
+import StarsBackground from "@/components/ui/bg-stars/StarsBackground.vue";
 </script>
 
 <template>
@@ -22,9 +23,16 @@ import Dock from "@/components/Dock.vue";
             <Sidebar />
 
             <!-- Content Area with Panels and Dock -->
-            <div class="flex-1 overflow-hidden flex flex-col">
+            <div class="flex-1 overflow-hidden flex flex-col relative">
+                <div class="absolute inset-0 z-0 pointer-events-none">
+                    <StarsBackground
+                        :factor="0.05"
+                        :speed="50"
+                        star-color="#fff"
+                    />
+                </div>
                 <!-- Main Panel Grid -->
-                <div class="flex-1 overflow-hidden p-4">
+                <div class="flex-1 overflow-hidden pt-4 px-4 relative z-10">
                     <ResizablePanelGroup
                         direction="horizontal"
                         class="h-full gap-4"
@@ -44,7 +52,9 @@ import Dock from "@/components/Dock.vue";
                 </div>
 
                 <!-- Dock spans everything except sidebar -->
-                <Dock />
+                <div class="relative z-10">
+                    <DockArea />
+                </div>
             </div>
         </div>
     </div>
