@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FileCode2, Library, Settings } from "lucide-vue-next";
+import { FileCode2, Library, Settings, Terminal } from "lucide-vue-next";
 </script>
 
 <template>
@@ -17,6 +17,12 @@ import { FileCode2, Library, Settings } from "lucide-vue-next";
             title="Script Hub"
         >
             <Library :size="20" />
+        </button>
+        <button
+            class="h-12 w-12 flex items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/60 transition-colors"
+            title="Logs"
+        >
+            <Terminal :size="20" />
         </button>
         <button
             class="h-12 w-12 flex items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/60 transition-colors"
