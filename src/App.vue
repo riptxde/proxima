@@ -8,7 +8,7 @@ import TitleBar from "@/components/TitleBar.vue";
 import Sidebar from "@/components/Sidebar.vue";
 import ScriptEditor from "@/components/ScriptEditor.vue";
 import FileExplorer from "@/components/FileExplorer.vue";
-import EditorDock from "@/components/EditorDock.vue";
+import Dock from "@/components/Dock.vue";
 </script>
 
 <template>
@@ -44,7 +44,7 @@ import EditorDock from "@/components/EditorDock.vue";
                 </div>
 
                 <!-- Dock spans everything except sidebar -->
-                <EditorDock />
+                <Dock />
             </div>
         </div>
     </div>
