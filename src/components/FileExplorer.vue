@@ -20,7 +20,6 @@ import { Search } from "lucide-vue-next";
             <Tree
                 :initial-selected-id="'scripts'"
                 :initial-expanded-items="['scripts', 'autoexec']"
-                :elements="fileTreeElements"
             >
                 <Folder id="scripts" name="Scripts">
                     <File id="1" name="example.lua" />

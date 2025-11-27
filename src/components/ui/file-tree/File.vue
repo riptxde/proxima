@@ -27,25 +27,21 @@ import {
     type FileProps,
     TREE_CONTEXT_SYMBOL,
 } from "./index";
-import { inject, computed, toRefs } from "vue";
+import { inject, toRefs } from "vue";
 import Icon from "@/components/ui/Icon.vue";
 
 const props = withDefaults(defineProps<FileProps>(), {
     isSelectable: true,
 });
 
-const { id, name, isSelectable, isSelect } = toRefs(props);
+const { id, name, isSelectable } = toRefs(props);
 
 const treeContext = inject<TreeContextProps>(TREE_CONTEXT_SYMBOL);
 if (!treeContext) {
     throw new Error("[File] must be used inside <Tree>");
 }
 
-const { selectedId, selectItem, direction, fileIcon } = treeContext;
-
-const isSelected = computed<boolean>(() => {
-    return isSelect.value || selectedId.value === id.value;
-});
+const { selectItem, direction, fileIcon } = treeContext;
 
 function onClickHandler() {
     if (!isSelectable.value) return;

@@ -1,4 +1,4 @@
-import type { HTMLAttributes } from "vue";
+import type { HTMLAttributes, Ref } from "vue";
 
 export interface TreeViewElement {
   id: string;
@@ -11,7 +11,7 @@ export interface TreeProps {
   class?: HTMLAttributes["class"];
   initialSelectedId: string;
   indicator?: boolean;
-  elements: TreeViewElement[];
+  elements?: TreeViewElement[];
   initialExpandedItems: string[];
   openIcon?: string;
   closeIcon?: string;

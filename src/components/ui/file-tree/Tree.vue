@@ -20,7 +20,7 @@ import {
     type TreeProps,
     TREE_CONTEXT_SYMBOL,
 } from "./index";
-import { inject, computed, toRefs, ref, onMounted, provide } from "vue";
+import { toRefs, ref, onMounted, provide } from "vue";
 
 const props = withDefaults(defineProps<TreeProps>(), {
     indicator: true,

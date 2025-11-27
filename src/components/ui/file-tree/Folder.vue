@@ -45,7 +45,7 @@ const props = withDefaults(defineProps<FolderProps>(), {
     isSelectable: true,
 });
 
-const { id, name, isSelectable, isSelect } = toRefs(props);
+const { id, name, isSelectable } = toRefs(props);
 
 const treeContext = inject<TreeContextProps>(TREE_CONTEXT_SYMBOL);
 if (!treeContext) {

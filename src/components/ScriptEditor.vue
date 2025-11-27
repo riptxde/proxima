@@ -11,7 +11,7 @@ const scriptContent = ref("");
         <Textarea
             v-model="scriptContent"
             placeholder="-- Write your script here..."
-            class="h-full w-full resize-none font-mono text-sm rounded-none border-0 px-4 py-3 shadow-none focus-visible:ring-0 !bg-card"
+            class="h-full w-full resize-none font-mono text-sm rounded-none border-0 px-4 py-3 shadow-none focus-visible:ring-0 bg-card!"
         />
     </Card>
 </template>
