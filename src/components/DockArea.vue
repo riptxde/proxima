@@ -18,7 +18,9 @@ import {
                     <Tooltip>
                         <TooltipTrigger as-child>
                             <DockIcon>
-                                <Play class="size-5" />
+                                <Play
+                                    class="size-5 text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground transition-colors"
+                                />
                             </DockIcon>
                         </TooltipTrigger>
                         <TooltipContent :side-offset="-15">
@@ -29,7 +31,9 @@ import {
                     <Tooltip>
                         <TooltipTrigger as-child>
                             <DockIcon>
-                                <Eraser class="size-5" />
+                                <Eraser
+                                    class="size-5 text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground transition-colors"
+                                />
                             </DockIcon>
                         </TooltipTrigger>
                         <TooltipContent :side-offset="-15">
@@ -40,7 +44,9 @@ import {
                     <Tooltip>
                         <TooltipTrigger as-child>
                             <DockIcon>
-                                <FolderOpen class="size-5" />
+                                <FolderOpen
+                                    class="size-5 text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground transition-colors"
+                                />
                             </DockIcon>
                         </TooltipTrigger>
                         <TooltipContent :side-offset="-15">
@@ -51,7 +57,9 @@ import {
                     <Tooltip>
                         <TooltipTrigger as-child>
                             <DockIcon>
-                                <Save class="size-5" />
+                                <Save
+                                    class="size-5 text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground transition-colors"
+                                />
                             </DockIcon>
                         </TooltipTrigger>
                         <TooltipContent :side-offset="-15">
