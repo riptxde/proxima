@@ -5,8 +5,7 @@
         :disabled="!isSelectable"
         :class="[
             cn(
-                'flex w-fit items-center gap-1.5 rounded-sm pr-1 text-sm duration-200 ease-in-out rtl:pl-1 rtl:pr-0',
-                isSelected && isSelectable ? 'bg-muted' : '',
+                'flex w-fit items-center gap-1.5 rounded-sm pr-1 text-sm duration-200 ease-in-out rtl:pl-1 rtl:pr-0 opacity-60 hover:opacity-100',
                 isSelectable
                     ? 'cursor-pointer'
                     : 'cursor-not-allowed opacity-50',

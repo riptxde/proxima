@@ -1,11 +1,10 @@
 <template>
     <div class="relative h-full overflow-hidden">
         <div
-            class="flex cursor-pointer items-center gap-1.5 rounded-md text-sm transition-all duration-200"
+            class="flex cursor-pointer items-center gap-1.5 rounded-md text-sm transition-all duration-200 opacity-60 hover:opacity-100"
             :class="[
                 cn(
                     'flex cursor-pointer items-center gap-1.5 rounded-md text-sm',
-                    isSelect && isSelectable ? 'bg-muted' : '',
                     !isSelectable ? 'cursor-not-allowed opacity-50' : '',
                     $props.class,
                 ),
