@@ -10,9 +10,7 @@ import {
 
 <template>
     <TooltipProvider>
-        <div
-            class="w-16 bg-sidebar border-r border-sidebar-border flex flex-col items-center py-4 gap-2"
-        >
+        <div class="w-16 bg-sidebar flex flex-col items-center py-4 gap-2">
             <Tooltip>
                 <TooltipTrigger as-child>
                     <button

@@ -22,38 +22,45 @@ import StarsBackground from "@/components/ui/bg-stars/StarsBackground.vue";
             <!-- Sidebar -->
             <Sidebar />
 
-            <!-- Content Area with Panels and Dock -->
-            <div class="flex-1 overflow-hidden flex flex-col relative">
-                <div class="absolute inset-0 z-0 pointer-events-none">
-                    <StarsBackground
-                        :factor="0.05"
-                        :speed="50"
-                        star-color="#fff"
-                    />
-                </div>
-                <!-- Main Panel Grid -->
-                <div class="flex-1 overflow-hidden pt-4 px-4 relative z-10">
-                    <ResizablePanelGroup
-                        direction="horizontal"
-                        class="h-full gap-4"
+            <!-- Background matching sidebar color -->
+            <div class="flex-1 overflow-hidden bg-sidebar pr-2 pb-2">
+                <!-- Content Area with rounded corners -->
+                <div
+                    class="h-full overflow-hidden flex flex-col relative bg-background rounded-lg"
+                >
+                    <div
+                        class="absolute inset-0 z-0 pointer-events-none rounded-lg"
                     >
-                        <!-- Script Editor -->
-                        <ResizablePanel :default-size="70" :min-size="30">
-                            <ScriptEditor />
-                        </ResizablePanel>
+                        <StarsBackground
+                            :factor="0.05"
+                            :speed="50"
+                            star-color="#fff"
+                        />
+                    </div>
+                    <!-- Main Panel Grid -->
+                    <div class="flex-1 overflow-hidden pt-4 px-4 relative z-10">
+                        <ResizablePanelGroup
+                            direction="horizontal"
+                            class="h-full gap-4"
+                        >
+                            <!-- Script Editor -->
+                            <ResizablePanel :default-size="70" :min-size="30">
+                                <ScriptEditor />
+                            </ResizablePanel>
 
-                        <ResizableHandle with-handle />
+                            <ResizableHandle with-handle />
 
-                        <!-- File Tree Panel Card -->
-                        <ResizablePanel :default-size="25" :min-size="20">
-                            <FileExplorer />
-                        </ResizablePanel>
-                    </ResizablePanelGroup>
-                </div>
+                            <!-- File Tree Panel Card -->
+                            <ResizablePanel :default-size="25" :min-size="20">
+                                <FileExplorer />
+                            </ResizablePanel>
+                        </ResizablePanelGroup>
+                    </div>
 
-                <!-- Dock spans everything except sidebar -->
-                <div class="relative z-10">
-                    <DockArea />
+                    <!-- Dock spans everything except sidebar -->
+                    <div class="relative z-10">
+                        <DockArea />
+                    </div>
                 </div>
             </div>
         </div>

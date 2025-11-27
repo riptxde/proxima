@@ -3,9 +3,7 @@ import { X, Minus, Square } from "lucide-vue-next";
 </script>
 
 <template>
-    <div
-        class="h-10 bg-muted/50 border-b flex items-center justify-between px-4"
-    >
+    <div class="h-10 bg-muted/50 flex items-center justify-between px-4">
         <div class="text-sm font-medium">Riptide</div>
         <div class="flex items-center gap-2">
             <button
