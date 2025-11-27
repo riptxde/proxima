@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { FileCode2, Library, Settings, Terminal } from "lucide-vue-next";
+import { CodeXml, Library, Settings, Logs } from "lucide-vue-next";
 import {
     Tooltip,
     TooltipContent,
@@ -18,7 +18,7 @@ import {
                     <button
                         class="h-12 w-12 flex items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-accent-foreground transition-colors"
                     >
-                        <FileCode2 :size="20" />
+                        <CodeXml :size="20" />
                     </button>
                 </TooltipTrigger>
                 <TooltipContent side="right">
@@ -44,7 +44,7 @@ import {
                     <button
                         class="h-12 w-12 flex items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/60 transition-colors"
                     >
-                        <Terminal :size="20" />
+                        <Logs :size="20" />
                     </button>
                 </TooltipTrigger>
                 <TooltipContent side="right">
