@@ -1,26 +1,39 @@
 <script setup lang="ts">
 import { Tree, Folder, File } from "@/components/ui/file-tree";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-vue-next";
 </script>
 
 <template>
-    <Card class="h-full overflow-auto p-2">
-        <Tree
-            :initial-selected-id="'scripts'"
-            :initial-expanded-items="['scripts', 'autoexec']"
-            :elements="fileTreeElements"
-        >
-            <Folder id="scripts" name="Scripts">
-                <File id="1" name="example.lua" />
-                <File id="2" name="test.lua" />
-                <Folder id="3" name="Utils">
-                    <File id="4" name="helper.lua" />
+    <Card class="h-full overflow-auto p-2 flex flex-col gap-2">
+        <!-- Search Bar -->
+        <div class="relative mb-2">
+            <Search
+                class="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+            />
+            <Input type="text" placeholder="Search" class="pl-8 border-none" />
+        </div>
+
+        <!-- File Tree -->
+        <div class="flex-1 overflow-auto">
+            <Tree
+                :initial-selected-id="'scripts'"
+                :initial-expanded-items="['scripts', 'autoexec']"
+                :elements="fileTreeElements"
+            >
+                <Folder id="scripts" name="Scripts">
+                    <File id="1" name="example.lua" />
+                    <File id="2" name="test.lua" />
+                    <Folder id="3" name="Utils">
+                        <File id="4" name="helper.lua" />
+                    </Folder>
                 </Folder>
-            </Folder>
-            <Folder id="autoexec" name="AutoExec">
-                <File id="5" name="script1.lua" />
-                <File id="6" name="script2.lua" />
-            </Folder>
-        </Tree>
+                <Folder id="autoexec" name="AutoExec">
+                    <File id="5" name="script1.lua" />
+                    <File id="6" name="script2.lua" />
+                </Folder>
+            </Tree>
+        </div>
     </Card>
 </template>
