@@ -1,10 +1,10 @@
 <template>
     <div class="relative h-full overflow-hidden">
         <div
-            class="flex cursor-pointer items-center gap-1.5 rounded-md text-[0.9rem] transition-all duration-200"
+            class="flex cursor-pointer items-center gap-1.5 rounded-md text-sm transition-all duration-200"
             :class="[
                 cn(
-                    'flex cursor-pointer items-center gap-1.5 rounded-md text-[0.9rem]',
+                    'flex cursor-pointer items-center gap-1.5 rounded-md text-sm',
                     isSelect && isSelectable ? 'bg-muted' : '',
                     !isSelectable ? 'cursor-not-allowed opacity-50' : '',
                     $props.class,
@@ -19,7 +19,7 @@
             <span class="select-none">{{ name }}</span>
         </div>
 
-        <div v-if="isExpanded" class="relative text-[0.9rem]">
+        <div v-if="isExpanded" class="relative text-sm">
             <TreeIndicator v-if="name && indicator" aria-hidden="true" />
             <div
                 class="ml-6 flex flex-col gap-1.5 py-1 rtl:mr-6"

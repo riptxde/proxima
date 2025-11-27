@@ -1,7 +1,7 @@
 <template>
     <div
         ref="iconRef"
-        class="group flex aspect-square cursor-pointer items-center justify-center rounded-full transition-all duration-200 ease-out"
+        class="group flex aspect-square items-center justify-center rounded-full transition-all duration-200 ease-out"
         :style="{
             width: `${iconWidth}px`,
             height: `${iconWidth}px`,
