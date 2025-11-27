@@ -93,7 +93,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    radius: 16,
+    radius: 8,
     border: 0.07,
     lightness: 50,
     blend: "difference",
