@@ -1,10 +1,23 @@
 <script setup lang="ts">
 import { X, Minus, Square } from "lucide-vue-next";
+import LogoText from "@/assets/logo-text.svg";
+import Icon from "@/assets/icon.svg";
 </script>
 
 <template>
-    <div class="h-10 bg-muted/50 flex items-center justify-between px-4">
-        <div class="text-sm font-medium">Riptide</div>
+    <div class="h-12 bg-muted/50 flex items-center justify-between px-4">
+        <div class="flex items-center gap-2">
+            <img
+                :src="Icon"
+                alt="Riptide Icon"
+                class="h-6 brightness-0 invert"
+            />
+            <img
+                :src="LogoText"
+                alt="Riptide"
+                class="h-4 brightness-0 invert"
+            />
+        </div>
         <div class="flex items-center gap-2">
             <button
                 class="h-6 w-6 flex items-center justify-center hover:bg-muted rounded transition-colors"
