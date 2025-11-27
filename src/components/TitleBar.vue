@@ -9,12 +9,12 @@ import Icon from "@/assets/icon.svg";
         <div class="flex items-center gap-2">
             <img
                 :src="Icon"
-                alt="Riptide Icon"
+                alt="Proxima Icon"
                 class="h-6 brightness-0 invert"
             />
             <img
                 :src="LogoText"
-                alt="Riptide"
+                alt="Proxima"
                 class="h-4 brightness-0 invert"
             />
         </div>
