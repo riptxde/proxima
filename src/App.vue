@@ -26,7 +26,7 @@ import StarsBackground from "@/components/ui/bg-stars/StarsBackground.vue";
             <div class="flex-1 overflow-hidden bg-sidebar pr-2 pb-2">
                 <!-- Content Area with rounded corners -->
                 <div
-                    class="h-full overflow-hidden flex flex-col relative bg-background rounded-lg border border-border"
+                    class="h-full overflow-hidden flex flex-col relative bg-card rounded-lg border border-border shadow-sm"
                 >
                     <div
                         class="absolute inset-0 z-0 pointer-events-none rounded-lg"
