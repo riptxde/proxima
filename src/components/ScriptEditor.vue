@@ -18,8 +18,7 @@ const editorOptions = {
         horizontalScrollbarSize: 12,
     },
     fontSize: 14,
-    fontFamily:
-        "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+    fontFamily: "Cascadia Code, ui-monospace, monospace",
     lineNumbers: "on",
     roundedSelection: true,
     padding: {

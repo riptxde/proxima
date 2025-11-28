@@ -1,3 +1,27 @@
+@font-face {
+    font-family: "Geist";
+    src: url("/src/assets/fonts/Geist[wght].woff2") format("woff2-variations");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Cascadia Code";
+    src: url("/src/assets/fonts/CascadiaCode.woff2") format("woff2");
+    font-weight: 200 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: "Cascadia Code";
+    src: url("/src/assets/fonts/CascadiaCodeItalic.woff2") format("woff2");
+    font-weight: 200 700;
+    font-style: italic;
+    font-display: swap;
+}
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -73,7 +97,7 @@
     --sidebar-border: #ffffff1a;
     --sidebar-ring: #737373;
     --font-sans: "Geist", system-ui, -apple-system, sans-serif;
-    --font-mono: "Geist Mono", ui-monospace, monospace;
+    --font-mono: "Cascadia Code", ui-monospace, monospace;
 }
 
 @layer base {
