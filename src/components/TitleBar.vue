@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { X, Minus, Square } from "lucide-vue-next";
-import LogoText from "@/assets/logo-text.svg";
 import Icon from "@/assets/icon.svg";
 </script>
 
@@ -12,11 +11,16 @@ import Icon from "@/assets/icon.svg";
                 alt="Proxima Icon"
                 class="h-6 brightness-0 invert"
             />
-            <img
-                :src="LogoText"
-                alt="Proxima"
-                class="h-4 brightness-0 invert"
-            />
+            <span
+                class="text-foreground font-title text-xl mt-1.5 tracking-wider"
+                style="
+                    font-feature-settings:
+                        &quot;liga&quot; 1,
+                        &quot;calt&quot; 1;
+                "
+            >
+                PROXIMA
+            </span>
         </div>
         <div class="flex items-center gap-2">
             <button

@@ -22,6 +22,14 @@
     font-display: swap;
 }
 
+@font-face {
+    font-family: "Foglihtenno06";
+    src: url("/src/assets/fonts/Foglihtenno06.otf") format("opentype");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -98,6 +106,7 @@
     --sidebar-ring: #737373;
     --font-sans: "Geist", system-ui, -apple-system, sans-serif;
     --font-mono: "Cascadia Code", ui-monospace, monospace;
+    --font-title: "Foglihtenno06", monospace;
 }
 
 @layer base {
@@ -106,5 +115,11 @@
     }
     body {
         @apply bg-background text-foreground;
+    }
+}
+
+@layer utilities {
+    .font-title {
+        font-family: var(--font-title);
     }
 }
