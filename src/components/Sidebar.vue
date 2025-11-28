@@ -14,7 +14,7 @@ import {
             <Tooltip>
                 <TooltipTrigger as-child>
                     <button
-                        class="h-12 w-12 flex items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-accent-foreground transition-colors"
+                        class="h-12 w-12 flex items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-accent-foreground"
                     >
                         <CodeXml :size="20" />
                     </button>
@@ -27,7 +27,7 @@ import {
             <Tooltip>
                 <TooltipTrigger as-child>
                     <button
-                        class="h-12 w-12 flex items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/60 transition-colors"
+                        class="h-12 w-12 flex items-center justify-center rounded-lg text-sidebar-foreground opacity-60 hover:opacity-100 transition-opacity"
                     >
                         <Library :size="20" />
                     </button>
@@ -40,7 +40,7 @@ import {
             <Tooltip>
                 <TooltipTrigger as-child>
                     <button
-                        class="h-12 w-12 flex items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/60 transition-colors"
+                        class="h-12 w-12 flex items-center justify-center rounded-lg text-sidebar-foreground opacity-60 hover:opacity-100 transition-opacity"
                     >
                         <Logs :size="20" />
                     </button>
@@ -53,7 +53,7 @@ import {
             <Tooltip>
                 <TooltipTrigger as-child>
                     <button
-                        class="h-12 w-12 flex items-center justify-center rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/60 transition-colors"
+                        class="h-12 w-12 flex items-center justify-center rounded-lg text-sidebar-foreground opacity-60 hover:opacity-100 transition-opacity"
                     >
                         <Settings :size="20" />
                     </button>

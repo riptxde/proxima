@@ -14,12 +14,12 @@ import {
     <div class="flex justify-center items-center py-4">
         <TooltipProvider>
             <DockLiquidGlass>
-                <Dock class="!m-0">
+                <Dock class="m-0!">
                     <Tooltip>
                         <TooltipTrigger as-child>
                             <DockIcon>
                                 <Play
-                                    class="size-5 text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground transition-colors"
+                                    class="size-5 text-sidebar-foreground opacity-60 group-hover:opacity-100 transition-opacity"
                                 />
                             </DockIcon>
                         </TooltipTrigger>
@@ -32,7 +32,7 @@ import {
                         <TooltipTrigger as-child>
                             <DockIcon>
                                 <Eraser
-                                    class="size-5 text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground transition-colors"
+                                    class="size-5 text-sidebar-foreground opacity-60 group-hover:opacity-100 transition-opacity"
                                 />
                             </DockIcon>
                         </TooltipTrigger>
@@ -45,7 +45,7 @@ import {
                         <TooltipTrigger as-child>
                             <DockIcon>
                                 <FolderOpen
-                                    class="size-5 text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground transition-colors"
+                                    class="size-5 text-sidebar-foreground opacity-60 group-hover:opacity-100 transition-opacity"
                                 />
                             </DockIcon>
                         </TooltipTrigger>
@@ -58,7 +58,7 @@ import {
                         <TooltipTrigger as-child>
                             <DockIcon>
                                 <Save
-                                    class="size-5 text-sidebar-foreground/60 group-hover:text-sidebar-accent-foreground transition-colors"
+                                    class="size-5 text-sidebar-foreground opacity-60 group-hover:opacity-100 transition-opacity"
                                 />
                             </DockIcon>
                         </TooltipTrigger>
