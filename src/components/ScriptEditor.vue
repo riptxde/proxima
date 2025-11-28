@@ -1,17 +1,44 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { Textarea } from "@/components/ui/textarea";
+import { VueMonacoEditor } from "@guolao/vue-monaco-editor";
 import { Card } from "@/components/ui/card";
 
-const scriptContent = ref("");
+const scriptContent = ref("-- Write your script here...");
+
+const editorOptions = {
+    automaticLayout: true,
+    formatOnType: true,
+    formatOnPaste: true,
+    minimap: {
+        enabled: false,
+    },
+    scrollbar: {
+        verticalScrollbarSize: 12,
+        horizontalScrollbarSize: 12,
+    },
+    fontSize: 14,
+    fontFamily:
+        "Geist Mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+    lineNumbers: "on",
+    roundedSelection: false,
+    padding: {
+        top: 12,
+        bottom: 12,
+    },
+    overviewRulerLanes: 0,
+    hideCursorInOverviewRuler: true,
+    scrollBeyondLastLine: false,
+};
 </script>
 
 <template>
     <Card class="h-full overflow-hidden p-0">
-        <Textarea
-            v-model="scriptContent"
-            placeholder="-- Write your script here..."
-            class="h-full w-full resize-none font-mono text-sm rounded-none border-0 px-4 py-3 shadow-none focus-visible:ring-0 bg-card!"
+        <VueMonacoEditor
+            v-model:value="scriptContent"
+            theme="vs-dark"
+            language="lua"
+            :options="editorOptions"
+            class="h-full w-full"
         />
     </Card>
 </template>
