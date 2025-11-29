@@ -1,18 +1,38 @@
 <script setup lang="ts">
 import { X, Minus, Square } from "lucide-vue-next";
 import Icon from "@/assets/icon.svg";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+
+const appWindow = getCurrentWindow();
+
+const minimizeWindow = async () => {
+    await appWindow.minimize();
+};
+
+const toggleMaximize = async () => {
+    await appWindow.toggleMaximize();
+};
+
+const closeWindow = async () => {
+    await appWindow.close();
+};
 </script>
 
 <template>
-    <div class="h-12 bg-muted/50 flex items-center justify-between px-4">
-        <div class="flex items-center gap-2">
+    <div
+        data-tauri-drag-region
+        class="h-12 bg-muted/50 flex items-center justify-between px-4 select-none"
+    >
+        <div class="flex items-center gap-2" data-tauri-drag-region>
             <img
                 :src="Icon"
                 alt="Proxima Icon"
                 class="h-6 brightness-0 invert"
+                data-tauri-drag-region
             />
             <span
                 class="text-foreground font-title text-xl mt-1.5 tracking-wider"
+                data-tauri-drag-region
                 style="
                     font-feature-settings:
                         &quot;liga&quot; 1,
@@ -22,22 +42,35 @@ import Icon from "@/assets/icon.svg";
                 PROXIMA
             </span>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 relative z-10">
             <button
-                class="h-6 w-6 flex items-center justify-center hover:bg-muted rounded transition-colors"
+                @click="minimizeWindow"
+                class="h-6 w-6 flex items-center justify-center hover:bg-muted rounded transition-colors cursor-pointer"
+                type="button"
             >
                 <Minus :size="16" />
             </button>
             <button
-                class="h-6 w-6 flex items-center justify-center hover:bg-muted rounded transition-colors"
+                @click="toggleMaximize"
+                class="h-6 w-6 flex items-center justify-center hover:bg-muted rounded transition-colors cursor-pointer"
+                type="button"
             >
                 <Square :size="14" />
             </button>
             <button
-                class="h-6 w-6 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground rounded transition-colors"
+                @click="closeWindow"
+                class="h-6 w-6 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground rounded transition-colors cursor-pointer"
+                type="button"
             >
                 <X :size="16" />
             </button>
         </div>
     </div>
 </template>
+
+<style scoped>
+/* Prevent drag region on buttons */
+button {
+    -webkit-app-region: no-drag;
+}
+</style>
