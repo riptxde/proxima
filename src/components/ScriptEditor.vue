@@ -4,19 +4,18 @@ import { VueMonacoEditor } from "@guolao/vue-monaco-editor";
 import { Card } from "@/components/ui/card";
 import { X, Plus } from "lucide-vue-next";
 import type * as Monaco from "monaco-editor";
+import { useTabState } from "@/composables/useTabState";
 
-interface Tab {
-    id: number;
-    name: string;
-    content: string;
-}
+const {
+    tabs,
+    activeTabId,
+    addTab,
+    closeTab,
+    selectTab: setActiveTab,
+    renameTab,
+    updateTabContent,
+} = useTabState();
 
-const tabs = ref<Tab[]>([
-    { id: 1, name: "Script 1", content: "-- Write your script here..." },
-]);
-
-const activeTabId = ref(1);
-const nextTabId = ref(2);
 const editingTabId = ref<number | null>(null);
 const editingTabName = ref("");
 const inputWidth = ref(0);
@@ -30,42 +29,14 @@ const scriptContent = computed({
     set: (value: string) => {
         const tab = activeTab.value;
         if (tab) {
-            tab.content = value;
+            updateTabContent(tab.id, value);
         }
     },
 });
 
-const addTab = () => {
-    const newTab: Tab = {
-        id: nextTabId.value,
-        name: `Script ${nextTabId.value}`,
-        content: "-- Write your script here...",
-    };
-    nextTabId.value++;
-    tabs.value.push(newTab);
-    activeTabId.value = newTab.id;
-};
-
-const closeTab = (tabId: number) => {
-    if (tabs.value.length === 1) return;
-
-    const index = tabs.value.findIndex((tab) => tab.id === tabId);
-    if (index === -1) return;
-
-    tabs.value.splice(index, 1);
-
-    if (activeTabId.value === tabId) {
-        const newIndex = Math.max(0, index - 1);
-        const newTab = tabs.value[newIndex];
-        if (newTab) {
-            activeTabId.value = newTab.id;
-        }
-    }
-};
-
 const selectTab = (tabId: number) => {
     if (editingTabId.value === null) {
-        activeTabId.value = tabId;
+        setActiveTab(tabId);
     }
 };
 
@@ -108,11 +79,7 @@ const updateInputWidth = () => {
 const finishRenaming = () => {
     if (editingTabId.value === null) return;
 
-    const tab = tabs.value.find((t) => t.id === editingTabId.value);
-    if (tab && editingTabName.value.trim()) {
-        tab.name = editingTabName.value.trim();
-    }
-
+    renameTab(editingTabId.value, editingTabName.value);
     editingTabId.value = null;
 };
 

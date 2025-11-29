@@ -7,7 +7,11 @@ use tauri::AppHandle;
 #[serde(tag = "type")]
 pub enum FileNode {
     #[serde(rename = "file")]
-    File { id: String, name: String },
+    File {
+        id: String,
+        name: String,
+        path: String, // Relative path from base directory
+    },
     #[serde(rename = "folder")]
     Folder {
         id: String,
@@ -74,21 +78,42 @@ fn read_file_tree(app: AppHandle) -> Result<Vec<FileNode>, String> {
     // Read Scripts directory
     let scripts_dir = base_dir.join("Scripts");
     if scripts_dir.exists() {
-        let scripts_node = read_directory(&scripts_dir, "scripts", "Scripts")?;
+        let scripts_node = read_directory(&scripts_dir, &base_dir, "scripts", "Scripts")?;
         nodes.push(scripts_node);
     }
 
     // Read AutoExec directory
     let autoexec_dir = base_dir.join("AutoExec");
     if autoexec_dir.exists() {
-        let autoexec_node = read_directory(&autoexec_dir, "autoexec", "AutoExec")?;
+        let autoexec_node = read_directory(&autoexec_dir, &base_dir, "autoexec", "AutoExec")?;
         nodes.push(autoexec_node);
     }
 
     Ok(nodes)
 }
 
-fn read_directory(path: &Path, id: &str, name: &str) -> Result<FileNode, String> {
+#[tauri::command]
+fn read_file_content(app: AppHandle, relative_path: String) -> Result<String, String> {
+    let base_dir = get_base_directory(&app)?;
+    let file_path = base_dir.join(relative_path);
+
+    // Security check: ensure the file is within the base directory
+    let canonical_base = base_dir
+        .canonicalize()
+        .map_err(|e| format!("Failed to canonicalize base directory: {}", e))?;
+    let canonical_file = file_path
+        .canonicalize()
+        .map_err(|e| format!("Failed to canonicalize file path: {}", e))?;
+
+    if !canonical_file.starts_with(canonical_base) {
+        return Err("Access denied: file is outside allowed directory".to_string());
+    }
+
+    fs::read_to_string(&file_path)
+        .map_err(|e| format!("Failed to read file: {}", e))
+}
+
+fn read_directory(path: &Path, base_dir: &Path, id: &str, name: &str) -> Result<FileNode, String> {
     let mut children = Vec::new();
     let mut id_counter = 0;
 
@@ -109,12 +134,20 @@ fn read_directory(path: &Path, id: &str, name: &str) -> Result<FileNode, String>
         id_counter += 1;
 
         if entry_path.is_dir() {
-            let child_node = read_directory(&entry_path, &entry_id, &entry_name)?;
+            let child_node = read_directory(&entry_path, base_dir, &entry_id, &entry_name)?;
             children.push(child_node);
         } else {
+            // Calculate relative path from base directory
+            let relative_path = entry_path
+                .strip_prefix(base_dir)
+                .map_err(|e| format!("Failed to get relative path: {}", e))?
+                .to_string_lossy()
+                .to_string();
+
             children.push(FileNode::File {
                 id: entry_id,
                 name: entry_name,
+                path: relative_path,
             });
         }
     }
@@ -143,7 +176,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_scripts_path,
             initialize_directories,
-            read_file_tree
+            read_file_tree,
+            read_file_content
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

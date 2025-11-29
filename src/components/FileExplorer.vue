@@ -6,10 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-vue-next";
 import { invoke } from "@tauri-apps/api/core";
 import type { FileNode } from "@/types/fileTree";
+import { useTabState } from "@/composables/useTabState";
 
 const fileTree = ref<FileNode[]>([]);
 const searchQuery = ref("");
 let watchInterval: number | null = null;
+
+const { openFile } = useTabState();
 
 // Initialize directories and load file tree
 async function initializeFileSystem() {
@@ -48,6 +51,21 @@ function stopWatching() {
     }
 }
 
+// Handle file click
+async function handleFileClick(filePath: string, fileName: string) {
+    try {
+        // Read the file content from the backend
+        const content = await invoke<string>("read_file_content", {
+            relativePath: filePath,
+        });
+
+        // Open the file in a new tab
+        openFile(fileName, content, filePath);
+    } catch (error) {
+        console.error("Failed to open file:", error);
+    }
+}
+
 // Recursively render file tree nodes
 function renderNode(node: FileNode): any {
     if (node.type === "folder") {
@@ -55,7 +73,11 @@ function renderNode(node: FileNode): any {
             node.children.map((child) => renderNode(child)),
         );
     } else {
-        return h(File, { id: node.id, name: node.name });
+        return h(File, {
+            id: node.id,
+            name: node.name,
+            onClick: () => handleFileClick(node.path, node.name),
+        });
     }
 }
 
