@@ -6,13 +6,17 @@ import { Search } from "lucide-vue-next";
 </script>
 
 <template>
-    <Card class="h-full overflow-auto p-2 flex flex-col gap-2">
+    <Card class="h-full p-2 flex flex-col gap-3">
         <!-- Search Bar -->
-        <div class="relative mb-2">
+        <div class="relative">
             <Search
-                class="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+                class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
             />
-            <Input type="text" placeholder="Search" class="pl-8 border-none" />
+            <Input
+                type="text"
+                placeholder="Search"
+                class="pl-9 border-none h-[46px] text-sm"
+            />
         </div>
 
         <!-- File Tree -->
