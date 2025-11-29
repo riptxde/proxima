@@ -15,7 +15,7 @@ import { Search } from "lucide-vue-next";
             <Input
                 type="text"
                 placeholder="Search"
-                class="pl-9 border-none h-[46px] text-sm"
+                class="pl-9 border-none h-[46px] text-sm bg-container-bg"
             />
         </div>
 
