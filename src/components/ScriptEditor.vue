@@ -145,6 +145,11 @@ const handleMount = (
     _editor: Monaco.editor.IStandaloneCodeEditor,
     monaco: typeof Monaco,
 ) => {
+    // Wait for fonts to load before measuring
+    document.fonts.ready.then(() => {
+        monaco.editor.remeasureFonts();
+    });
+
     // Define the Roblox Dark theme
     monaco.editor.defineTheme("roblox-dark", {
         base: "vs-dark",
