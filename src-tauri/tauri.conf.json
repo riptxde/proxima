@@ -2,10 +2,10 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "proxima",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.proxima.desktop",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:5173",
+    "devUrl": "http://localhost:13376",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },
@@ -40,7 +40,7 @@
         "displayLanguageSelector": false,
         "installerIcon": "icons/icon.ico",
         "installMode": "currentUser",
-        "languages": ["en-US"]
+        "languages": ["English"]
       }
     },
     "icon": ["icons/icon.ico"]
