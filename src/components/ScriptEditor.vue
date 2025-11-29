@@ -56,7 +56,10 @@ const closeTab = (tabId: number) => {
 
     if (activeTabId.value === tabId) {
         const newIndex = Math.max(0, index - 1);
-        activeTabId.value = tabs.value[newIndex].id;
+        const newTab = tabs.value[newIndex];
+        if (newTab) {
+            activeTabId.value = newTab.id;
+        }
     }
 };
 
