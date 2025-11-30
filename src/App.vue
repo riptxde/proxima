@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import "vue-sonner/style.css";
 import {
     ResizablePanelGroup,
     ResizablePanel,
@@ -10,6 +11,7 @@ import ScriptEditor from "@/components/ScriptEditor.vue";
 import FileExplorer from "@/components/FileExplorer.vue";
 import DockArea from "@/components/DockArea.vue";
 import StarsBackground from "@/components/ui/bg-stars/StarsBackground.vue";
+import { Toaster } from "@/components/ui/sonner";
 </script>
 
 <template>
@@ -64,5 +66,6 @@ import StarsBackground from "@/components/ui/bg-stars/StarsBackground.vue";
                 </div>
             </div>
         </div>
+        <Toaster position="top-center" :duration="2000" />
     </div>
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
+import { toast } from "vue-sonner";
 import { Dock, DockIcon } from "@/components/ui/dock";
 import { Play, Eraser, FolderOpen, Save } from "lucide-vue-next";
 import DockLiquidGlass from "@/components/DockLiquidGlass.vue";
@@ -49,9 +50,13 @@ const handleSave = async (filename: string, folder: "Scripts" | "AutoExec") => {
             content,
         });
 
-        console.log(`File saved successfully: ${relativePath}`);
+        toast.success("File saved successfully", {
+            description: relativePath,
+        });
     } catch (error) {
-        console.error("Failed to save file:", error);
+        toast.error("Failed to save file", {
+            description: error instanceof Error ? error.message : String(error),
+        });
     }
 };
 </script>

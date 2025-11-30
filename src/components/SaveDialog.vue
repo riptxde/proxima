@@ -54,14 +54,14 @@ const handleCancel = () => {
             <DialogHeader>
                 <DialogTitle>Save Script</DialogTitle>
                 <DialogDescription>
-                    Enter a filename and select the destination folder for your
+                    Enter a file name and select the destination folder for your
                     script.
                 </DialogDescription>
             </DialogHeader>
             <div class="grid gap-4 py-4">
                 <div class="grid gap-2">
                     <label for="filename" class="text-sm font-medium">
-                        Filename
+                        File Name
                     </label>
                     <Input
                         id="filename"
@@ -72,7 +72,7 @@ const handleCancel = () => {
                 </div>
                 <div class="grid gap-2">
                     <label for="folder" class="text-sm font-medium">
-                        Save to
+                        Destination
                     </label>
                     <Select v-model="selectedFolder">
                         <SelectTrigger id="folder">
