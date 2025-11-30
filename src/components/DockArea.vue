@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { invoke } from "@tauri-apps/api/core";
 import { Dock, DockIcon } from "@/components/ui/dock";
 import { Play, Eraser, FolderOpen, Save } from "lucide-vue-next";
 import DockLiquidGlass from "@/components/DockLiquidGlass.vue";
@@ -10,10 +11,12 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useTabState } from "@/composables/useTabState";
+import SaveDialog from "@/components/SaveDialog.vue";
 
-const { clearActiveTab, openFileAsTab } = useTabState();
+const { clearActiveTab, openFileAsTab, getActiveTabContent } = useTabState();
 
 const fileInputRef = ref<HTMLInputElement | null>(null);
+const saveDialogOpen = ref(false);
 
 const handleOpenScript = () => {
     fileInputRef.value?.click();
@@ -30,6 +33,26 @@ const handleFileChange = async (event: Event) => {
 
     // Reset input so the same file can be opened again
     input.value = "";
+};
+
+const handleSaveClick = () => {
+    saveDialogOpen.value = true;
+};
+
+const handleSave = async (filename: string, folder: "Scripts" | "AutoExec") => {
+    try {
+        const content = getActiveTabContent();
+
+        const relativePath = await invoke<string>("save_file", {
+            filename,
+            folder,
+            content,
+        });
+
+        console.log(`File saved successfully: ${relativePath}`);
+    } catch (error) {
+        console.error("Failed to save file:", error);
+    }
 };
 </script>
 
@@ -88,7 +111,7 @@ const handleFileChange = async (event: Event) => {
 
                     <Tooltip>
                         <TooltipTrigger as-child>
-                            <DockIcon>
+                            <DockIcon @click="handleSaveClick">
                                 <Save
                                     class="size-5 text-sidebar-foreground opacity-60 group-hover:opacity-100 transition-opacity"
                                 />
@@ -101,5 +124,8 @@ const handleFileChange = async (event: Event) => {
                 </Dock>
             </DockLiquidGlass>
         </TooltipProvider>
+
+        <!-- Save Dialog -->
+        <SaveDialog v-model:open="saveDialogOpen" @save="handleSave" />
     </div>
 </template>

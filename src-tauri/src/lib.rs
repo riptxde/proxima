@@ -28,15 +28,17 @@ fn get_base_directory(_app: &AppHandle) -> Result<PathBuf, String> {
             .map_err(|e| format!("Failed to get current directory: {}", e))?;
 
         // Go up one directory from src-tauri to project root
-        let project_root = current_dir.parent()
+        let project_root = current_dir
+            .parent()
             .ok_or_else(|| "Failed to get parent directory".to_string())?;
 
         Ok(project_root.join("@dev"))
     } else {
         // Production mode: use directory where the executable is located
-        let exe_path = std::env::current_exe()
-            .map_err(|e| format!("Failed to get executable path: {}", e))?;
-        let exe_dir = exe_path.parent()
+        let exe_path =
+            std::env::current_exe().map_err(|e| format!("Failed to get executable path: {}", e))?;
+        let exe_dir = exe_path
+            .parent()
             .ok_or_else(|| "Failed to get executable directory".to_string())?;
         Ok(exe_dir.to_path_buf())
     }
@@ -108,9 +110,54 @@ fn read_file_content(app: AppHandle, relative_path: String) -> Result<String, St
     if !canonical_file.starts_with(canonical_base) {
         return Err("Access denied: file is outside allowed directory".to_string());
     }
+    fs::read_to_string(&file_path).map_err(|e| format!("Failed to read file: {}", e))
+}
 
-    fs::read_to_string(&file_path)
-        .map_err(|e| format!("Failed to read file: {}", e))
+#[tauri::command]
+fn save_file(
+    app: AppHandle,
+    filename: String,
+    folder: String,
+    content: String,
+) -> Result<String, String> {
+    let base_dir = get_base_directory(&app)?;
+
+    // Validate folder is either "Scripts" or "AutoExec"
+    if folder != "Scripts" && folder != "AutoExec" {
+        return Err("Invalid folder: must be 'Scripts' or 'AutoExec'".to_string());
+    }
+
+    let folder_path = base_dir.join(&folder);
+
+    // Ensure the folder exists
+    if !folder_path.exists() {
+        fs::create_dir_all(&folder_path)
+            .map_err(|e| format!("Failed to create {} directory: {}", folder, e))?;
+    }
+
+    // Sanitize filename to prevent path traversal
+    let safe_filename = filename
+        .replace('/', "")
+        .replace('\\', "")
+        .replace("..", "");
+
+    if safe_filename.is_empty() {
+        return Err("Invalid filename".to_string());
+    }
+
+    let file_path = folder_path.join(&safe_filename);
+
+    // Write the file
+    fs::write(&file_path, content).map_err(|e| format!("Failed to write file: {}", e))?;
+
+    // Return the relative path
+    let relative_path = file_path
+        .strip_prefix(&base_dir)
+        .map_err(|e| format!("Failed to get relative path: {}", e))?
+        .to_string_lossy()
+        .to_string();
+
+    Ok(relative_path)
 }
 
 fn read_directory(path: &Path, base_dir: &Path, id: &str, name: &str) -> Result<FileNode, String> {
@@ -125,10 +172,7 @@ fn read_directory(path: &Path, base_dir: &Path, id: &str, name: &str) -> Result<
 
     for entry in sorted_entries {
         let entry_path = entry.path();
-        let entry_name = entry
-            .file_name()
-            .to_string_lossy()
-            .to_string();
+        let entry_name = entry.file_name().to_string_lossy().to_string();
 
         let entry_id = format!("{}-{}", id, id_counter);
         id_counter += 1;
@@ -177,7 +221,8 @@ pub fn run() {
             get_scripts_path,
             initialize_directories,
             read_file_tree,
-            read_file_content
+            read_file_content,
+            save_file
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

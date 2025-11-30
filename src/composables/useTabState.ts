@@ -104,6 +104,11 @@ export function useTabState() {
     activeTabId.value = newTab.id;
   };
 
+  const getActiveTabContent = () => {
+    const tab = tabs.value.find((t) => t.id === activeTabId.value);
+    return tab?.content ?? "";
+  };
+
   return {
     tabs,
     activeTabId,
@@ -115,5 +120,6 @@ export function useTabState() {
     updateTabContent,
     clearActiveTab,
     openFileAsTab,
+    getActiveTabContent,
   };
 }
