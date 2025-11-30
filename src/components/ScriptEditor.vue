@@ -242,7 +242,7 @@ const handleMount = (
                         <button
                             @click="selectTab(tab.id)"
                             :class="[
-                                'flex items-center gap-2 px-3 py-1.5 rounded transition-all duration-200 border',
+                                'flex items-center gap-2 px-3 py-1.5 rounded transition-all duration-300 ease-in-out border',
                                 activeTabId === tab.id
                                     ? 'border-border text-foreground'
                                     : 'border-transparent text-muted-foreground hover:text-foreground',
