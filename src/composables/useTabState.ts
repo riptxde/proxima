@@ -109,6 +109,18 @@ export function useTabState() {
     return tab?.content ?? "";
   };
 
+  const getActiveTabFilePath = () => {
+    const tab = tabs.value.find((t) => t.id === activeTabId.value);
+    return tab?.filePath;
+  };
+
+  const updateActiveTabFilePath = (filePath: string) => {
+    const tab = tabs.value.find((t) => t.id === activeTabId.value);
+    if (tab) {
+      tab.filePath = filePath;
+    }
+  };
+
   return {
     tabs,
     activeTabId,
@@ -121,5 +133,7 @@ export function useTabState() {
     clearActiveTab,
     openFileAsTab,
     getActiveTabContent,
+    getActiveTabFilePath,
+    updateActiveTabFilePath,
   };
 }
