@@ -84,6 +84,13 @@ export function useTabState() {
     }
   };
 
+  const clearActiveTab = () => {
+    const tab = tabs.value.find((t) => t.id === activeTabId.value);
+    if (tab) {
+      tab.content = "";
+    }
+  };
+
   return {
     tabs,
     activeTabId,
@@ -93,5 +100,6 @@ export function useTabState() {
     selectTab,
     renameTab,
     updateTabContent,
+    clearActiveTab,
   };
 }

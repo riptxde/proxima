@@ -8,6 +8,9 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useTabState } from "@/composables/useTabState";
+
+const { clearActiveTab } = useTabState();
 </script>
 
 <template>
@@ -30,7 +33,7 @@ import {
 
                     <Tooltip>
                         <TooltipTrigger as-child>
-                            <DockIcon>
+                            <DockIcon @click="clearActiveTab">
                                 <Eraser
                                     class="size-5 text-sidebar-foreground opacity-60 group-hover:opacity-100 transition-opacity"
                                 />
