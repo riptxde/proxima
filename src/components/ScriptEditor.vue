@@ -2,6 +2,12 @@
 import { ref, computed, nextTick } from "vue";
 import { VueMonacoEditor } from "@guolao/vue-monaco-editor";
 import { Card } from "@/components/ui/card";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { X, Plus } from "lucide-vue-next";
 import type * as Monaco from "monaco-editor";
 import { useTabState } from "@/composables/useTabState";
@@ -230,44 +236,51 @@ const handleMount = (
         <div
             class="flex items-center gap-1 bg-container-bg rounded-md p-1.5 overflow-x-auto"
         >
-            <button
-                v-for="tab in tabs"
-                :key="tab.id"
-                @click="selectTab(tab.id)"
-                :class="[
-                    'flex items-center gap-2 px-3 py-1.5 rounded transition-all duration-200 border',
-                    activeTabId === tab.id
-                        ? 'border-border text-foreground'
-                        : 'border-transparent text-muted-foreground hover:text-foreground',
-                ]"
-            >
-                <input
-                    v-if="editingTabId === tab.id"
-                    v-model="editingTabName"
-                    @input="updateInputWidth"
-                    @blur="finishRenaming"
-                    @keydown.enter="finishRenaming"
-                    @keydown.esc="cancelRenaming"
-                    @click.stop
-                    :data-tab-id="tab.id"
-                    :style="{ width: inputWidth + 'px' }"
-                    class="text-sm bg-transparent border-none outline-none"
-                />
-                <span
-                    v-else
-                    @dblclick="startRenaming(tab.id, $event)"
-                    class="text-sm truncate max-w-24"
-                >
-                    {{ tab.name }}
-                </span>
-                <button
-                    v-if="tabs.length > 1"
-                    @click.stop="closeTab(tab.id)"
-                    class="hover:text-destructive transition-colors"
-                >
-                    <X class="h-3.5 w-3.5" />
-                </button>
-            </button>
+            <TooltipProvider>
+                <Tooltip v-for="tab in tabs" :key="tab.id">
+                    <TooltipTrigger as-child>
+                        <button
+                            @click="selectTab(tab.id)"
+                            :class="[
+                                'flex items-center gap-2 px-3 py-1.5 rounded transition-all duration-200 border',
+                                activeTabId === tab.id
+                                    ? 'border-border text-foreground'
+                                    : 'border-transparent text-muted-foreground hover:text-foreground',
+                            ]"
+                        >
+                            <input
+                                v-if="editingTabId === tab.id"
+                                v-model="editingTabName"
+                                @input="updateInputWidth"
+                                @blur="finishRenaming"
+                                @keydown.enter="finishRenaming"
+                                @keydown.esc="cancelRenaming"
+                                @click.stop
+                                :data-tab-id="tab.id"
+                                :style="{ width: inputWidth + 'px' }"
+                                class="text-sm bg-transparent border-none outline-none"
+                            />
+                            <span
+                                v-else
+                                @dblclick="startRenaming(tab.id, $event)"
+                                class="text-sm truncate max-w-24"
+                            >
+                                {{ tab.name }}
+                            </span>
+                            <button
+                                v-if="tabs.length > 1"
+                                @click.stop="closeTab(tab.id)"
+                                class="hover:text-destructive transition-colors"
+                            >
+                                <X class="h-3.5 w-3.5" />
+                            </button>
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent v-if="tab.filePath">
+                        <p class="text-xs">{{ tab.filePath }}</p>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
 
             <button
                 @click="addTab"
