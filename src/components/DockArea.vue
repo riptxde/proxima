@@ -74,7 +74,7 @@ const handleSave = async (filename: string, folder: "Scripts" | "AutoExec") => {
                         <TooltipTrigger as-child>
                             <DockIcon>
                                 <Play
-                                    class="size-5 text-sidebar-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+                                    class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
                                 />
                             </DockIcon>
                         </TooltipTrigger>
@@ -87,7 +87,7 @@ const handleSave = async (filename: string, folder: "Scripts" | "AutoExec") => {
                         <TooltipTrigger as-child>
                             <DockIcon @click="clearActiveTab">
                                 <Eraser
-                                    class="size-5 text-sidebar-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+                                    class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
                                 />
                             </DockIcon>
                         </TooltipTrigger>
@@ -100,7 +100,7 @@ const handleSave = async (filename: string, folder: "Scripts" | "AutoExec") => {
                         <TooltipTrigger as-child>
                             <DockIcon @click="handleOpenScript">
                                 <FolderOpen
-                                    class="size-5 text-sidebar-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+                                    class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
                                 />
                             </DockIcon>
                         </TooltipTrigger>
@@ -113,7 +113,7 @@ const handleSave = async (filename: string, folder: "Scripts" | "AutoExec") => {
                         <TooltipTrigger as-child>
                             <DockIcon @click="handleSaveClick">
                                 <Save
-                                    class="size-5 text-sidebar-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+                                    class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
                                 />
                             </DockIcon>
                         </TooltipTrigger>

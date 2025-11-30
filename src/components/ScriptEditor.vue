@@ -234,7 +234,7 @@ const handleMount = (
     <Card class="h-full overflow-hidden p-2 flex flex-col gap-3">
         <!-- Tab Bar -->
         <div
-            class="flex items-center gap-1 bg-container-bg rounded-md p-1.5 overflow-x-auto"
+            class="flex items-center gap-1 bg-tab-bar rounded-md p-1.5 overflow-x-auto"
         >
             <TooltipProvider>
                 <Tooltip v-for="tab in tabs" :key="tab.id">

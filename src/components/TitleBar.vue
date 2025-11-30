@@ -22,7 +22,7 @@ const closeWindow = async () => {
 <template>
     <div
         data-tauri-drag-region
-        class="h-12 bg-muted/50 flex items-center justify-between px-4 select-none"
+        class="h-12 bg-app-shell flex items-center justify-between px-4 select-none"
     >
         <div class="flex items-center gap-2" data-tauri-drag-region>
             <img

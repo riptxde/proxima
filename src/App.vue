@@ -22,8 +22,8 @@ import StarsBackground from "@/components/ui/bg-stars/StarsBackground.vue";
             <!-- Sidebar -->
             <Sidebar />
 
-            <!-- Background matching sidebar color -->
-            <div class="flex-1 overflow-hidden bg-sidebar pr-2 pb-2">
+            <!-- Background matching app shell color -->
+            <div class="flex-1 overflow-hidden bg-app-shell pr-2 pb-2">
                 <!-- Content Area with rounded corners -->
                 <div
                     class="h-full overflow-hidden flex flex-col relative bg-card rounded-lg border border-border shadow-sm"

@@ -10,11 +10,11 @@ import {
 
 <template>
     <TooltipProvider>
-        <div class="w-16 bg-sidebar flex flex-col items-center py-1 gap-2">
+        <div class="w-16 bg-app-shell flex flex-col items-center py-1 gap-2">
             <Tooltip>
                 <TooltipTrigger as-child>
                     <button
-                        class="h-12 w-12 flex items-center justify-center rounded-lg bg-sidebar-accent text-sidebar-accent-foreground"
+                        class="h-12 w-12 flex items-center justify-center rounded-lg bg-app-shell-accent text-app-shell-accent-foreground"
                     >
                         <CodeXml :size="20" />
                     </button>
@@ -27,7 +27,7 @@ import {
             <Tooltip>
                 <TooltipTrigger as-child>
                     <button
-                        class="h-12 w-12 flex items-center justify-center rounded-lg text-sidebar-foreground opacity-60 hover:opacity-100 transition-opacity"
+                        class="h-12 w-12 flex items-center justify-center rounded-lg text-app-shell-foreground opacity-60 hover:opacity-100 transition-opacity"
                     >
                         <Library :size="20" />
                     </button>
@@ -40,7 +40,7 @@ import {
             <Tooltip>
                 <TooltipTrigger as-child>
                     <button
-                        class="h-12 w-12 flex items-center justify-center rounded-lg text-sidebar-foreground opacity-60 hover:opacity-100 transition-opacity"
+                        class="h-12 w-12 flex items-center justify-center rounded-lg text-app-shell-foreground opacity-60 hover:opacity-100 transition-opacity"
                     >
                         <Logs :size="20" />
                     </button>
@@ -53,7 +53,7 @@ import {
             <Tooltip>
                 <TooltipTrigger as-child>
                     <button
-                        class="h-12 w-12 flex items-center justify-center rounded-lg text-sidebar-foreground opacity-60 hover:opacity-100 transition-opacity"
+                        class="h-12 w-12 flex items-center justify-center rounded-lg text-app-shell-foreground opacity-60 hover:opacity-100 transition-opacity"
                     >
                         <Settings :size="20" />
                     </button>

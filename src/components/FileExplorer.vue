@@ -141,7 +141,7 @@ onUnmounted(() => {
                 v-model="searchQuery"
                 type="text"
                 placeholder="Search"
-                class="pl-9 border-none h-[46px] text-sm bg-container-bg"
+                class="pl-9 border-none h-[46px] text-sm bg-tab-bar"
             />
         </div>
 
