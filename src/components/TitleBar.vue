@@ -2,6 +2,7 @@
 import { X, Minus, Square } from "lucide-vue-next";
 import Icon from "@/assets/icon.svg";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import RadiantText from "@/components/ui/radiant-text/RadiantText.vue";
 
 const appWindow = getCurrentWindow();
 
@@ -30,8 +31,10 @@ const closeWindow = async () => {
                 class="h-6 brightness-0 invert"
                 data-tauri-drag-region
             />
-            <span
-                class="text-foreground font-title text-xl mt-1.5 tracking-wider"
+            <RadiantText
+                :duration="4"
+                :radiant-width="100"
+                class="text-foreground font-title text-xl tracking-wider transition ease-out hover:text-white hover:duration-300 mt-1.5"
                 data-tauri-drag-region
                 style="
                     font-feature-settings:
@@ -40,7 +43,7 @@ const closeWindow = async () => {
                 "
             >
                 PROXIMA
-            </span>
+            </RadiantText>
         </div>
         <div class="flex items-center gap-2 relative z-10">
             <button
