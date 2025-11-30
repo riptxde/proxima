@@ -1,11 +1,5 @@
 import { ref } from "vue";
-
-export interface Tab {
-  id: number;
-  name: string;
-  content: string;
-  filePath?: string; // Optional path to the actual file
-}
+import type { Tab } from "../types/tab";
 
 const tabs = ref<Tab[]>([
   { id: 1, name: "Script 1", content: "-- Write your script here..." },
@@ -14,7 +8,7 @@ const tabs = ref<Tab[]>([
 const activeTabId = ref(1);
 const nextTabId = ref(2);
 
-export function useTabState() {
+export function useEditorTabs() {
   const openFile = (fileName: string, content: string, filePath: string) => {
     // Check if file is already open
     const existingTab = tabs.value.find((tab) => tab.filePath === filePath);
