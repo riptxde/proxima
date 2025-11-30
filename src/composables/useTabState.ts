@@ -91,6 +91,19 @@ export function useTabState() {
     }
   };
 
+  const openFileAsTab = (fileName: string, content: string) => {
+    // Create new tab without filePath (no duplicate detection)
+    const newTab: Tab = {
+      id: nextTabId.value,
+      name: fileName,
+      content: content,
+    };
+
+    nextTabId.value++;
+    tabs.value.push(newTab);
+    activeTabId.value = newTab.id;
+  };
+
   return {
     tabs,
     activeTabId,
@@ -101,5 +114,6 @@ export function useTabState() {
     renameTab,
     updateTabContent,
     clearActiveTab,
+    openFileAsTab,
   };
 }
