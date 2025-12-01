@@ -27,7 +27,7 @@ const props = withDefaults(defineProps<TreeProps>(), {
     dir: "ltr",
     openIcon: "lucide:folder-open",
     closeIcon: "lucide:folder",
-    fileIcon: "lucide:file",
+    fileIcon: "lucide:code",
 });
 
 const {

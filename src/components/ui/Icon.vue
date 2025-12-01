@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { FolderOpen, Folder, File } from "lucide-vue-next";
+import { FolderOpen, Folder, Code } from "lucide-vue-next";
 
 interface IconProps {
     name: string;
@@ -20,9 +20,9 @@ const iconComponent = computed(() => {
     const iconMap: Record<string, any> = {
         "lucide:folder-open": FolderOpen,
         "lucide:folder": Folder,
-        "lucide:file": File,
+        "lucide:code": Code,
     };
 
-    return iconMap[props.name] || File;
+    return iconMap[props.name] || Code;
 });
 </script>

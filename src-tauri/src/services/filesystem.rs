@@ -57,7 +57,17 @@ fn read_directory(path: &Path, base_dir: &Path, id: &str, name: &str) -> Result<
         .map_err(|e| format!("Failed to read directory {}: {}", path.display(), e))?;
 
     let mut sorted_entries: Vec<_> = entries.filter_map(|e| e.ok()).collect();
-    sorted_entries.sort_by_key(|e| e.path());
+    // Sort: folders first (alphabetically), then files (alphabetically)
+    sorted_entries.sort_by(|a, b| {
+        let a_is_dir = a.path().is_dir();
+        let b_is_dir = b.path().is_dir();
+
+        match (a_is_dir, b_is_dir) {
+            (true, false) => std::cmp::Ordering::Less, // a is folder, b is file -> a comes first
+            (false, true) => std::cmp::Ordering::Greater, // a is file, b is folder -> b comes first
+            _ => a.file_name().cmp(&b.file_name()),    // both same type -> alphabetical by name
+        }
+    });
 
     for entry in sorted_entries {
         let entry_path = entry.path();
