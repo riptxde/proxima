@@ -51,7 +51,6 @@ pub fn build_file_tree(app: &AppHandle) -> Result<Vec<FileNode>, String> {
 /// Recursively read a directory and build a FileNode tree
 fn read_directory(path: &Path, base_dir: &Path, id: &str, name: &str) -> Result<FileNode, String> {
     let mut children = Vec::new();
-    let mut id_counter = 0;
 
     let entries = fs::read_dir(path)
         .map_err(|e| format!("Failed to read directory {}: {}", path.display(), e))?;
@@ -69,12 +68,11 @@ fn read_directory(path: &Path, base_dir: &Path, id: &str, name: &str) -> Result<
         }
     });
 
-    for entry in sorted_entries {
+    for (id_counter, entry) in sorted_entries.into_iter().enumerate() {
         let entry_path = entry.path();
         let entry_name = entry.file_name().to_string_lossy().to_string();
 
         let entry_id = format!("{}-{}", id, id_counter);
-        id_counter += 1;
 
         if entry_path.is_dir() {
             let child_node = read_directory(&entry_path, base_dir, &entry_id, &entry_name)?;

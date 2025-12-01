@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import "vue-sonner/style.css";
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 import AppShell from "@/components/layout/AppShell.vue";
 import EditorPage from "@/features/editor/components/EditorPage.vue";
 import ScriptHubPage from "@/features/script-hub/components/ScriptHubPage.vue";
@@ -8,8 +8,14 @@ import LogsPage from "@/features/logs/components/LogsPage.vue";
 import SettingsPage from "@/features/settings/components/SettingsPage.vue";
 import { Toaster } from "@/components/ui/sonner";
 import { useNavigation } from "@/composables/useNavigation";
+import { useClients } from "@/features/editor/composables/useClients";
 
 const { activePage } = useNavigation();
+const { initialize } = useClients();
+
+onMounted(() => {
+    initialize();
+});
 
 const currentPageComponent = computed(() => {
     switch (activePage.value) {

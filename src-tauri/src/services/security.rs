@@ -18,10 +18,7 @@ pub fn validate_path(file_path: &Path, base_dir: &Path) -> Result<(), String> {
 
 /// Sanitize a filename to prevent path traversal attacks
 pub fn sanitize_filename(filename: &str) -> Result<String, String> {
-    let safe = filename
-        .replace('/', "")
-        .replace('\\', "")
-        .replace("..", "");
+    let safe = filename.replace(['/', '\\'], "").replace("..", "");
 
     if safe.is_empty() {
         return Err("Invalid filename".to_string());

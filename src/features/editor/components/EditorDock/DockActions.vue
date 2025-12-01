@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Dock, DockIcon } from "@/components/ui/dock";
-import { Play, Eraser, FolderOpen, Save } from "lucide-vue-next";
+import { Play, Eraser, FolderOpen, Save, Users } from "lucide-vue-next";
 import {
     Tooltip,
     TooltipContent,
@@ -13,6 +13,7 @@ defineEmits<{
     clear: [];
     open: [];
     save: [];
+    clients: [];
 }>();
 </script>
 
@@ -29,6 +30,19 @@ defineEmits<{
                 </TooltipTrigger>
                 <TooltipContent :side-offset="-15">
                     <p>Execute</p>
+                </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+                <TooltipTrigger as-child>
+                    <DockIcon @click="$emit('clients')">
+                        <Users
+                            class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+                        />
+                    </DockIcon>
+                </TooltipTrigger>
+                <TooltipContent :side-offset="-15">
+                    <p>Clients</p>
                 </TooltipContent>
             </Tooltip>
 

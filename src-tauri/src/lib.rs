@@ -5,6 +5,11 @@ mod services;
 use commands::editor::{
     get_scripts_path, initialize_directories, read_file_content, read_file_tree, save_file,
 };
+use commands::executor::{execute_script, get_connected_clients};
+use std::collections::HashMap;
+use std::sync::Arc;
+use tauri::Manager;
+use tokio::sync::RwLock;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -18,6 +23,21 @@ pub fn run() {
                         .build(),
                 )?;
             }
+
+            // Initialize client registry
+            let clients: services::websocket::ClientRegistry =
+                Arc::new(RwLock::new(HashMap::new()));
+            app.manage(clients.clone());
+
+            // Start the WebSocket server
+            let app_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) =
+                    services::websocket::start_websocket_server(app_handle, clients).await
+                {
+                    eprintln!("Failed to start WebSocket server: {}", e);
+                }
+            });
 
             // Start the file watcher
             let app_handle = app.handle().clone();
@@ -34,6 +54,9 @@ pub fn run() {
             read_file_tree,
             read_file_content,
             save_file,
+            // Executor commands
+            execute_script,
+            get_connected_clients,
             // Script Hub commands (future)
             // fetch_scripts,
             // Logs commands (future)
