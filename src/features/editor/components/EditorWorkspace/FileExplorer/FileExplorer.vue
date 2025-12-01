@@ -60,7 +60,7 @@ function renderNode(node: FileNode): any {
             </div>
 
             <!-- File Tree -->
-            <div v-if="filteredTree.length > 0" class="space-y-2">
+            <div v-if="filteredTree.length > 0" class="space-y-2 min-w-max">
                 <Tree
                     :key="debouncedSearchQuery"
                     initial-selected-id=""
