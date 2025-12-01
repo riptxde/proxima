@@ -18,7 +18,8 @@ export function useExecutor() {
     // Validate at least one client is selected
     if (clientIds.length === 0) {
       toast.error("Cannot execute script", {
-        description: "No clients selected",
+        description:
+          "No attached clients found, or none are selected for execution",
       });
       return false;
     }
