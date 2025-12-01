@@ -18,6 +18,13 @@ pub fn run() {
                         .build(),
                 )?;
             }
+
+            // Start the file watcher
+            let app_handle = app.handle().clone();
+            if let Err(e) = services::file_watcher::start_file_watcher(app_handle) {
+                eprintln!("Failed to start file watcher: {}", e);
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

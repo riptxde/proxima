@@ -16,11 +16,11 @@ const emit = defineEmits<{
 <template>
     <div class="relative">
         <Search
-            class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+            class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10"
         />
         <Input
-            :value="modelValue"
-            @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+            :model-value="modelValue"
+            @update:model-value="emit('update:modelValue', $event as string)"
             type="text"
             placeholder="Search"
             class="pl-9 border-none h-[46px] text-sm bg-tab-bar"

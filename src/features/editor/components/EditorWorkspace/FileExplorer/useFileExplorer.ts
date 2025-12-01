@@ -1,106 +1,140 @@
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { watchDebounced } from "@vueuse/core";
 import type { FileNode } from "./types";
 
+const MAX_SEARCH_RESULTS = 100;
+const SEARCH_DEBOUNCE_MS = 300;
+
 export function useFileExplorer() {
-    const fileTree = ref<FileNode[]>([]);
-    const searchQuery = ref("");
-    let watchInterval: number | null = null;
+  const fileTree = ref<FileNode[]>([]);
+  const searchQuery = ref("");
+  const debouncedSearchQuery = ref("");
+  const isLoading = ref(true);
+  const isSearching = ref(false);
+  const resultsLimited = ref(false);
+  let unlistenFn: UnlistenFn | null = null;
 
-    // Initialize directories and load file tree
-    async function initializeFileSystem() {
-        try {
-            // Create directories if they don't exist
-            await invoke("initialize_directories");
+  async function loadFileTree() {
+    try {
+      const tree = await invoke<FileNode[]>("read_file_tree");
+      fileTree.value = tree;
+    } catch (error) {
+      console.error("Failed to load file tree:", error);
+    }
+  }
 
-            // Load the file tree
-            await loadFileTree();
-        } catch (error) {
-            console.error("Failed to initialize file system:", error);
+  // Debounced search with loading state management
+  watchDebounced(
+    searchQuery,
+    (newValue) => {
+      debouncedSearchQuery.value = newValue;
+      isSearching.value = false;
+    },
+    {
+      debounce: SEARCH_DEBOUNCE_MS,
+      onTrigger: () => {
+        // Show searching indicator when user types
+        if (searchQuery.value !== debouncedSearchQuery.value) {
+          isSearching.value = true;
         }
+      },
+    },
+  );
+
+  // Filter file tree based on debounced search query
+  const filteredTree = computed(() => {
+    if (!debouncedSearchQuery.value) {
+      resultsLimited.value = false;
+      return fileTree.value;
     }
 
-    async function loadFileTree() {
-        try {
-            const tree = await invoke<FileNode[]>("read_file_tree");
-            fileTree.value = tree;
-        } catch (error) {
-            console.error("Failed to load file tree:", error);
+    const query = debouncedSearchQuery.value.toLowerCase();
+    let matchCount = 0;
+
+    function filterNode(node: FileNode): FileNode | null {
+      if (matchCount >= MAX_SEARCH_RESULTS) {
+        return null;
+      }
+
+      if (node.type === "file") {
+        if (node.name.toLowerCase().includes(query)) {
+          matchCount++;
+          return node;
         }
+        return null;
+      }
+
+      const filteredChildren = node.children
+        .map((child) => filterNode(child))
+        .filter((child): child is FileNode => child !== null);
+
+      if (
+        filteredChildren.length > 0 ||
+        node.name.toLowerCase().includes(query)
+      ) {
+        return { ...node, children: filteredChildren };
+      }
+
+      return null;
     }
 
-    // Watch for file system changes by polling
-    function startWatching() {
-        // Poll every 2 seconds for file system changes
-        watchInterval = window.setInterval(async () => {
-            await loadFileTree();
-        }, 2000);
+    const result = fileTree.value
+      .map((node) => filterNode(node))
+      .filter((node): node is FileNode => node !== null);
+
+    resultsLimited.value = matchCount >= MAX_SEARCH_RESULTS;
+    return result;
+  });
+
+  // Expand all folders when searching to show matches
+  const expandedItems = computed(() => {
+    const tree = debouncedSearchQuery.value
+      ? filteredTree.value
+      : fileTree.value;
+    const expandedIds: string[] = [];
+
+    function collectFolderIds(node: FileNode) {
+      if (node.type === "folder") {
+        expandedIds.push(node.id);
+        // When searching, expand all folders; otherwise only expand root
+        if (debouncedSearchQuery.value) {
+          node.children.forEach(collectFolderIds);
+        }
+      }
     }
 
-    function stopWatching() {
-        if (watchInterval !== null) {
-            clearInterval(watchInterval);
-            watchInterval = null;
-        }
+    tree.forEach(collectFolderIds);
+    return expandedIds;
+  });
+
+  onMounted(async () => {
+    try {
+      // Initialize directories and load file tree
+      await invoke("initialize_directories");
+      await loadFileTree();
+
+      // Start watching for file changes
+      unlistenFn = await listen("file-tree-changed", loadFileTree);
+    } catch (error) {
+      console.error("Failed to initialize file system:", error);
+    } finally {
+      isLoading.value = false;
     }
+  });
 
-    // Filter file tree based on search query
-    const filteredTree = computed(() => {
-        if (!searchQuery.value) {
-            return fileTree.value;
-        }
+  onUnmounted(() => {
+    unlistenFn?.();
+  });
 
-        const query = searchQuery.value.toLowerCase();
-
-        function filterNode(node: FileNode): FileNode | null {
-            if (node.type === "file") {
-                return node.name.toLowerCase().includes(query) ? node : null;
-            } else {
-                const filteredChildren = node.children
-                    .map((child) => filterNode(child))
-                    .filter((child) => child !== null) as FileNode[];
-
-                if (
-                    filteredChildren.length > 0 ||
-                    node.name.toLowerCase().includes(query)
-                ) {
-                    return {
-                        ...node,
-                        children: filteredChildren,
-                    };
-                }
-                return null;
-            }
-        }
-
-        return fileTree.value
-            .map((node) => filterNode(node))
-            .filter((node) => node !== null) as FileNode[];
-    });
-
-    // Get initial expanded items
-    const initialExpandedItems = computed(() => {
-        return fileTree.value.map((node) => node.id);
-    });
-
-    const setup = () => {
-        onMounted(async () => {
-            await initializeFileSystem();
-            startWatching();
-        });
-
-        onUnmounted(() => {
-            stopWatching();
-        });
-    };
-
-    return {
-        fileTree,
-        searchQuery,
-        filteredTree,
-        initialExpandedItems,
-        initializeFileSystem,
-        loadFileTree,
-        setup,
-    };
+  return {
+    searchQuery,
+    debouncedSearchQuery,
+    filteredTree,
+    expandedItems,
+    isLoading,
+    isSearching,
+    resultsLimited,
+  };
 }
