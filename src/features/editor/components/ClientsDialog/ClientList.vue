@@ -38,24 +38,22 @@ const toggleAll = () => {
 </script>
 
 <template>
-    <div class="rounded-md border">
-        <Table>
-            <TableHeader class="sticky top-0 bg-background z-10">
-                <TableRow>
-                    <TableHead class="w-12">
-                        <Checkbox
-                            :model-value="allEnabled"
-                            :indeterminate="someEnabled"
-                            @update:model-value="toggleAll"
-                        />
-                    </TableHead>
-                    <TableHead>Client Name</TableHead>
-                    <TableHead>Client ID</TableHead>
-                </TableRow>
-            </TableHeader>
-        </Table>
-        <div class="max-h-[400px] overflow-y-auto">
+    <div class="rounded-md border overflow-hidden">
+        <div class="max-h-[450px] overflow-y-auto">
             <Table>
+                <TableHeader class="sticky top-0 bg-card z-10 border-b">
+                    <TableRow>
+                        <TableHead class="w-12">
+                            <Checkbox
+                                :model-value="allEnabled"
+                                :indeterminate="someEnabled"
+                                @update:model-value="toggleAll"
+                            />
+                        </TableHead>
+                        <TableHead>Client Name</TableHead>
+                        <TableHead>Client ID</TableHead>
+                    </TableRow>
+                </TableHeader>
                 <TableBody>
                     <TableRow
                         v-for="client in clients"
