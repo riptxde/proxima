@@ -1,6 +1,7 @@
 import { ref, computed } from "vue";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { toast } from "vue-sonner";
 import type { Client } from "../types/executor";
 
 const clients = ref<Client[]>([]);
@@ -31,16 +32,31 @@ export function useClients() {
         const currentIds = new Set(clients.value.map((c) => c.id));
         const newClients = updatedClients.filter((c) => !currentIds.has(c.id));
 
-        // Auto-enable new clients
+        // Find disconnected clients (in current but not in updated)
+        const updatedIds = new Set(updatedClients.map((c) => c.id));
+        const disconnectedClients = clients.value.filter(
+          (c) => !updatedIds.has(c.id),
+        );
+
+        // Show toast for new clients
         newClients.forEach((client) => {
           enabledClientIds.value.add(client.id);
+          toast.success("Client attached", {
+            description: client.username,
+          });
+        });
+
+        // Show toast for disconnected clients
+        disconnectedClients.forEach((client) => {
+          toast.error("Client disconnected", {
+            description: client.username,
+          });
         });
 
         // Update client list
         clients.value = updatedClients;
 
         // Clean up enabled set (remove disconnected clients)
-        const updatedIds = new Set(updatedClients.map((c) => c.id));
         enabledClientIds.value = new Set(
           [...enabledClientIds.value].filter((id) => updatedIds.has(id)),
         );
