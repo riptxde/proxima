@@ -4,7 +4,6 @@ import { Play, Eraser, FolderOpen, Save, Users } from "lucide-vue-next";
 import {
     Tooltip,
     TooltipContent,
-    TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 
@@ -18,72 +17,70 @@ defineEmits<{
 </script>
 
 <template>
-    <TooltipProvider>
-        <Dock class="m-0!">
-            <Tooltip>
-                <TooltipTrigger as-child>
-                    <DockIcon @click="$emit('execute')">
-                        <Play
-                            class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
-                        />
-                    </DockIcon>
-                </TooltipTrigger>
-                <TooltipContent :side-offset="-15">
-                    <p>Execute</p>
-                </TooltipContent>
-            </Tooltip>
+    <Dock class="m-0!">
+        <Tooltip>
+            <TooltipTrigger as-child>
+                <DockIcon @click="$emit('execute')">
+                    <Play
+                        class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+                    />
+                </DockIcon>
+            </TooltipTrigger>
+            <TooltipContent :side-offset="-15">
+                <p>Execute</p>
+            </TooltipContent>
+        </Tooltip>
 
-            <Tooltip>
-                <TooltipTrigger as-child>
-                    <DockIcon @click="$emit('clients')">
-                        <Users
-                            class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
-                        />
-                    </DockIcon>
-                </TooltipTrigger>
-                <TooltipContent :side-offset="-15">
-                    <p>Clients</p>
-                </TooltipContent>
-            </Tooltip>
+        <Tooltip>
+            <TooltipTrigger as-child>
+                <DockIcon @click="$emit('clients')">
+                    <Users
+                        class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+                    />
+                </DockIcon>
+            </TooltipTrigger>
+            <TooltipContent :side-offset="-15">
+                <p>Clients</p>
+            </TooltipContent>
+        </Tooltip>
 
-            <Tooltip>
-                <TooltipTrigger as-child>
-                    <DockIcon @click="$emit('clear')">
-                        <Eraser
-                            class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
-                        />
-                    </DockIcon>
-                </TooltipTrigger>
-                <TooltipContent :side-offset="-15">
-                    <p>Clear</p>
-                </TooltipContent>
-            </Tooltip>
+        <Tooltip>
+            <TooltipTrigger as-child>
+                <DockIcon @click="$emit('clear')">
+                    <Eraser
+                        class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+                    />
+                </DockIcon>
+            </TooltipTrigger>
+            <TooltipContent :side-offset="-15">
+                <p>Clear</p>
+            </TooltipContent>
+        </Tooltip>
 
-            <Tooltip>
-                <TooltipTrigger as-child>
-                    <DockIcon @click="$emit('open')">
-                        <FolderOpen
-                            class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
-                        />
-                    </DockIcon>
-                </TooltipTrigger>
-                <TooltipContent :side-offset="-15">
-                    <p>Open Script</p>
-                </TooltipContent>
-            </Tooltip>
+        <Tooltip>
+            <TooltipTrigger as-child>
+                <DockIcon @click="$emit('open')">
+                    <FolderOpen
+                        class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+                    />
+                </DockIcon>
+            </TooltipTrigger>
+            <TooltipContent :side-offset="-15">
+                <p>Open Script</p>
+            </TooltipContent>
+        </Tooltip>
 
-            <Tooltip>
-                <TooltipTrigger as-child>
-                    <DockIcon @click="$emit('save')">
-                        <Save
-                            class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
-                        />
-                    </DockIcon>
-                </TooltipTrigger>
-                <TooltipContent :side-offset="-15">
-                    <p>Save</p>
-                </TooltipContent>
-            </Tooltip>
-        </Dock>
-    </TooltipProvider>
+        <Tooltip>
+            <TooltipTrigger as-child>
+                <DockIcon @click="$emit('save')">
+                    <Save
+                        class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+                    />
+                </DockIcon>
+            </TooltipTrigger>
+            <TooltipContent :side-offset="-15">
+                <p>Save</p>
+            </TooltipContent>
+        </Tooltip>
+    </Dock>
 </template>
