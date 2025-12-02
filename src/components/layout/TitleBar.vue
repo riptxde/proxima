@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { watch } from "vue";
 import { X, Minus, Square } from "lucide-vue-next";
 import Icon from "@/assets/icon.svg";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import RadiantText from "@/components/ui/radiant-text/RadiantText.vue";
+import { useSettings } from "@/features/settings/composables/useSettings";
 
 const appWindow = getCurrentWindow();
+const { applicationSettings } = useSettings();
 
 const minimizeWindow = async () => {
     await appWindow.minimize();
@@ -17,6 +20,15 @@ const toggleMaximize = async () => {
 const closeWindow = async () => {
     await appWindow.close();
 };
+
+// Watch for always on top setting changes
+watch(
+    () => applicationSettings.value.alwaysOnTop,
+    async (alwaysOnTop) => {
+        await appWindow.setAlwaysOnTop(alwaysOnTop);
+    },
+    { immediate: true },
+);
 </script>
 
 <template>

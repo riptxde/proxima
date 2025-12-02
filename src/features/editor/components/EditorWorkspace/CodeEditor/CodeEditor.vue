@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 import { Card } from "@/components/ui/card";
 import { MonacoEditor } from "@/components/shared/MonacoEditor";
+import type * as Monaco from "monaco-editor";
 import TabBar from "./TabBar/TabBar.vue";
 import { useEditorTabs } from "@/features/editor/composables/useEditorTabs";
+import { useSettings } from "@/features/settings/composables/useSettings";
 
 const {
     tabs,
@@ -14,6 +16,8 @@ const {
     renameTab,
     updateTabContent,
 } = useEditorTabs();
+
+const { editorSettings } = useSettings();
 
 const activeTab = computed(() =>
     tabs.value.find((tab) => tab.id === activeTabId.value),
@@ -28,6 +32,58 @@ const scriptContent = computed({
         }
     },
 });
+
+// Monaco editor instance
+const editorInstance = ref<Monaco.editor.IStandaloneCodeEditor | null>(null);
+
+const handleEditorMount = (editor: Monaco.editor.IStandaloneCodeEditor) => {
+    editorInstance.value = editor;
+};
+
+// Build Monaco options from settings
+const editorOptions = computed(() => ({
+    automaticLayout: true,
+    formatOnType: false,
+    formatOnPaste: false,
+    minimap: {
+        enabled: editorSettings.value.minimap,
+    },
+    scrollbar: {
+        verticalScrollbarSize: 12,
+        horizontalScrollbarSize: 12,
+    },
+    fontSize: editorSettings.value.fontSize,
+    fontFamily: "Cascadia Code, ui-monospace, monospace",
+    fontLigatures: editorSettings.value.fontLigatures,
+    wordWrap: editorSettings.value.wordWrap
+        ? ("on" as const)
+        : ("off" as const),
+    lineNumbers: "on" as const,
+    roundedSelection: true,
+    padding: {
+        top: 0,
+        bottom: 12,
+    },
+    overviewRulerLanes: 0,
+    hideCursorInOverviewRuler: true,
+    scrollBeyondLastLine: false,
+}));
+
+// Watch settings changes and update Monaco manually
+watch(
+    () => editorSettings.value,
+    (settings) => {
+        if (!editorInstance.value) return;
+
+        editorInstance.value.updateOptions({
+            minimap: { enabled: settings.minimap },
+            fontSize: settings.fontSize,
+            fontLigatures: settings.fontLigatures,
+            wordWrap: settings.wordWrap ? "on" : "off",
+        });
+    },
+    { deep: true },
+);
 </script>
 
 <template>
@@ -44,7 +100,11 @@ const scriptContent = computed({
 
         <!-- Editor -->
         <div class="flex-1 overflow-hidden">
-            <MonacoEditor v-model="scriptContent" />
+            <MonacoEditor
+                v-model="scriptContent"
+                :options="editorOptions"
+                @mount="handleEditorMount"
+            />
         </div>
     </Card>
 </template>

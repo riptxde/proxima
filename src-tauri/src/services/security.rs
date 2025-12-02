@@ -1,4 +1,4 @@
-use std::path::{Path};
+use std::path::Path;
 
 /// Validate that a file path is within the allowed base directory
 pub fn validate_path(file_path: &Path, base_dir: &Path) -> Result<(), String> {
@@ -49,7 +49,9 @@ pub fn validate_scripts_path(file_path: &Path, base_dir: &Path) -> Result<(), St
     let is_in_autoexec = validate_path(file_path, &autoexec_path).is_ok();
 
     if !is_in_scripts && !is_in_autoexec {
-        return Err("Access denied: file path is outside Scripts and AutoExec directories".to_string());
+        return Err(
+            "Access denied: file path is outside Scripts and AutoExec directories".to_string(),
+        );
     }
 
     Ok(())

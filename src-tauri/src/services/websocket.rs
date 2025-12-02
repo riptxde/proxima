@@ -180,7 +180,10 @@ async fn handle_client(
                                 }
                                 ClientMessage::Pong => {
                                     if let Some(id) = &client_id {
-                                        println!("Received pong from {}, resetting missed ping counter", id);
+                                        println!(
+                                            "Received pong from {}, resetting missed ping counter",
+                                            id
+                                        );
                                     }
                                     *missed_pings.write().await = 0;
                                 }

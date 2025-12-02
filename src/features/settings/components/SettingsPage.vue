@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed } from "vue";
 import StarsBackground from "@/components/ui/bg-stars/StarsBackground.vue";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -7,19 +7,18 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { ScrollText, Play, Settings } from "lucide-vue-next";
+import { useSettings } from "../composables/useSettings";
 
-// Placeholder settings state
-// Editor
-const wordWrap = ref(false);
-const fontSize = ref([14]);
-const minimap = ref(false);
-const fontLigatures = ref(true);
+const { editorSettings, executionSettings, applicationSettings } =
+    useSettings();
 
-// Execution
-const autoExecute = ref(true);
-
-// Application
-const alwaysOnTop = ref(false);
+// Convert fontSize to/from array for Slider component
+const fontSize = computed({
+    get: () => [editorSettings.value.fontSize],
+    set: (value) => {
+        editorSettings.value.fontSize = value[0] ?? 14;
+    },
+});
 </script>
 
 <template>
@@ -66,7 +65,7 @@ const alwaysOnTop = ref(false);
                                 </div>
                                 <Switch
                                     id="word-wrap"
-                                    v-model:checked="wordWrap"
+                                    v-model="editorSettings.wordWrap"
                                 />
                             </div>
 
@@ -121,7 +120,7 @@ const alwaysOnTop = ref(false);
                                 </div>
                                 <Switch
                                     id="minimap"
-                                    v-model:checked="minimap"
+                                    v-model="editorSettings.minimap"
                                 />
                             </div>
 
@@ -146,7 +145,7 @@ const alwaysOnTop = ref(false);
                                 </div>
                                 <Switch
                                     id="font-ligatures"
-                                    v-model:checked="fontLigatures"
+                                    v-model="editorSettings.fontLigatures"
                                 />
                             </div>
                         </div>
@@ -189,7 +188,7 @@ const alwaysOnTop = ref(false);
                                 </div>
                                 <Switch
                                     id="auto-execute"
-                                    v-model:checked="autoExecute"
+                                    v-model="executionSettings.autoExecute"
                                 />
                             </div>
                         </div>
@@ -231,7 +230,7 @@ const alwaysOnTop = ref(false);
                                 </div>
                                 <Switch
                                     id="always-on-top"
-                                    v-model:checked="alwaysOnTop"
+                                    v-model="applicationSettings.alwaysOnTop"
                                 />
                             </div>
                         </div>
