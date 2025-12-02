@@ -37,6 +37,7 @@ const handleClientsClick = () => {
 };
 
 // Remount dock tooltips when any dialog closes
+// This is absolutely necessary otherwise, tooltips stop working after a dialog opens
 watch(
     [saveDialogOpen, clientsDialogOpen],
     ([newSave, newClients], [oldSave, oldClients]) => {
