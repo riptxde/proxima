@@ -38,9 +38,27 @@ export function useEditorTabs() {
   };
 
   const addTab = () => {
+    // Find all "Script %d" numbers in existing tabs
+    const scriptPattern = /^Script (\d+)$/;
+    const takenNumbers = new Set<number>();
+
+    tabs.value.forEach((tab) => {
+      const match = tab.name.match(scriptPattern);
+      if (match && match[1]) {
+        const num = parseInt(match[1], 10);
+        takenNumbers.add(num);
+      }
+    });
+
+    // Find the earliest available number starting from 1
+    let scriptNumber = 1;
+    while (takenNumbers.has(scriptNumber)) {
+      scriptNumber++;
+    }
+
     const newTab: Tab = {
       id: nextTabId.value,
-      name: `Script ${nextTabId.value}`,
+      name: `Script ${scriptNumber}`,
       content: "-- Write your script here...",
     };
     nextTabId.value++;
