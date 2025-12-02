@@ -206,7 +206,7 @@ const fontSize = computed({
                                         class="text-xs text-muted-foreground font-normal"
                                     >
                                         Automatically execute AutoExec scripts
-                                        when clients connect
+                                        when clients attach
                                     </p>
                                 </div>
                                 <Switch

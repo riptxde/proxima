@@ -1,6 +1,8 @@
 use crate::models::Client;
+use crate::services::autoexec;
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -175,6 +177,29 @@ async fn handle_client(
                                     client_id = Some(id.clone());
                                     *client_id_heartbeat.write().await = Some(id.clone());
 
+                                    // Check if auto-execute is enabled
+                                    let auto_execute = get_auto_execute_setting(&app_handle_clone).await;
+
+                                    if auto_execute {
+                                        // Get AutoExec scripts
+                                        let scripts = autoexec::get_autoexec_scripts(&app_handle_clone);
+
+                                        if !scripts.is_empty() {
+                                            println!("Auto-executing {} script(s) for client {}", scripts.len(), id);
+
+                                            // Execute each script on this client
+                                            for script in scripts {
+                                                let execute_msg = ServerMessage::Execute { script };
+                                                if let Ok(msg_text) = serde_json::to_string(&execute_msg) {
+                                                    if tx.send(Message::Text(msg_text)).is_err() {
+                                                        eprintln!("Failed to send AutoExec script to client {}", id);
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     // Emit clients-update event with full list
                                     emit_clients_update(&app_handle_clone, &clients_clone).await;
                                 }
@@ -281,4 +306,30 @@ pub async fn get_connected_clients(clients: ClientRegistry) -> Vec<Client> {
             username: info.username.clone(),
         })
         .collect()
+}
+
+/// Read the autoExecute setting from the Tauri store
+async fn get_auto_execute_setting(app: &AppHandle) -> bool {
+    use tauri_plugin_store::StoreExt;
+
+    match app.store("settings.json") {
+        Ok(store) => {
+            match store.get("settings") {
+                Some(Value::Object(settings)) => {
+                    if let Some(Value::Object(execution)) = settings.get("execution") {
+                        if let Some(Value::Bool(auto_execute)) = execution.get("autoExecute") {
+                            return *auto_execute;
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+        Err(e) => {
+            eprintln!("Failed to access settings store: {}", e);
+        }
+    }
+
+    // Default to true if setting not found
+    true
 }
