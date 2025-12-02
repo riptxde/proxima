@@ -199,7 +199,19 @@ async fn handle_client(
                                         let scripts = autoexec::get_autoexec_scripts(&app_handle_clone);
 
                                         if !scripts.is_empty() {
-                                            println!("Auto-executing {} script(s) for client {}", scripts.len(), id);
+                                            let script_count = scripts.len();
+                                            println!("Auto-executing {} script(s) for client {}", script_count, id);
+
+                                            // Log autoexec
+                                            let script_text = if script_count == 1 {
+                                                "1 script".to_string()
+                                            } else {
+                                                format!("{} scripts", script_count)
+                                            };
+                                            let _ = app_handle_clone.emit("log-message", serde_json::json!({
+                                                "level": 1,
+                                                "message": format!("Auto-executed {} on {}", script_text, username)
+                                            }));
 
                                             // Execute each script on this client
                                             for script in scripts {

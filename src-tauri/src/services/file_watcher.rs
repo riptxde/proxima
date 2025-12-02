@@ -67,6 +67,12 @@ fn watch_directories(
         if let Err(e) = app.emit("file-tree-changed", ()) {
             eprintln!("Failed to emit file tree change event: {}", e);
         }
+
+        // Log file tree change
+        let _ = app.emit("log-message", serde_json::json!({
+            "level": 0,
+            "message": "File watcher detected an update to the file tree"
+        }));
     }
 
     Ok(())
