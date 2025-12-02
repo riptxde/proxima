@@ -25,9 +25,9 @@ import { toRefs, ref, onMounted, provide } from "vue";
 const props = withDefaults(defineProps<TreeProps>(), {
     indicator: true,
     dir: "ltr",
-    openIcon: "lucide:folder-open",
-    closeIcon: "lucide:folder",
-    fileIcon: "lucide:code",
+    openIcon: "folder-open",
+    closeIcon: "folder",
+    fileIcon: "file",
 });
 
 const {

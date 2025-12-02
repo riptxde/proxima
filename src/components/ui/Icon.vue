@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
-import { FolderOpen, Folder, Code } from "lucide-vue-next";
+import { FolderOpen, Folder, Scroll } from "lucide-vue-next";
 
 interface IconProps {
     name: string;
@@ -18,11 +18,11 @@ const props = withDefaults(defineProps<IconProps>(), {
 const iconComponent = computed(() => {
     // Map icon names to lucide-vue-next components
     const iconMap: Record<string, any> = {
-        "lucide:folder-open": FolderOpen,
-        "lucide:folder": Folder,
-        "lucide:code": Code,
+        "folder-open": FolderOpen,
+        folder: Folder,
+        file: Scroll,
     };
 
-    return iconMap[props.name] || Code;
+    return iconMap[props.name] || Scroll;
 });
 </script>
