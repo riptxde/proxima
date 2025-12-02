@@ -9,61 +9,39 @@ async def client_handler(client_id: int, name: str):
     """Handle a single WebSocket client connection."""
     uri = "ws://localhost:13376"
 
-    try:
-        async with websockets.connect(uri) as websocket:
-            print(f"[{name}] Connected to {uri}")
+    async with websockets.connect(uri) as websocket:
+        print(f"[{name}] Connected to Proxima WebSocket server")
 
-            # Send initial registration with username
-            await websocket.send(json.dumps({"type": "register", "username": name}))
-            print(f"[{name}] Sent registration")
+        # Register with a username
+        register_msg = {"type": "register", "username": name}
+        await websocket.send(json.dumps(register_msg))
+        print(f"[{name}] Sent registration: {register_msg}")
 
-            # Handle incoming messages
-            async for message in websocket:
-                try:
-                    data = json.loads(message)
-                    msg_type = data.get("type")
+        # Listen for messages
+        print(f"[{name}] Waiting for script execution commands...\n")
 
-                    if msg_type == "ping":
-                        # Respond to ping with pong
-                        await websocket.send(json.dumps({"type": "pong"}))
-                        print(f"[{name}] Ponged")
+        async for message in websocket:
+            data = json.loads(message)
+            print(f"[{name}] Received: {data}")
 
-                    elif msg_type == "execute":
-                        # Received script to execute
-                        script = data.get("script", "")
-                        print(f"[{name}] Received script to execute:")
-                        print(
-                            f"[{name}] {script[:100]}{'...' if len(script) > 100 else ''}"
-                        )
-
-                    else:
-                        print(f"[{name}] Unknown message type: {msg_type}")
-
-                except json.JSONDecodeError:
-                    print(f"[{name}] Received non-JSON message: {message}")
-
-    except websockets.exceptions.ConnectionClosed:
-        print(f"[{name}] Connection closed")
-    except Exception as e:
-        print(f"[{name}] Error: {e}")
+            if data.get("type") == "execute":
+                script = data.get("script")
+                print(f"\n[{name}] --- EXECUTE SCRIPT ---")
+                print(script)
+                print(f"[{name}] --- END SCRIPT ---\n")
 
 
 async def main(num_clients: int):
     """Start multiple WebSocket clients."""
-    print(f"Starting {num_clients} client(s)...")
-
     # Create tasks for all clients
     tasks = []
     for i in range(1, num_clients + 1):
-        name = f"player{i}"
+        name = f"Player{i}"
         task = asyncio.create_task(client_handler(i, name))
         tasks.append(task)
 
     # Wait for all clients to finish (they run indefinitely until interrupted)
-    try:
-        await asyncio.gather(*tasks)
-    except KeyboardInterrupt:
-        print("\nShutting down all clients...")
+    await asyncio.gather(*tasks)
 
 
 if __name__ == "__main__":
@@ -74,11 +52,12 @@ if __name__ == "__main__":
         print("Error: Number of clients must be at least 1")
         sys.exit(1)
 
-    print("WebSocket Multiple Client Test")
-    print(f"Connecting {num_clients} client(s) to ws://localhost:13376")
-    print("Press Ctrl+C to stop\n")
+    print(f"Starting {num_clients} client(s)...")
+    print("(Press Ctrl+C to stop)\n")
 
     try:
         asyncio.run(main(num_clients))
     except KeyboardInterrupt:
-        print("\nTest completed")
+        print("\nClients stopped")
+    except Exception as e:
+        print(f"Error: {e}")
