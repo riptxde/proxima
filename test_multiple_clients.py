@@ -24,7 +24,11 @@ async def client_handler(client_id: int, name: str):
             data = json.loads(message)
             print(f"[{name}] Received: {data}")
 
-            if data.get("type") == "execute":
+            if data.get("type") == "ping":
+                print(f"[{name}] Received ping, sending pong")
+                pong_msg = {"type": "pong"}
+                await websocket.send(json.dumps(pong_msg))
+            elif data.get("type") == "execute":
                 script = data.get("script")
                 print(f"\n[{name}] --- EXECUTE SCRIPT ---")
                 print(script)
