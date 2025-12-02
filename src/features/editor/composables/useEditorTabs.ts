@@ -10,8 +10,13 @@ const nextTabId = ref(2);
 
 export function useEditorTabs() {
   const openFile = (fileName: string, content: string, filePath: string) => {
+    // Normalize path to use forward slashes
+    const normalizedPath = filePath.replace(/\\/g, "/");
+
     // Check if file is already open
-    const existingTab = tabs.value.find((tab) => tab.filePath === filePath);
+    const existingTab = tabs.value.find(
+      (tab) => tab.filePath === normalizedPath,
+    );
 
     if (existingTab) {
       // Focus existing tab
@@ -24,7 +29,7 @@ export function useEditorTabs() {
       id: nextTabId.value,
       name: fileName,
       content: content,
-      filePath: filePath,
+      filePath: normalizedPath,
     };
 
     nextTabId.value++;
@@ -111,7 +116,8 @@ export function useEditorTabs() {
   const updateActiveTabFilePath = (filePath: string) => {
     const tab = tabs.value.find((t) => t.id === activeTabId.value);
     if (tab) {
-      tab.filePath = filePath;
+      // Normalize path to use forward slashes
+      tab.filePath = filePath.replace(/\\/g, "/");
     }
   };
 

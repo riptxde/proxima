@@ -47,10 +47,12 @@ export function useFileOperations() {
     try {
       const content = getActiveTabContent();
 
-      // Parse the filepath to extract filename and folder
+      // Parse the filepath to extract filename and full folder path
       const pathParts = filePath.split(/[\\/]/);
       const filename = pathParts[pathParts.length - 1];
-      const folder = pathParts[pathParts.length - 2] as "Scripts" | "AutoExec";
+
+      // Get everything except the filename as the folder path
+      const folder = pathParts.slice(0, -1).join("/");
 
       const relativePath = await invoke<string>("save_file", {
         filename,
