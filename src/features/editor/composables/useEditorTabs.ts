@@ -1,14 +1,83 @@
-import { ref } from "vue";
+import { ref, watch } from "vue";
+import { load, type Store } from "@tauri-apps/plugin-store";
 import type { Tab } from "../types/tab";
 
-const tabs = ref<Tab[]>([
-  { id: 1, name: "Script 1", content: "-- Write your script here..." },
-]);
+let store: Store | null = null;
+let isInitialized = false;
 
-const activeTabId = ref(1);
-const nextTabId = ref(2);
+// Default state
+const DEFAULT_TABS_STATE = {
+  tabs: [{ id: 1, name: "Script 1", content: "-- Write your script here..." }],
+  activeTabId: 1,
+  nextTabId: 2,
+};
+
+const tabs = ref<Tab[]>(DEFAULT_TABS_STATE.tabs);
+const activeTabId = ref(DEFAULT_TABS_STATE.activeTabId);
+const nextTabId = ref(DEFAULT_TABS_STATE.nextTabId);
+
+interface PersistedTabsState {
+  tabs: Tab[];
+  activeTabId: number;
+  nextTabId: number;
+}
+
+async function initializeStore() {
+  if (isInitialized) return;
+
+  try {
+    store = await load("tabs.json", { autoSave: 100, defaults: {} });
+
+    // Load existing state or use defaults
+    const savedState = await store.get<PersistedTabsState>("tabsState");
+
+    if (savedState && savedState.tabs && savedState.tabs.length > 0) {
+      tabs.value = savedState.tabs;
+      activeTabId.value = savedState.activeTabId;
+      nextTabId.value = savedState.nextTabId;
+    } else {
+      // Save defaults if no state exists
+      await saveTabsState();
+    }
+
+    // Watch for changes and persist
+    watch(
+      [tabs, activeTabId, nextTabId],
+      async () => {
+        await saveTabsState();
+      },
+      { deep: true },
+    );
+
+    isInitialized = true;
+  } catch (error) {
+    console.error("Failed to initialize tabs store:", error);
+  }
+}
+
+async function saveTabsState() {
+  if (!store) return;
+
+  // Ensure at least one tab exists
+  if (tabs.value.length === 0) {
+    tabs.value = [...DEFAULT_TABS_STATE.tabs];
+    activeTabId.value = DEFAULT_TABS_STATE.activeTabId;
+  }
+
+  const state: PersistedTabsState = {
+    tabs: tabs.value,
+    activeTabId: activeTabId.value,
+    nextTabId: nextTabId.value,
+  };
+
+  await store.set("tabsState", state);
+}
 
 export function useEditorTabs() {
+  // Initialize on first use
+  if (!isInitialized) {
+    initializeStore();
+  }
   const openFile = (fileName: string, content: string, filePath: string) => {
     // Normalize path to use forward slashes
     const normalizedPath = filePath.replace(/\\/g, "/");
