@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 import { ScrollText, Play, Settings } from "lucide-vue-next";
 import { useSettings } from "../composables/useSettings";
 
@@ -71,6 +72,31 @@ const fontSize = computed({
 
                             <Separator />
 
+                            <!-- Minimap -->
+                            <div
+                                class="flex items-center justify-between py-1.5"
+                            >
+                                <div class="space-y-0">
+                                    <Label
+                                        for="minimap"
+                                        class="text-sm cursor-pointer"
+                                    >
+                                        Minimap
+                                    </Label>
+                                    <p
+                                        class="text-xs text-muted-foreground font-normal"
+                                    >
+                                        Show code overview minimap
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="minimap"
+                                    v-model="editorSettings.minimap"
+                                />
+                            </div>
+
+                            <Separator />
+
                             <!-- Font Size -->
                             <div class="space-y-2 py-1.5">
                                 <div class="flex items-center justify-between">
@@ -101,26 +127,23 @@ const fontSize = computed({
 
                             <Separator />
 
-                            <!-- Minimap -->
-                            <div
-                                class="flex items-center justify-between py-1.5"
-                            >
+                            <!-- Font -->
+                            <div class="space-y-2 py-1.5">
                                 <div class="space-y-0">
-                                    <Label
-                                        for="minimap"
-                                        class="text-sm cursor-pointer"
-                                    >
-                                        Minimap
+                                    <Label for="font" class="text-sm">
+                                        Font
                                     </Label>
                                     <p
                                         class="text-xs text-muted-foreground font-normal"
                                     >
-                                        Show code overview minimap
+                                        Editor font family
                                     </p>
                                 </div>
-                                <Switch
-                                    id="minimap"
-                                    v-model="editorSettings.minimap"
+                                <Input
+                                    id="font"
+                                    v-model="editorSettings.font"
+                                    placeholder="Cascadia Code"
+                                    class="w-full"
                                 />
                             </div>
 

@@ -1,7 +1,8 @@
 export interface EditorSettings {
   wordWrap: boolean;
-  fontSize: number;
   minimap: boolean;
+  fontSize: number;
+  font: string;
   fontLigatures: boolean;
 }
 
@@ -22,9 +23,10 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   editor: {
     wordWrap: false,
-    fontSize: 14,
     minimap: false,
-    fontLigatures: true,
+    fontSize: 14,
+    font: "Cascadia Code",
+    fontLigatures: false,
   },
   execution: {
     autoExecute: true,

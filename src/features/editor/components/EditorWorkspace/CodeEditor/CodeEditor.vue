@@ -53,7 +53,7 @@ const editorOptions = computed(() => ({
         horizontalScrollbarSize: 12,
     },
     fontSize: editorSettings.value.fontSize,
-    fontFamily: "Cascadia Code, ui-monospace, monospace",
+    fontFamily: `${editorSettings.value.font}, ui-monospace, monospace`,
     fontLigatures: editorSettings.value.fontLigatures,
     wordWrap: editorSettings.value.wordWrap
         ? ("on" as const)
@@ -78,6 +78,7 @@ watch(
         editorInstance.value.updateOptions({
             minimap: { enabled: settings.minimap },
             fontSize: settings.fontSize,
+            fontFamily: `${settings.font}, ui-monospace, monospace`,
             fontLigatures: settings.fontLigatures,
             wordWrap: settings.wordWrap ? "on" : "off",
         });
