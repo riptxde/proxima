@@ -13,9 +13,7 @@ import { Card } from "@/components/ui/card";
         </div>
 
         <Card class="relative z-10 h-full m-4 flex items-center justify-center">
-            <p class="text-muted-foreground text-lg">
-                Script Hub - Coming Soon
-            </p>
+            <p class="text-muted-foreground text-lg">Logs - Coming Soon</p>
         </Card>
     </div>
 </template>
