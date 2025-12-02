@@ -17,18 +17,35 @@ import {
 } from "@/components/ui/tooltip";
 import GlowingEffect from "@/components/ui/glowing-effect/GlowingEffect.vue";
 import type { Script } from "../types/script";
+import { useEditorTabs } from "@/features/editor/composables/useEditorTabs";
+import { useNavigation } from "@/composables/useNavigation";
+import { toast } from "vue-sonner";
 
 interface Props {
     script: Script;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+const { openFileAsTab } = useEditorTabs();
+const { navigate } = useNavigation();
 
 const getImageUrl = (url: string) => {
     if (url.startsWith("http")) {
         return url;
     }
     return `https://scriptblox.com${url}`;
+};
+
+const handleSendToEditor = () => {
+    if (!props.script.script || props.script.script.trim() === "") {
+        toast.error("Script content is empty");
+        return;
+    }
+
+    openFileAsTab(props.script.title, props.script.script);
+    navigate("editor");
+    toast.success(`"${props.script.title}" opened in editor`);
 };
 </script>
 
@@ -138,6 +155,7 @@ const getImageUrl = (url: string) => {
                                     size="sm"
                                     variant="outline"
                                     class="flex-1 h-9"
+                                    @click="handleSendToEditor"
                                 >
                                     <Send class="w-4 h-4" />
                                 </Button>
