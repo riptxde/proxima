@@ -1,7 +1,11 @@
-import { ref, computed } from 'vue';
-import type { Script, ScriptFetchResponse, ScriptSearchParams } from '../types/script';
+import { ref, computed } from "vue";
+import type {
+  Script,
+  ScriptSearchResponse,
+  ScriptSearchParams,
+} from "../types/script";
 
-const API_BASE_URL = 'https://scriptblox.com/api/script';
+const API_BASE_URL = "https://scriptblox.com/api/script";
 
 const scripts = ref<Script[]>([]);
 const isLoading = ref(false);
@@ -9,11 +13,12 @@ const error = ref<string | null>(null);
 const currentPage = ref(1);
 const totalPages = ref(0);
 const searchParams = ref<ScriptSearchParams>({
-  q: '',
+  q: "",
   page: 1,
   max: 20,
-  sortBy: 'createdAt',
-  order: 'desc',
+  sortBy: "updatedAt",
+  order: "desc",
+  strict: true,
 });
 
 export function useScriptHub() {
@@ -25,25 +30,33 @@ export function useScriptHub() {
       const params = new URLSearchParams();
 
       Object.entries(searchParams.value).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
+        if (value !== undefined && value !== null && value !== "") {
           params.append(key, String(value));
         }
       });
 
-      const response = await fetch(`${API_BASE_URL}/fetch?${params.toString()}`);
+      const endpoint = searchParams.value.q ? "search" : "fetch";
+      const response = await fetch(
+        `${API_BASE_URL}/${endpoint}?${params.toString()}`,
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data: ScriptFetchResponse = await response.json();
+      const data: ScriptSearchResponse = await response.json();
+
+      if ("message" in data) {
+        throw new Error((data as any).message);
+      }
 
       scripts.value = data.result.scripts;
       totalPages.value = data.result.totalPages;
       currentPage.value = searchParams.value.page || 1;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch scripts';
-      console.error('Error fetching scripts:', err);
+      error.value =
+        err instanceof Error ? err.message : "Failed to fetch scripts";
+      console.error("Error fetching scripts:", err);
     } finally {
       isLoading.value = false;
     }
@@ -67,11 +80,12 @@ export function useScriptHub() {
 
   const resetFilters = () => {
     searchParams.value = {
-      q: '',
+      q: "",
       page: 1,
       max: 20,
-      sortBy: 'createdAt',
-      order: 'desc',
+      sortBy: "updatedAt",
+      order: "desc",
+      strict: true,
     };
     fetchScripts();
   };

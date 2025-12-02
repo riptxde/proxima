@@ -74,10 +74,10 @@ watch(
     { deep: true },
 );
 
-const handleInput = (event: Event) => {
-    const target = event.target as HTMLInputElement;
-    localValue.value = target.value;
-    emit("update:modelValue", target.value);
+const handleInput = (value: string | number) => {
+    const stringValue = String(value);
+    localValue.value = stringValue;
+    emit("update:modelValue", stringValue);
 };
 
 const handleSearch = () => {
@@ -112,8 +112,8 @@ const updateFilter = (key: keyof ScriptSearchParams, value: any) => {
                 class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
             />
             <Input
-                :value="localValue"
-                @input="handleInput"
+                :model-value="localValue"
+                @update:model-value="handleInput"
                 @keydown="handleKeydown"
                 placeholder="Search scripts..."
                 class="pl-9 pr-9 h-10 bg-muted/50 border-border focus-visible:ring-sidebar-primary"

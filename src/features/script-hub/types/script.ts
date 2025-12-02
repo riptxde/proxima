@@ -10,13 +10,15 @@ export interface Script {
   verified: boolean;
   key: boolean;
   views: number;
-  scriptType: 'free' | 'paid';
+  scriptType: "free" | "paid";
   isUniversal: boolean;
   isPatched: boolean;
   image: string;
-  lastBump: string;
+  lastBump?: string;
   createdAt: string;
+  updatedAt: string;
   script: string;
+  matched?: string[];
 }
 
 export interface ScriptFetchResponse {
@@ -28,9 +30,22 @@ export interface ScriptFetchResponse {
   };
 }
 
-export type ScriptMode = 'free' | 'paid';
-export type SortBy = 'views' | 'likeCount' | 'createdAt' | 'updatedAt' | 'dislikeCount' | 'accuracy';
-export type SortOrder = 'asc' | 'desc';
+export interface ScriptSearchResponse {
+  result: {
+    totalPages: number;
+    scripts: Script[];
+  };
+}
+
+export type ScriptMode = "free" | "paid";
+export type SortBy =
+  | "views"
+  | "likeCount"
+  | "createdAt"
+  | "updatedAt"
+  | "dislikeCount"
+  | "accuracy";
+export type SortOrder = "asc" | "desc";
 
 export interface ScriptSearchParams {
   q?: string;
