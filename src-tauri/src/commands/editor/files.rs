@@ -1,6 +1,6 @@
 use crate::services::{filesystem, paths, security};
 use std::fs;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 
 /// Get the base scripts path
 #[tauri::command]
@@ -69,6 +69,12 @@ pub fn save_file(
         .map_err(|e| format!("Failed to get relative path: {}", e))?
         .to_string_lossy()
         .replace('\\', "/");
+
+    // Log successful file save
+    let _ = app.emit("log-message", serde_json::json!({
+        "level": 1,
+        "message": format!("File saved: {}", relative_path)
+    }));
 
     Ok(relative_path)
 }

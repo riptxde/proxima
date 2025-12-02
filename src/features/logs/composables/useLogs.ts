@@ -1,5 +1,6 @@
 import { ref, computed } from "vue";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import type { Log, LogLevel, LogFilters } from "../types/log";
 import { levelFromNumber } from "../types/log";
 
@@ -36,7 +37,13 @@ export function useLogs() {
     if (typeof level === "number") {
       const converted = levelFromNumber(level);
       if (!converted) {
-        console.error(`Invalid log level: ${level}`);
+        // Log invalid level error
+        invoke("add_log", {
+          level: 3,
+          message: `Invalid log level received: ${level}`,
+        }).catch(() => {
+          // Can't log the error about logging, silently fail
+        });
         return;
       }
       logLevel = converted;

@@ -2,6 +2,14 @@ import { invoke } from "@tauri-apps/api/core";
 import { toast } from "vue-sonner";
 import type { ExecuteRequest } from "../types/executor";
 
+// Log levels: 0=info, 1=success, 2=warning, 3=error
+const logToBackend = (level: number, message: string) => {
+  invoke("add_log", { level, message }).catch((error) => {
+    // Fallback to console if backend logging fails
+    console.error("Failed to log to backend:", error);
+  });
+};
+
 export function useExecutor() {
   const executeScript = async (
     script: string,
@@ -32,11 +40,11 @@ export function useExecutor() {
 
       await invoke("execute_script", { request });
 
+      const clientText = `${clientIds.length} client${clientIds.length !== 1 ? "s" : ""}`;
       toast.success("Script executed", {
-        description: `Sent to ${clientIds.length} client${
-          clientIds.length !== 1 ? "s" : ""
-        }`,
+        description: `Script ran on ${clientText}`,
       });
+      // Backend logs this automatically
       return true;
     } catch (error) {
       const errorMessage =
@@ -44,6 +52,7 @@ export function useExecutor() {
       toast.error("Execution failed", {
         description: errorMessage,
       });
+      logToBackend(3, `Script execution failed: ${errorMessage}`);
       return false;
     }
   };

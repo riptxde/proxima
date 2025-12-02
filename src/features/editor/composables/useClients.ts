@@ -44,6 +44,7 @@ export function useClients() {
           toast.success("Client attached", {
             description: client.username,
           });
+          // This is logged on the backend
         });
 
         // Show toast for disconnected clients
@@ -51,6 +52,7 @@ export function useClients() {
           toast.error("Client disconnected", {
             description: client.username,
           });
+          // This is logged on the backend
         });
 
         // Update client list
@@ -64,7 +66,7 @@ export function useClients() {
 
       isInitialized.value = true;
     } catch (error) {
-      console.error("Failed to initialize clients:", error);
+      console.error(error);
     }
   };
 

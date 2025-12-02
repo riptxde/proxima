@@ -1,5 +1,6 @@
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use notify_debouncer_full::{new_debouncer, DebounceEventResult, Debouncer, FileIdMap};
+use serde_json;
 use std::path::PathBuf;
 use std::sync::mpsc::channel;
 use std::time::Duration;
@@ -15,8 +16,15 @@ pub fn start_file_watcher(app: AppHandle) -> Result<(), String> {
     let scripts_dir = base_dir.join("Scripts");
     let autoexec_dir = base_dir.join("AutoExec");
 
+    // Log file watcher start
+    let _ = app.emit("log-message", serde_json::json!({
+        "level": 0,
+        "message": "File watcher initialized"
+    }));
+
+    let app_clone = app.clone();
     std::thread::spawn(move || {
-        if let Err(e) = watch_directories(app, scripts_dir, autoexec_dir) {
+        if let Err(e) = watch_directories(app_clone, scripts_dir, autoexec_dir) {
             eprintln!("File watcher error: {}", e);
         }
     });

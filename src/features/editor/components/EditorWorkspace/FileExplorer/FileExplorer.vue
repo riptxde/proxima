@@ -28,7 +28,12 @@ async function handleFileClick(filePath: string, fileName: string) {
         });
         openFile(fileName, content, filePath);
     } catch (error) {
-        console.error("Failed to open file:", error);
+        const errorMessage =
+            error instanceof Error ? error.message : String(error);
+        invoke("add_log", {
+            level: 3,
+            message: `Failed to open file ${fileName}: ${errorMessage}`,
+        }).catch(() => {});
     }
 }
 

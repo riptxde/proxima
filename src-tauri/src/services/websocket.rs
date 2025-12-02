@@ -53,6 +53,12 @@ pub async fn start_websocket_server(
     let listener = TcpListener::bind("127.0.0.1:13376").await?;
     println!("WebSocket server listening on ws://127.0.0.1:13376");
 
+    // Log server start
+    let _ = app_handle.emit("log-message", serde_json::json!({
+        "level": 1,
+        "message": "WebSocket server started on port 13376"
+    }));
+
     while let Ok((stream, addr)) = listener.accept().await {
         let clients = Arc::clone(&clients);
         let app_handle = app_handle.clone();
@@ -179,6 +185,12 @@ async fn handle_client(
                                     client_id = Some(id.clone());
                                     *client_id_heartbeat.write().await = Some(id.clone());
 
+                                    // Log client registration
+                                    let _ = app_handle_clone.emit("log-message", serde_json::json!({
+                                        "level": 1,
+                                        "message": format!("Client attached: {}", username)
+                                    }));
+
                                     // Check if auto-execute is enabled
                                     let auto_execute = get_auto_execute_setting(&app_handle_clone).await;
 
@@ -250,8 +262,20 @@ async fn handle_client(
 
     // Client disconnected
     if let Some(id) = client_id {
+        // Get username before removing from registry
+        let username = clients_clone.read().await.get(&id).map(|info| info.username.clone());
+
         clients_clone.write().await.remove(&id);
         println!("Client disconnected: {}", id);
+
+        // Log client disconnection
+        if let Some(username) = username {
+            let _ = app_handle_clone.emit("log-message", serde_json::json!({
+                "level": 0,
+                "message": format!("Client disconnected: {}", username)
+            }));
+        }
+
         emit_clients_update(&app_handle_clone, &clients_clone).await;
     }
 

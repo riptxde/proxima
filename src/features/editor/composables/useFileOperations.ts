@@ -3,6 +3,14 @@ import { invoke } from "@tauri-apps/api/core";
 import { toast } from "vue-sonner";
 import { useEditorTabs } from "./useEditorTabs";
 
+// Log levels: 0=info, 1=success, 2=warning, 3=error
+const logToBackend = (level: number, message: string) => {
+  invoke("add_log", { level, message }).catch((error) => {
+    // Fallback to console if backend logging fails
+    console.error("Failed to log to backend:", error);
+  });
+};
+
 export function useFileOperations() {
   const {
     openFileAsTab,
@@ -63,10 +71,14 @@ export function useFileOperations() {
       toast.success("File saved successfully", {
         description: relativePath,
       });
+      // Backend logs this automatically
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       toast.error("Failed to save file", {
-        description: error instanceof Error ? error.message : String(error),
+        description: errorMessage,
       });
+      logToBackend(3, `File save failed: ${errorMessage}`);
     }
   };
 
@@ -89,10 +101,14 @@ export function useFileOperations() {
       toast.success("File saved successfully", {
         description: relativePath,
       });
+      // Backend logs this automatically
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       toast.error("Failed to save file", {
-        description: error instanceof Error ? error.message : String(error),
+        description: errorMessage,
       });
+      logToBackend(3, `File save failed: ${errorMessage}`);
     }
   };
 

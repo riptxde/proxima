@@ -1,5 +1,6 @@
 import { ref, watch } from "vue";
 import { load, type Store } from "@tauri-apps/plugin-store";
+import { invoke } from "@tauri-apps/api/core";
 import type { Tab } from "../types/tab";
 
 let store: Store | null = null;
@@ -51,7 +52,11 @@ async function initializeStore() {
 
     isInitialized = true;
   } catch (error) {
-    console.error("Failed to initialize tabs store:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    invoke("add_log", {
+      level: 3,
+      message: `Tabs store initialization failed: ${errorMessage}`,
+    }).catch(() => {});
   }
 }
 

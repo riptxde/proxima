@@ -1,5 +1,6 @@
 import { ref, watch, type Ref } from "vue";
 import { load, type Store } from "@tauri-apps/plugin-store";
+import { invoke } from "@tauri-apps/api/core";
 import {
   DEFAULT_SETTINGS,
   type Settings,
@@ -58,7 +59,11 @@ async function initializeStore() {
 
     isInitialized = true;
   } catch (error) {
-    console.error("Failed to initialize settings store:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    invoke("add_log", {
+      level: 3,
+      message: `Settings initialization failed: ${errorMessage}`,
+    }).catch(() => {});
   }
 }
 

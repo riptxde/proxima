@@ -10,12 +10,15 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useNavigation } from "@/composables/useNavigation";
 import { useClients } from "@/features/editor/composables/useClients";
+import { useLogs } from "@/features/logs/composables/useLogs";
 
 const { activePage } = useNavigation();
 const { initialize } = useClients();
+const { initializeLogListener } = useLogs();
 
 onMounted(() => {
     initialize();
+    initializeLogListener();
 });
 
 const currentPageComponent = computed(() => {

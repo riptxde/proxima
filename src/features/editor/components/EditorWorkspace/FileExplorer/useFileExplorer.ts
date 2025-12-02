@@ -21,7 +21,12 @@ export function useFileExplorer() {
       const tree = await invoke<FileNode[]>("read_file_tree");
       fileTree.value = tree;
     } catch (error) {
-      console.error("Failed to load file tree:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      invoke("add_log", {
+        level: 3,
+        message: `Failed to load file tree: ${errorMessage}`,
+      }).catch(() => {});
     }
   }
 
@@ -118,7 +123,12 @@ export function useFileExplorer() {
       // Start watching for file changes
       unlistenFn = await listen("file-tree-changed", loadFileTree);
     } catch (error) {
-      console.error("Failed to initialize file system:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      invoke("add_log", {
+        level: 3,
+        message: `Failed to initialize file system: ${errorMessage}`,
+      }).catch(() => {});
     } finally {
       isLoading.value = false;
     }

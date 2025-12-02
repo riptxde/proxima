@@ -1,7 +1,8 @@
 use crate::models::FileNode;
+use serde_json;
 use std::fs;
 use std::path::Path;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 
 use super::paths;
 
@@ -12,15 +13,27 @@ pub fn initialize_directories(app: &AppHandle) -> Result<(), String> {
     let scripts_dir = base_dir.join("Scripts");
     let autoexec_dir = base_dir.join("AutoExec");
 
+    let mut created_dirs = Vec::new();
+
     // Create directories if they don't exist
     if !scripts_dir.exists() {
         fs::create_dir_all(&scripts_dir)
             .map_err(|e| format!("Failed to create Scripts directory: {}", e))?;
+        created_dirs.push("Scripts");
     }
 
     if !autoexec_dir.exists() {
         fs::create_dir_all(&autoexec_dir)
             .map_err(|e| format!("Failed to create AutoExec directory: {}", e))?;
+        created_dirs.push("AutoExec");
+    }
+
+    // Log directory initialization
+    if !created_dirs.is_empty() {
+        let _ = app.emit("log-message", serde_json::json!({
+            "level": 0,
+            "message": format!("Initialized directories: {}", created_dirs.join(", "))
+        }));
     }
 
     Ok(())
