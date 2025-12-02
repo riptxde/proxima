@@ -352,7 +352,7 @@ pub async fn broadcast_to_clients(
     Ok(())
 }
 
-pub async fn get_connected_clients(clients: ClientRegistry) -> Vec<Client> {
+pub async fn get_attached_clients(clients: ClientRegistry) -> Vec<Client> {
     clients
         .read()
         .await

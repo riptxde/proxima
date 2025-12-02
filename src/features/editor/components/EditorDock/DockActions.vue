@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/tooltip";
 
 const props = defineProps<{
-    enabledCount: number;
+    selectedCount: number;
 }>();
 
 defineEmits<{
@@ -20,7 +20,7 @@ defineEmits<{
     clients: [];
 }>();
 
-const hasEnabledClients = computed(() => props.enabledCount > 0);
+const hasSelectedClients = computed(() => props.selectedCount > 0);
 </script>
 
 <template>
@@ -29,12 +29,12 @@ const hasEnabledClients = computed(() => props.enabledCount > 0);
             <TooltipTrigger as-child>
                 <DockIcon
                     @click="$emit('execute')"
-                    :class="!hasEnabledClients && 'cursor-not-allowed'"
+                    :class="!hasSelectedClients && 'cursor-not-allowed'"
                 >
                     <Play
                         :class="[
                             'size-5 text-app-shell-foreground transition-opacity',
-                            hasEnabledClients
+                            hasSelectedClients
                                 ? 'opacity-60 group-hover:opacity-100'
                                 : 'opacity-15',
                         ]"

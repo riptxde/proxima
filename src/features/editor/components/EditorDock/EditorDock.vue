@@ -11,7 +11,7 @@ import { useClients } from "@/features/editor/composables/useClients";
 import { useExecutor } from "@/features/editor/composables/useExecutor";
 
 const { clearActiveTab, getActiveTabContent } = useEditorTabs();
-const { getEnabledClientIds, enabledCount } = useClients();
+const { getSelectedClientIds, selectedCount } = useClients();
 const { executeScript } = useExecutor();
 
 const {
@@ -28,7 +28,7 @@ const dockTooltipKey = ref(0);
 
 const handleExecute = async () => {
     const script = getActiveTabContent();
-    const clientIds = getEnabledClientIds();
+    const clientIds = getSelectedClientIds();
     await executeScript(script, clientIds);
 };
 
@@ -61,7 +61,7 @@ watch(
         <LiquidGlass>
             <TooltipProvider :key="dockTooltipKey">
                 <DockActions
-                    :enabled-count="enabledCount"
+                    :selected-count="selectedCount"
                     @execute="handleExecute"
                     @clear="clearActiveTab"
                     @open="handleOpenScript"

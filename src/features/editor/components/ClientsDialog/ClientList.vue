@@ -11,28 +11,28 @@ import {
 } from "@/components/ui/table";
 import { useClients } from "@/features/editor/composables/useClients";
 
-const { clients, isClientEnabled, toggleClient, enableAll, disableAll } =
+const { clients, isClientSelected, toggleClient, selectAll, deselectAll } =
     useClients();
 
-const allEnabled = computed(() => {
+const allSelected = computed(() => {
     return (
         clients.value.length > 0 &&
-        clients.value.every((c) => isClientEnabled(c.id))
+        clients.value.every((c) => isClientSelected(c.id))
     );
 });
 
-const someEnabled = computed(() => {
-    const enabledCount = clients.value.filter((c) =>
-        isClientEnabled(c.id),
+const someSelected = computed(() => {
+    const selectedCount = clients.value.filter((c) =>
+        isClientSelected(c.id),
     ).length;
-    return enabledCount > 0 && enabledCount < clients.value.length;
+    return selectedCount > 0 && selectedCount < clients.value.length;
 });
 
 const toggleAll = () => {
-    if (allEnabled.value) {
-        disableAll();
+    if (allSelected.value) {
+        deselectAll();
     } else {
-        enableAll();
+        selectAll();
     }
 };
 </script>
@@ -45,8 +45,8 @@ const toggleAll = () => {
                     <TableRow>
                         <TableHead class="w-12">
                             <Checkbox
-                                :model-value="allEnabled"
-                                :indeterminate="someEnabled"
+                                :model-value="allSelected"
+                                :indeterminate="someSelected"
                                 @update:model-value="toggleAll"
                             />
                         </TableHead>
@@ -63,7 +63,7 @@ const toggleAll = () => {
                     >
                         <TableCell class="w-12">
                             <Checkbox
-                                :model-value="isClientEnabled(client.id)"
+                                :model-value="isClientSelected(client.id)"
                                 @click.stop
                                 @update:model-value="toggleClient(client.id)"
                             />

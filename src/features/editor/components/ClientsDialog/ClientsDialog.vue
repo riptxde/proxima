@@ -35,7 +35,7 @@ const { clients } = useClients();
                     v-if="clients.length === 0"
                     class="text-center py-12 text-muted-foreground"
                 >
-                    <p class="text-sm">No clients connected</p>
+                    <p class="text-sm">No clients attached</p>
                 </div>
 
                 <ClientList v-else />

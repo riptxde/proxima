@@ -5,7 +5,7 @@ mod services;
 use commands::editor::{
     get_scripts_path, initialize_directories, read_file_content, read_file_tree, save_file,
 };
-use commands::executor::{execute_script, get_connected_clients};
+use commands::executor::{execute_script, get_attached_clients};
 use commands::logs::add_log;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -58,7 +58,7 @@ pub fn run() {
             save_file,
             // Executor commands
             execute_script,
-            get_connected_clients,
+            get_attached_clients,
             // Logs commands
             add_log,
             // Script Hub commands (future)

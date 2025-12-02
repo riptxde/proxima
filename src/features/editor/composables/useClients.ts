@@ -5,7 +5,7 @@ import { toast } from "vue-sonner";
 import type { Client } from "../types/executor";
 
 const clients = ref<Client[]>([]);
-const enabledClientIds = ref<Set<string>>(new Set());
+const selectedClientIds = ref<Set<string>>(new Set());
 const isInitialized = ref(false);
 
 let unlistenFn: UnlistenFn | null = null;
@@ -16,12 +16,12 @@ export function useClients() {
 
     try {
       // Get initial state once
-      const initialClients = await invoke<Client[]>("get_connected_clients");
+      const initialClients = await invoke<Client[]>("get_attached_clients");
       clients.value = initialClients;
 
-      // Enable all initial clients by default
+      // Select all initial clients by default
       initialClients.forEach((client) => {
-        enabledClientIds.value.add(client.id);
+        selectedClientIds.value.add(client.id);
       });
 
       // Listen for all future updates
@@ -40,7 +40,7 @@ export function useClients() {
 
         // Show toast for new clients
         newClients.forEach((client) => {
-          enabledClientIds.value.add(client.id);
+          selectedClientIds.value.add(client.id);
           toast.success("Client attached", {
             description: client.username,
           });
@@ -58,9 +58,9 @@ export function useClients() {
         // Update client list
         clients.value = updatedClients;
 
-        // Clean up enabled set (remove disconnected clients)
-        enabledClientIds.value = new Set(
-          [...enabledClientIds.value].filter((id) => updatedIds.has(id)),
+        // Clean up selected set (remove disconnected clients)
+        selectedClientIds.value = new Set(
+          [...selectedClientIds.value].filter((id) => updatedIds.has(id)),
         );
       });
 
@@ -78,50 +78,50 @@ export function useClients() {
   };
 
   const toggleClient = (id: string) => {
-    if (enabledClientIds.value.has(id)) {
-      enabledClientIds.value.delete(id);
+    if (selectedClientIds.value.has(id)) {
+      selectedClientIds.value.delete(id);
     } else {
-      enabledClientIds.value.add(id);
+      selectedClientIds.value.add(id);
     }
     // Trigger reactivity
-    enabledClientIds.value = new Set(enabledClientIds.value);
+    selectedClientIds.value = new Set(selectedClientIds.value);
   };
 
-  const enableAll = () => {
+  const selectAll = () => {
     clients.value.forEach((client) => {
-      enabledClientIds.value.add(client.id);
+      selectedClientIds.value.add(client.id);
     });
-    enabledClientIds.value = new Set(enabledClientIds.value);
+    selectedClientIds.value = new Set(selectedClientIds.value);
   };
 
-  const disableAll = () => {
-    enabledClientIds.value.clear();
-    enabledClientIds.value = new Set(enabledClientIds.value);
+  const deselectAll = () => {
+    selectedClientIds.value.clear();
+    selectedClientIds.value = new Set(selectedClientIds.value);
   };
 
-  const getEnabledClientIds = () => {
-    return Array.from(enabledClientIds.value);
+  const getSelectedClientIds = () => {
+    return Array.from(selectedClientIds.value);
   };
 
-  const isClientEnabled = (id: string) => {
-    return enabledClientIds.value.has(id);
+  const isClientSelected = (id: string) => {
+    return selectedClientIds.value.has(id);
   };
 
-  const enabledCount = computed(() => enabledClientIds.value.size);
+  const selectedCount = computed(() => selectedClientIds.value.size);
   const totalCount = computed(() => clients.value.length);
 
   return {
     clients,
-    enabledClientIds,
+    selectedClientIds,
     isInitialized,
-    enabledCount,
+    selectedCount,
     totalCount,
     initialize,
     cleanup,
     toggleClient,
-    enableAll,
-    disableAll,
-    getEnabledClientIds,
-    isClientEnabled,
+    selectAll,
+    deselectAll,
+    getSelectedClientIds,
+    isClientSelected,
   };
 }
