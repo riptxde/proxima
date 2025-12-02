@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from "vue";
 import { Dock, DockIcon } from "@/components/ui/dock";
 import { Play, Eraser, FolderOpen, Save, Users } from "lucide-vue-next";
 import {
@@ -7,6 +8,10 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+const props = defineProps<{
+    enabledCount: number;
+}>();
+
 defineEmits<{
     execute: [];
     clear: [];
@@ -14,15 +19,25 @@ defineEmits<{
     save: [];
     clients: [];
 }>();
+
+const hasEnabledClients = computed(() => props.enabledCount > 0);
 </script>
 
 <template>
     <Dock class="m-0!">
         <Tooltip>
             <TooltipTrigger as-child>
-                <DockIcon @click="$emit('execute')">
+                <DockIcon
+                    @click="$emit('execute')"
+                    :class="!hasEnabledClients && 'cursor-not-allowed'"
+                >
                     <Play
-                        class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+                        :class="[
+                            'size-5 text-app-shell-foreground transition-opacity',
+                            hasEnabledClients
+                                ? 'opacity-60 group-hover:opacity-100'
+                                : 'opacity-15',
+                        ]"
                     />
                 </DockIcon>
             </TooltipTrigger>

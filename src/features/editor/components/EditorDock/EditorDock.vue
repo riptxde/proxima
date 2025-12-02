@@ -11,7 +11,7 @@ import { useClients } from "@/features/editor/composables/useClients";
 import { useExecutor } from "@/features/editor/composables/useExecutor";
 
 const { clearActiveTab, getActiveTabContent } = useEditorTabs();
-const { getEnabledClientIds } = useClients();
+const { getEnabledClientIds, enabledCount } = useClients();
 const { executeScript } = useExecutor();
 
 const {
@@ -61,6 +61,7 @@ watch(
         <LiquidGlass>
             <TooltipProvider :key="dockTooltipKey">
                 <DockActions
+                    :enabled-count="enabledCount"
                     @execute="handleExecute"
                     @clear="clearActiveTab"
                     @open="handleOpenScript"
