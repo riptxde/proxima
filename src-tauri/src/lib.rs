@@ -6,6 +6,7 @@ use commands::editor::{
     get_scripts_path, initialize_directories, read_file_content, read_file_tree, save_file,
 };
 use commands::executor::{execute_script, get_connected_clients};
+use commands::logs::add_log;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tauri::Manager;
@@ -58,10 +59,10 @@ pub fn run() {
             // Executor commands
             execute_script,
             get_connected_clients,
+            // Logs commands
+            add_log,
             // Script Hub commands (future)
             // fetch_scripts,
-            // Logs commands (future)
-            // get_logs,
             // Settings commands (future)
             // get_settings,
         ])

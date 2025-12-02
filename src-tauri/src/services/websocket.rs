@@ -26,6 +26,8 @@ enum ClientMessage {
     Register { username: String },
     #[serde(rename = "pong")]
     Pong,
+    #[serde(rename = "log")]
+    Log { level: u8, message: String },
 }
 
 #[derive(Serialize, Debug)]
@@ -211,6 +213,24 @@ async fn handle_client(
                                         );
                                     }
                                     *missed_pings.write().await = 0;
+                                }
+                                ClientMessage::Log { level, message } => {
+                                    // Validate level is 0-3
+                                    if level > 3 {
+                                        eprintln!("Invalid log level from WebSocket client: {}", level);
+                                    } else {
+                                        // Emit log-message event to frontend
+                                        #[derive(Serialize, Clone)]
+                                        struct LogMessage {
+                                            level: u8,
+                                            message: String,
+                                        }
+
+                                        let log_msg = LogMessage { level, message };
+                                        if let Err(e) = app_handle_clone.emit("log-message", log_msg) {
+                                            eprintln!("Failed to emit log event from WebSocket: {}", e);
+                                        }
+                                    }
                                 }
                             }
                         } else {

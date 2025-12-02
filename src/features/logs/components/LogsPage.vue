@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onMounted, onUnmounted } from "vue";
 import StarsBackground from "@/components/ui/bg-stars/StarsBackground.vue";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -22,7 +23,17 @@ const {
     toggleLevelFilter,
     setSearchFilter,
     getLevelCount,
+    initializeLogListener,
+    cleanup,
 } = useLogs();
+
+onMounted(() => {
+    initializeLogListener();
+});
+
+onUnmounted(() => {
+    cleanup();
+});
 
 const levelConfig = {
     info: {
