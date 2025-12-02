@@ -2,14 +2,7 @@ import { ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "vue-sonner";
 import { useEditorTabs } from "./useEditorTabs";
-
-// Log levels: 0=info, 1=success, 2=warning, 3=error
-const logToBackend = (level: number, message: string) => {
-  invoke("add_log", { level, message }).catch((error) => {
-    // Fallback to console if backend logging fails
-    console.error("Failed to log to backend:", error);
-  });
-};
+import { useLogger } from "@/composables/useLogger";
 
 export function useFileOperations() {
   const {
@@ -18,6 +11,7 @@ export function useFileOperations() {
     getActiveTabFilePath,
     updateActiveTabFilePath,
   } = useEditorTabs();
+  const { addLog } = useLogger();
 
   const fileInputRef = ref<HTMLInputElement | null>(null);
   const saveDialogOpen = ref(false);
@@ -78,7 +72,7 @@ export function useFileOperations() {
       toast.error("Failed to save file", {
         description: errorMessage,
       });
-      logToBackend(3, `File save failed: ${errorMessage}`);
+      addLog("error", `File save failed: ${errorMessage}`);
     }
   };
 
@@ -108,7 +102,7 @@ export function useFileOperations() {
       toast.error("Failed to save file", {
         description: errorMessage,
       });
-      logToBackend(3, `File save failed: ${errorMessage}`);
+      addLog("error", `File save failed: ${errorMessage}`);
     }
   };
 

@@ -7,9 +7,11 @@ import { Spinner } from "@/components/ui/spinner";
 import FileExplorerSearch from "./FileExplorerSearch.vue";
 import { useFileExplorer } from "./useFileExplorer";
 import { useEditorTabs } from "@/features/editor/composables/useEditorTabs";
+import { useLogger } from "@/composables/useLogger";
 import type { FileNode } from "./types";
 
 const { openFile } = useEditorTabs();
+const { addLog } = useLogger();
 
 const {
     searchQuery,
@@ -30,10 +32,7 @@ async function handleFileClick(filePath: string, fileName: string) {
     } catch (error) {
         const errorMessage =
             error instanceof Error ? error.message : String(error);
-        invoke("add_log", {
-            level: 3,
-            message: `Failed to open file ${fileName}: ${errorMessage}`,
-        }).catch(() => {});
+        addLog("error", `Failed to open file ${fileName}: ${errorMessage}`);
     }
 }
 

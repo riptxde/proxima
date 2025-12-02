@@ -1,16 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "vue-sonner";
 import type { ExecuteRequest } from "../types/executor";
-
-// Log levels: 0=info, 1=success, 2=warning, 3=error
-const logToBackend = (level: number, message: string) => {
-  invoke("add_log", { level, message }).catch((error) => {
-    // Fallback to console if backend logging fails
-    console.error("Failed to log to backend:", error);
-  });
-};
+import { useLogger } from "@/composables/useLogger";
 
 export function useExecutor() {
+  const { addLog } = useLogger();
+
   const executeScript = async (
     script: string,
     clientIds: string[],
@@ -52,7 +47,7 @@ export function useExecutor() {
       toast.error("Execution failed", {
         description: errorMessage,
       });
-      logToBackend(3, `Script execution failed: ${errorMessage}`);
+      addLog("error", `Script execution failed: ${errorMessage}`);
       return false;
     }
   };

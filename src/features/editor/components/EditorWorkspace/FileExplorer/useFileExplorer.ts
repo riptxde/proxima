@@ -3,11 +3,13 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { watchDebounced } from "@vueuse/core";
 import type { FileNode } from "./types";
+import { useLogger } from "@/composables/useLogger";
 
 const MAX_SEARCH_RESULTS = 100;
 const SEARCH_DEBOUNCE_MS = 300;
 
 export function useFileExplorer() {
+  const { addLog } = useLogger();
   const fileTree = ref<FileNode[]>([]);
   const searchQuery = ref("");
   const debouncedSearchQuery = ref("");
@@ -23,10 +25,7 @@ export function useFileExplorer() {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      invoke("add_log", {
-        level: 3,
-        message: `Failed to load file tree: ${errorMessage}`,
-      }).catch(() => {});
+      addLog("error", `Failed to load file tree: ${errorMessage}`);
     }
   }
 
@@ -125,10 +124,7 @@ export function useFileExplorer() {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      invoke("add_log", {
-        level: 3,
-        message: `Failed to initialize file system: ${errorMessage}`,
-      }).catch(() => {});
+      addLog("error", `Failed to initialize file system: ${errorMessage}`);
     } finally {
       isLoading.value = false;
     }

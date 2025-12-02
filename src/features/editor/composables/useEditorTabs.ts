@@ -1,7 +1,7 @@
 import { ref, watch } from "vue";
 import { load, type Store } from "@tauri-apps/plugin-store";
-import { invoke } from "@tauri-apps/api/core";
 import type { Tab } from "../types/tab";
+import { useLogger } from "@/composables/useLogger";
 
 let store: Store | null = null;
 let isInitialized = false;
@@ -25,6 +25,8 @@ interface PersistedTabsState {
 
 async function initializeStore() {
   if (isInitialized) return;
+
+  const { addLog } = useLogger();
 
   try {
     store = await load("tabs.json", { autoSave: 100, defaults: {} });
@@ -53,10 +55,7 @@ async function initializeStore() {
     isInitialized = true;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    invoke("add_log", {
-      level: 3,
-      message: `Tabs store initialization failed: ${errorMessage}`,
-    }).catch(() => {});
+    addLog("error", `Tabs store initialization failed: ${errorMessage}`);
   }
 }
 

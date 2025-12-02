@@ -1,6 +1,5 @@
 import { ref, watch, type Ref } from "vue";
 import { load, type Store } from "@tauri-apps/plugin-store";
-import { invoke } from "@tauri-apps/api/core";
 import {
   DEFAULT_SETTINGS,
   type Settings,
@@ -8,6 +7,7 @@ import {
   type ExecutionSettings,
   type ApplicationSettings,
 } from "../types/settings";
+import { useLogger } from "@/composables/useLogger";
 
 let store: Store | null = null;
 let isInitialized = false;
@@ -23,6 +23,8 @@ const applicationSettings: Ref<ApplicationSettings> = ref({
 
 async function initializeStore() {
   if (isInitialized) return;
+
+  const { addLog } = useLogger();
 
   try {
     store = await load("settings.json", { autoSave: 100, defaults: {} });
@@ -60,10 +62,7 @@ async function initializeStore() {
     isInitialized = true;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    invoke("add_log", {
-      level: 3,
-      message: `Settings initialization failed: ${errorMessage}`,
-    }).catch(() => {});
+    addLog("error", `Settings initialization failed: ${errorMessage}`);
   }
 }
 
