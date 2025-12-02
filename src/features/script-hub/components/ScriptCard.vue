@@ -20,6 +20,7 @@ import type { Script } from "../types/script";
 import { useEditorTabs } from "@/features/editor/composables/useEditorTabs";
 import { useNavigation } from "@/composables/useNavigation";
 import { toast } from "vue-sonner";
+import { openUrl } from "@tauri-apps/plugin-opener";
 
 interface Props {
     script: Script;
@@ -46,6 +47,16 @@ const handleSendToEditor = () => {
     openFileAsTab(props.script.title, props.script.script);
     navigate("editor");
     toast.success(`"${props.script.title}" opened in editor`);
+};
+
+const handleViewDetails = async () => {
+    const url = `https://scriptblox.com/script/${props.script.slug}`;
+    try {
+        await openUrl(url);
+    } catch (error) {
+        toast.error("Failed to open link in browser");
+        console.error("Error opening URL:", error);
+    }
 };
 </script>
 
@@ -171,6 +182,7 @@ const handleSendToEditor = () => {
                                     size="sm"
                                     variant="outline"
                                     class="w-9 h-9 p-0"
+                                    @click="handleViewDetails"
                                 >
                                     <Info class="w-4 h-4" />
                                 </Button>
