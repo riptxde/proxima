@@ -5,7 +5,7 @@ use std::sync::mpsc::channel;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
-use super::paths;
+use crate::utils::paths;
 
 const DEBOUNCE_DURATION_MS: u64 = 500;
 

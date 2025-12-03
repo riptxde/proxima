@@ -3,7 +3,7 @@ use std::fs;
 use std::path::Path;
 use tauri::AppHandle;
 
-use super::paths;
+use crate::utils::paths;
 
 /// Initialize the Scripts and AutoExec directories if they don't exist
 pub fn initialize_directories(app: &AppHandle) -> Result<(), String> {

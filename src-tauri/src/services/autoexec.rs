@@ -1,4 +1,4 @@
-use crate::services::paths;
+use crate::utils::paths;
 use std::fs;
 use std::path::Path;
 use tauri::AppHandle;

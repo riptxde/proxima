@@ -1,4 +1,5 @@
-use crate::services::{filesystem, paths, security};
+use crate::services::filesystem;
+use crate::utils::{paths, security};
 use std::fs;
 use tauri::{AppHandle, Emitter};
 
@@ -71,10 +72,13 @@ pub fn save_file(
         .replace('\\', "/");
 
     // Log successful file save
-    let _ = app.emit("log-message", serde_json::json!({
-        "level": 1,
-        "message": format!("File saved: {}", relative_path)
-    }));
+    let _ = app.emit(
+        "log-message",
+        serde_json::json!({
+            "level": 1,
+            "message": format!("File saved: {}", relative_path)
+        }),
+    );
 
     Ok(relative_path)
 }
