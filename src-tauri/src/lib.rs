@@ -1,3 +1,6 @@
+#[macro_use]
+mod utils;
+
 mod commands;
 mod models;
 mod services;
@@ -19,13 +22,12 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
-            }
+            // Always initialize the logger for consistent timestamped logging
+            app.handle().plugin(
+                tauri_plugin_log::Builder::default()
+                    .level(log::LevelFilter::Info)
+                    .build(),
+            )?;
 
             // Initialize client registry
             let clients: services::websocket::ClientRegistry =
@@ -36,23 +38,38 @@ pub fn run() {
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 if let Err(e) =
-                    services::websocket::start_websocket_server(app_handle, clients).await
+                    services::websocket::start_websocket_server(app_handle.clone(), clients).await
                 {
-                    eprintln!("Failed to start WebSocket server: {}", e);
+                    log::error!("Failed to start WebSocket server: {}", e);
+                    log_ui!(
+                        &app_handle,
+                        Error,
+                        "Failed to start WebSocket server: {}",
+                        e
+                    );
                 }
             });
 
             // Start the file watcher
             let app_handle = app.handle().clone();
-            if let Err(e) = services::file_watcher::start_file_watcher(app_handle) {
-                eprintln!("Failed to start file watcher: {}", e);
+            if let Err(e) = services::file_watcher::start_file_watcher(app_handle.clone()) {
+                log::error!("Failed to start file watcher: {}", e);
+                log_ui!(&app_handle, Error, "Failed to start file watcher: {}", e);
             }
 
             // Start the HTTP server
             let app_handle_http = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                if let Err(e) = services::http_server::start_http_server(app_handle_http).await {
-                    eprintln!("Failed to start HTTP server: {}", e);
+                if let Err(e) =
+                    services::http_server::start_http_server(app_handle_http.clone()).await
+                {
+                    log::error!("Failed to start HTTP server: {}", e);
+                    log_ui!(
+                        &app_handle_http,
+                        Error,
+                        "Failed to start HTTP server: {}",
+                        e
+                    );
                 }
             });
 

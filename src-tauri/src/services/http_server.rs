@@ -29,16 +29,7 @@ struct ErrorResponse {
 pub async fn start_http_server(app_handle: AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let addr: SocketAddr = "127.0.0.1:13377".parse()?;
 
-    println!("HTTP server listening on http://127.0.0.1:13377");
-
-    // Log server start
-    let _ = app_handle.emit(
-        "log-message",
-        serde_json::json!({
-            "level": 1,
-            "message": "HTTP server started on port 13377"
-        }),
-    );
+    log_ui!(&app_handle, Success, "HTTP server started on port 13377");
 
     // /execute_file endpoint
     let app_execute_file = app_handle.clone();
@@ -127,7 +118,7 @@ async fn handle_execute_file(body: Bytes, app: AppHandle) -> Result<impl Reply, 
     };
 
     if let Err(e) = app.emit("http-execute-script", payload) {
-        eprintln!("Failed to emit http-execute-script event: {}", e);
+        log::error!("Failed to emit http-execute-script event: {}", e);
         return Ok(with_status(
             json(&ErrorResponse {
                 success: false,
@@ -137,14 +128,7 @@ async fn handle_execute_file(body: Bytes, app: AppHandle) -> Result<impl Reply, 
         ));
     }
 
-    // Log request
-    let _ = app.emit(
-        "log-message",
-        serde_json::json!({
-            "level": 0,
-            "message": format!("HTTP request emitted: execute_file ({})", path_str)
-        }),
-    );
+    log::info!("HTTP request received: execute_file ({})", path_str);
 
     Ok(with_status(
         json(&SuccessResponse {
@@ -176,7 +160,7 @@ async fn handle_execute(body: Bytes, app: AppHandle) -> Result<impl Reply, warp:
     };
 
     if let Err(e) = app.emit("http-execute-script", payload) {
-        eprintln!("Failed to emit http-execute-script event: {}", e);
+        log::error!("Failed to emit http-execute-script event: {}", e);
         return Ok(with_status(
             json(&ErrorResponse {
                 success: false,
@@ -186,14 +170,7 @@ async fn handle_execute(body: Bytes, app: AppHandle) -> Result<impl Reply, warp:
         ));
     }
 
-    // Log request
-    let _ = app.emit(
-        "log-message",
-        serde_json::json!({
-            "level": 0,
-            "message": "HTTP request emitted: execute"
-        }),
-    );
+    log::info!("HTTP request received: execute");
 
     Ok(with_status(
         json(&SuccessResponse {

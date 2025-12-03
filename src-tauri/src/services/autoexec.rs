@@ -8,7 +8,7 @@ pub fn get_autoexec_scripts(app: &AppHandle) -> Vec<String> {
     let base_dir = match paths::get_base_directory(app) {
         Ok(dir) => dir,
         Err(e) => {
-            eprintln!("Failed to get base directory for AutoExec: {}", e);
+            log::error!("Failed to get base directory for AutoExec: {}", e);
             return vec![];
         }
     };
@@ -34,7 +34,7 @@ fn collect_scripts(dir: &Path, scripts: &mut Vec<(String, String)>) {
     let entries = match fs::read_dir(dir) {
         Ok(entries) => entries,
         Err(e) => {
-            eprintln!("Failed to read directory {}: {}", dir.display(), e);
+            log::error!("Failed to read directory {}: {}", dir.display(), e);
             return;
         }
     };
@@ -57,7 +57,7 @@ fn collect_scripts(dir: &Path, scripts: &mut Vec<(String, String)>) {
                             scripts.push((path_str, content));
                         }
                         Err(e) => {
-                            eprintln!("Failed to read file {}: {}", path.display(), e);
+                            log::error!("Failed to read file {}: {}", path.display(), e);
                         }
                     }
                 }

@@ -51,13 +51,11 @@ pub async fn start_websocket_server(
     clients: ClientRegistry,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let listener = TcpListener::bind("127.0.0.1:13376").await?;
-    println!("WebSocket server listening on ws://127.0.0.1:13376");
-
-    // Log server start
-    let _ = app_handle.emit("log-message", serde_json::json!({
-        "level": 1,
-        "message": "WebSocket server started on port 13376"
-    }));
+    log_ui!(
+        &app_handle,
+        Success,
+        "WebSocket server started on port 13376"
+    );
 
     while let Ok((stream, addr)) = listener.accept().await {
         let clients = Arc::clone(&clients);
@@ -65,7 +63,7 @@ pub async fn start_websocket_server(
 
         tauri::async_runtime::spawn(async move {
             if let Err(e) = handle_client(stream, addr, clients, app_handle).await {
-                eprintln!("Error handling client {}: {}", addr, e);
+                log::error!("Error handling client {}: {}", addr, e);
             }
         });
     }
@@ -80,7 +78,7 @@ async fn handle_client(
     app_handle: AppHandle,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let ws_stream = accept_async(stream).await?;
-    println!("WebSocket connection established: {}", addr);
+    log::info!("WebSocket connection established: {}", addr);
 
     let (mut ws_sender, mut ws_receiver) = ws_stream.split();
 
@@ -122,9 +120,10 @@ async fn handle_client(
             // Check missed pings
             if current_missed >= MAX_MISSED_CYCLES {
                 if let Some(id) = &client_id_opt {
-                    println!(
+                    log::warn!(
                         "Client {} failed to respond after {} cycles, disconnecting",
-                        id, MAX_MISSED_CYCLES
+                        id,
+                        MAX_MISSED_CYCLES
                     );
                 }
                 break;
@@ -141,12 +140,12 @@ async fn handle_client(
             };
 
             if let Some(id) = &client_id_opt {
-                println!("Sending ping to {} (missed: {})", id, current_missed);
+                log::debug!("Sending ping to {} (missed: {})", id, current_missed);
             }
 
             if tx_heartbeat.send(Message::Text(ping_text)).is_err() {
                 if let Some(id) = &client_id_opt {
-                    println!("Failed to send ping to {}, connection likely closed", id);
+                    log::warn!("Failed to send ping to {}, connection likely closed", id);
                 }
                 break;
             }
@@ -155,7 +154,7 @@ async fn handle_client(
         // Cleanup on heartbeat failure - forcefully close connection
         if let Some(id) = client_id_heartbeat_task.read().await.as_ref() {
             clients_heartbeat.write().await.remove(id);
-            println!("Removed dead client: {}", id);
+            log::info!("Removed dead client: {}", id);
 
             // Send close message to forcefully disconnect
             let _ = tx_heartbeat.send(Message::Close(None));
@@ -174,7 +173,6 @@ async fn handle_client(
                             match client_msg {
                                 ClientMessage::Register { username } => {
                                     let id = Uuid::new_v4().to_string();
-                                    println!("Client registered: {} ({})", username, id);
 
                                     let client_info = ClientInfo {
                                         username: username.clone(),
@@ -186,21 +184,24 @@ async fn handle_client(
                                     *client_id_heartbeat.write().await = Some(id.clone());
 
                                     // Log client registration
-                                    let _ = app_handle_clone.emit("log-message", serde_json::json!({
-                                        "level": 1,
-                                        "message": format!("Client attached: {}", username)
-                                    }));
+                                    log_ui!(
+                                        &app_handle_clone,
+                                        Success,
+                                        "Client attached: {}",
+                                        username
+                                    );
 
                                     // Check if auto-execute is enabled
-                                    let auto_execute = get_auto_execute_setting(&app_handle_clone).await;
+                                    let auto_execute =
+                                        get_auto_execute_setting(&app_handle_clone).await;
 
                                     if auto_execute {
                                         // Get AutoExec scripts
-                                        let scripts = autoexec::get_autoexec_scripts(&app_handle_clone);
+                                        let scripts =
+                                            autoexec::get_autoexec_scripts(&app_handle_clone);
 
                                         if !scripts.is_empty() {
                                             let script_count = scripts.len();
-                                            println!("Auto-executing {} script(s) for client {}", script_count, id);
 
                                             // Log autoexec
                                             let script_text = if script_count == 1 {
@@ -208,17 +209,22 @@ async fn handle_client(
                                             } else {
                                                 format!("{} scripts", script_count)
                                             };
-                                            let _ = app_handle_clone.emit("log-message", serde_json::json!({
-                                                "level": 1,
-                                                "message": format!("Auto-executed {} on {}", script_text, username)
-                                            }));
+                                            log_ui!(
+                                                &app_handle_clone,
+                                                Success,
+                                                "Auto-executed {} on {}",
+                                                script_text,
+                                                username
+                                            );
 
                                             // Execute each script on this client
                                             for script in scripts {
                                                 let execute_msg = ServerMessage::Execute { script };
-                                                if let Ok(msg_text) = serde_json::to_string(&execute_msg) {
+                                                if let Ok(msg_text) =
+                                                    serde_json::to_string(&execute_msg)
+                                                {
                                                     if tx.send(Message::Text(msg_text)).is_err() {
-                                                        eprintln!("Failed to send AutoExec script to client {}", id);
+                                                        log::error!("Failed to send AutoExec script to client {}", id);
                                                         break;
                                                     }
                                                 }
@@ -231,7 +237,7 @@ async fn handle_client(
                                 }
                                 ClientMessage::Pong => {
                                     if let Some(id) = &client_id {
-                                        println!(
+                                        log::debug!(
                                             "Received pong from {}, resetting missed ping counter",
                                             id
                                         );
@@ -241,7 +247,10 @@ async fn handle_client(
                                 ClientMessage::Log { level, message } => {
                                     // Validate level is 0-3
                                     if level > 3 {
-                                        eprintln!("Invalid log level from WebSocket client: {}", level);
+                                        log::error!(
+                                            "Invalid log level from WebSocket client: {}",
+                                            level
+                                        );
                                     } else {
                                         // Emit log-message event to frontend
                                         #[derive(Serialize, Clone)]
@@ -251,14 +260,19 @@ async fn handle_client(
                                         }
 
                                         let log_msg = LogMessage { level, message };
-                                        if let Err(e) = app_handle_clone.emit("log-message", log_msg) {
-                                            eprintln!("Failed to emit log event from WebSocket: {}", e);
+                                        if let Err(e) =
+                                            app_handle_clone.emit("log-message", log_msg)
+                                        {
+                                            log::error!(
+                                                "Failed to emit log event from WebSocket: {}",
+                                                e
+                                            );
                                         }
                                     }
                                 }
                             }
                         } else {
-                            eprintln!("Failed to parse client message: {}", text);
+                            log::warn!("Failed to parse client message: {}", text);
                         }
                     }
                 } else if msg.is_close() {
@@ -266,7 +280,7 @@ async fn handle_client(
                 }
             }
             Err(e) => {
-                eprintln!("WebSocket error: {}", e);
+                log::error!("WebSocket error: {}", e);
                 break;
             }
         }
@@ -275,17 +289,17 @@ async fn handle_client(
     // Client disconnected
     if let Some(id) = client_id {
         // Get username before removing from registry
-        let username = clients_clone.read().await.get(&id).map(|info| info.username.clone());
+        let username = clients_clone
+            .read()
+            .await
+            .get(&id)
+            .map(|info| info.username.clone());
 
         clients_clone.write().await.remove(&id);
-        println!("Client disconnected: {}", id);
 
         // Log client disconnection
         if let Some(username) = username {
-            let _ = app_handle_clone.emit("log-message", serde_json::json!({
-                "level": 0,
-                "message": format!("Client disconnected: {}", username)
-            }));
+            log_ui!(&app_handle_clone, Info, "Client disconnected: {}", username);
         }
 
         emit_clients_update(&app_handle_clone, &clients_clone).await;
@@ -308,7 +322,7 @@ async fn emit_clients_update(app_handle: &AppHandle, clients: &ClientRegistry) {
         .collect();
 
     if let Err(e) = app_handle.emit("clients-update", clients_list) {
-        eprintln!("Failed to emit clients-update event: {}", e);
+        log::error!("Failed to emit clients-update event: {}", e);
     }
 }
 
@@ -317,7 +331,7 @@ pub async fn broadcast_to_clients(
     script: String,
     clients: ClientRegistry,
 ) -> Result<(), String> {
-    println!("Broadcasting script to {} client(s)", client_ids.len());
+    log::info!("Broadcasting script to {} client(s)", client_ids.len());
 
     let execute_msg = ServerMessage::Execute { script };
     let message_text = serde_json::to_string(&execute_msg)
@@ -334,16 +348,16 @@ pub async fn broadcast_to_clients(
                 .is_ok()
             {
                 executed_count += 1;
-                println!("Sent to client: {}", client_id);
+                log::debug!("Sent to client: {}", client_id);
             } else {
-                eprintln!("Failed to send to client: {}", client_id);
+                log::error!("Failed to send to client: {}", client_id);
             }
         } else {
-            eprintln!("Client not found: {}", client_id);
+            log::error!("Client not found: {}", client_id);
         }
     }
 
-    println!(
+    log::info!(
         "Successfully sent to {}/{} clients",
         executed_count,
         client_ids.len()
@@ -369,20 +383,18 @@ async fn get_auto_execute_setting(app: &AppHandle) -> bool {
     use tauri_plugin_store::StoreExt;
 
     match app.store("settings.json") {
-        Ok(store) => {
-            match store.get("settings") {
-                Some(Value::Object(settings)) => {
-                    if let Some(Value::Object(execution)) = settings.get("execution") {
-                        if let Some(Value::Bool(auto_execute)) = execution.get("autoExecute") {
-                            return *auto_execute;
-                        }
+        Ok(store) => match store.get("settings") {
+            Some(Value::Object(settings)) => {
+                if let Some(Value::Object(execution)) = settings.get("execution") {
+                    if let Some(Value::Bool(auto_execute)) = execution.get("autoExecute") {
+                        return *auto_execute;
                     }
                 }
-                _ => {}
             }
-        }
+            _ => {}
+        },
         Err(e) => {
-            eprintln!("Failed to access settings store: {}", e);
+            log::error!("Failed to access settings store: {}", e);
         }
     }
 

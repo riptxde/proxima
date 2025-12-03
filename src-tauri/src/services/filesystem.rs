@@ -1,8 +1,7 @@
 use crate::models::FileNode;
-use serde_json;
 use std::fs;
 use std::path::Path;
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 
 use super::paths;
 
@@ -30,10 +29,7 @@ pub fn initialize_directories(app: &AppHandle) -> Result<(), String> {
 
     // Log directory initialization
     if !created_dirs.is_empty() {
-        let _ = app.emit("log-message", serde_json::json!({
-            "level": 0,
-            "message": format!("Initialized directories: {}", created_dirs.join(", "))
-        }));
+        log::info!("Initialized directories: {}", created_dirs.join(", "));
     }
 
     Ok(())

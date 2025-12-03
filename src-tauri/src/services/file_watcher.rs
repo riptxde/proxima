@@ -1,6 +1,5 @@
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use notify_debouncer_full::{new_debouncer, DebounceEventResult, Debouncer, FileIdMap};
-use serde_json;
 use std::path::PathBuf;
 use std::sync::mpsc::channel;
 use std::time::Duration;
@@ -16,16 +15,12 @@ pub fn start_file_watcher(app: AppHandle) -> Result<(), String> {
     let scripts_dir = base_dir.join("Scripts");
     let autoexec_dir = base_dir.join("AutoExec");
 
-    // Log file watcher start
-    let _ = app.emit("log-message", serde_json::json!({
-        "level": 0,
-        "message": "File watcher initialized"
-    }));
+    log::info!("File watcher initialized");
 
     let app_clone = app.clone();
     std::thread::spawn(move || {
         if let Err(e) = watch_directories(app_clone, scripts_dir, autoexec_dir) {
-            eprintln!("File watcher error: {}", e);
+            log::error!("File watcher error: {}", e);
         }
     });
 
@@ -65,14 +60,10 @@ fn watch_directories(
     // Event loop - emit to frontend when files change
     while rx.recv().is_ok() {
         if let Err(e) = app.emit("file-tree-changed", ()) {
-            eprintln!("Failed to emit file tree change event: {}", e);
+            log::error!("Failed to emit file tree change event: {}", e);
         }
 
-        // Log file tree change
-        let _ = app.emit("log-message", serde_json::json!({
-            "level": 0,
-            "message": "File watcher detected an update to the file tree"
-        }));
+        log::debug!("File watcher detected file tree change");
     }
 
     Ok(())
