@@ -4,6 +4,7 @@ import type {
   ScriptSearchResponse,
   ScriptSearchParams,
 } from "../types/script";
+import { useLogger } from "@/composables/useLogger";
 
 const API_BASE_URL = "https://scriptblox.com/api/script";
 
@@ -22,6 +23,8 @@ const searchParams = ref<ScriptSearchParams>({
 });
 
 export function useScriptHub() {
+  const { addLog } = useLogger();
+
   const fetchScripts = async () => {
     isLoading.value = true;
     error.value = null;
@@ -56,7 +59,7 @@ export function useScriptHub() {
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : "Failed to fetch scripts";
-      console.error("Error fetching scripts:", err);
+      addLog("error", `Error fetching scripts: ${error.value}`);
     } finally {
       isLoading.value = false;
     }

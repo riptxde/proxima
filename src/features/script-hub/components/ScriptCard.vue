@@ -19,6 +19,7 @@ import GlowingEffect from "@/components/ui/glowing-effect/GlowingEffect.vue";
 import type { Script } from "../types/script";
 import { useEditorTabs } from "@/features/editor/composables/useEditorTabs";
 import { useNavigation } from "@/composables/useNavigation";
+import { useLogger } from "@/composables/useLogger";
 import { toast } from "vue-sonner";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
@@ -30,6 +31,7 @@ const props = defineProps<Props>();
 
 const { openFileAsTab } = useEditorTabs();
 const { navigate } = useNavigation();
+const { addLog } = useLogger();
 
 const getImageUrl = (url: string) => {
     if (url.startsWith("http")) {
@@ -52,10 +54,11 @@ const handleSendToEditor = () => {
 const handleViewDetails = async () => {
     const url = `https://scriptblox.com/script/${props.script.slug}`;
     try {
+        addLog("info", `Opening in browser: ${url}`);
         await openUrl(url);
     } catch (error) {
-        toast.error("Failed to open link in browser");
-        console.error("Error opening URL:", error);
+        toast.error("Failed to open url in browser");
+        addLog("error", `Failed to open browser: ${error}`);
     }
 };
 </script>
