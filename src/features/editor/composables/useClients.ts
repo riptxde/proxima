@@ -42,7 +42,7 @@ export function useClients() {
         newClients.forEach((client) => {
           selectedClientIds.value.add(client.id);
           toast.success("Client attached", {
-            description: client.username,
+            description: `User: ${client.username}`,
           });
           // This is logged on the backend
         });
@@ -50,7 +50,7 @@ export function useClients() {
         // Show toast for disconnected clients
         disconnectedClients.forEach((client) => {
           toast.error("Client disconnected", {
-            description: client.username,
+            description: `User: ${client.username}`,
           });
           // This is logged on the backend
         });
