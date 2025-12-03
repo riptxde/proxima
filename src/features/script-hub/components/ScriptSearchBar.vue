@@ -140,7 +140,7 @@ const updateFilter = (key: keyof ScriptSearchParams, value: any) => {
                 </Button>
             </PopoverTrigger>
             <PopoverContent class="w-[360px]" align="end">
-                <div class="-m-4">
+                <div class="-m-4 select-none">
                     <div
                         class="flex items-center justify-between px-3 py-1.5 bg-tab-bar rounded-t-md"
                     >

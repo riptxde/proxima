@@ -75,7 +75,7 @@ const handleViewDetails = async () => {
             :inactive-zone="0.01"
         />
         <div
-            class="group relative h-full bg-card rounded-[7px] overflow-hidden shadow-[0px_0px_27px_0px_#2D2D2D] transition-all duration-300 flex flex-col"
+            class="group relative h-full bg-card rounded-[7px] overflow-hidden shadow-[0px_0px_27px_0px_#2D2D2D] transition-all duration-300 flex flex-col select-none"
         >
             <div
                 class="relative aspect-video overflow-hidden bg-muted shrink-0"

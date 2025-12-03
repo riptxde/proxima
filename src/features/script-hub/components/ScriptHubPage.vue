@@ -67,7 +67,7 @@ const handleNextPage = () => {
             <div
                 class="shrink-0 p-6 space-y-4 border-b border-border bg-card/80"
             >
-                <div>
+                <div class="select-none">
                     <h1 class="text-2xl font-semibold text-foreground">
                         Script Hub
                     </h1>
@@ -90,7 +90,7 @@ const handleNextPage = () => {
                     v-if="isLoading"
                     class="flex items-center justify-center h-64"
                 >
-                    <div class="flex flex-col items-center gap-3">
+                    <div class="flex flex-col items-center gap-3 select-none">
                         <Loader2
                             class="w-8 h-8 animate-spin text-sidebar-primary"
                         />
@@ -104,7 +104,7 @@ const handleNextPage = () => {
                     v-else-if="error"
                     class="flex items-center justify-center h-64"
                 >
-                    <div class="text-center space-y-2">
+                    <div class="text-center space-y-2 select-none">
                         <p class="text-destructive font-medium">
                             Failed to load scripts
                         </p>
@@ -119,7 +119,7 @@ const handleNextPage = () => {
                     v-else-if="scripts.length === 0"
                     class="flex items-center justify-center h-64"
                 >
-                    <div class="text-center space-y-2">
+                    <div class="text-center space-y-2 select-none">
                         <p class="text-foreground font-medium">
                             No scripts found
                         </p>
@@ -143,7 +143,7 @@ const handleNextPage = () => {
                     <div
                         class="flex items-center justify-between pt-4 border-t border-border"
                     >
-                        <div class="text-sm text-muted-foreground">
+                        <div class="text-sm text-muted-foreground select-none">
                             Page {{ currentPage }} of
                             {{ totalPages.toLocaleString() }}
                         </div>

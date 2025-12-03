@@ -36,7 +36,7 @@ const fontSize = computed({
                 <!-- Editor Settings -->
                 <Card class="p-4">
                     <div class="space-y-3">
-                        <div class="space-y-0.5">
+                        <div class="space-y-0.5 select-none">
                             <div class="flex items-center gap-2">
                                 <ScrollText class="w-4 h-4" />
                                 <h2 class="text-base font-semibold">Editor</h2>
@@ -51,7 +51,7 @@ const fontSize = computed({
                             <div
                                 class="flex items-center justify-between py-1.5"
                             >
-                                <div class="space-y-0">
+                                <div class="space-y-0 select-none">
                                     <Label
                                         for="word-wrap"
                                         class="text-sm cursor-pointer"
@@ -76,7 +76,7 @@ const fontSize = computed({
                             <div
                                 class="flex items-center justify-between py-1.5"
                             >
-                                <div class="space-y-0">
+                                <div class="space-y-0 select-none">
                                     <Label
                                         for="minimap"
                                         class="text-sm cursor-pointer"
@@ -99,7 +99,9 @@ const fontSize = computed({
 
                             <!-- Font Size -->
                             <div class="space-y-2 py-1.5">
-                                <div class="flex items-center justify-between">
+                                <div
+                                    class="flex items-center justify-between select-none"
+                                >
                                     <div class="space-y-0">
                                         <Label class="text-sm">
                                             Font Size
@@ -129,7 +131,7 @@ const fontSize = computed({
 
                             <!-- Font -->
                             <div class="space-y-2 py-1.5">
-                                <div class="space-y-0">
+                                <div class="space-y-0 select-none">
                                     <Label for="font" class="text-sm">
                                         Font
                                     </Label>
@@ -153,7 +155,7 @@ const fontSize = computed({
                             <div
                                 class="flex items-center justify-between py-1.5"
                             >
-                                <div class="space-y-0">
+                                <div class="space-y-0 select-none">
                                     <Label
                                         for="font-ligatures"
                                         class="text-sm cursor-pointer"
@@ -178,7 +180,7 @@ const fontSize = computed({
                 <!-- Execution Settings -->
                 <Card class="p-4">
                     <div class="space-y-3">
-                        <div class="space-y-0.5">
+                        <div class="space-y-0.5 select-none">
                             <div class="flex items-center gap-2">
                                 <Play class="w-4 h-4" />
                                 <h2 class="text-base font-semibold">
@@ -195,7 +197,7 @@ const fontSize = computed({
                             <div
                                 class="flex items-center justify-between py-1.5"
                             >
-                                <div class="space-y-0">
+                                <div class="space-y-0 select-none">
                                     <Label
                                         for="auto-execute"
                                         class="text-sm cursor-pointer"
@@ -221,7 +223,7 @@ const fontSize = computed({
                 <!-- Application Settings -->
                 <Card class="p-4">
                     <div class="space-y-3">
-                        <div class="space-y-0.5">
+                        <div class="space-y-0.5 select-none">
                             <div class="flex items-center gap-2">
                                 <Settings class="w-4 h-4" />
                                 <h2 class="text-base font-semibold">
@@ -238,7 +240,7 @@ const fontSize = computed({
                             <div
                                 class="flex items-center justify-between py-1.5"
                             >
-                                <div class="space-y-0">
+                                <div class="space-y-0 select-none">
                                     <Label
                                         for="always-on-top"
                                         class="text-sm cursor-pointer"

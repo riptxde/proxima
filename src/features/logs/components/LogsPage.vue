@@ -104,7 +104,10 @@ const isLevelActive = (level: LogLevel) => {
                                 "
                                 @click="toggleLevelFilter(level)"
                             />
-                            <Badge variant="outline" class="text-xs bg-tab-bar">
+                            <Badge
+                                variant="outline"
+                                class="text-xs bg-tab-bar select-none"
+                            >
                                 {{ getLevelCount(level) }}
                             </Badge>
                         </div>
@@ -138,7 +141,7 @@ const isLevelActive = (level: LogLevel) => {
             <Card class="flex-1 overflow-auto flex flex-col min-h-0 p-3">
                 <div
                     v-if="logs.length === 0"
-                    class="text-muted-foreground text-center py-8"
+                    class="text-muted-foreground text-center py-8 select-none"
                 >
                     No logs to display
                 </div>
