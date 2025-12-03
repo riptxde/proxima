@@ -141,7 +141,7 @@ const isLevelActive = (level: LogLevel) => {
             <Card class="flex-1 overflow-auto flex flex-col min-h-0 p-3">
                 <div
                     v-if="logs.length === 0"
-                    class="text-muted-foreground text-center py-8 select-none"
+                    class="text-muted-foreground text-center font-mono text-sm select-none flex-1 flex items-center justify-center"
                 >
                     No logs to display
                 </div>
