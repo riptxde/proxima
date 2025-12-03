@@ -1,20 +1,7 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from "vue";
 import StarsBackground from "@/components/ui/bg-stars/StarsBackground.vue";
 import EditorWorkspace from "./EditorWorkspace/EditorWorkspace.vue";
 import EditorDock from "./EditorDock/EditorDock.vue";
-import { useHttpExecutor } from "../composables/useHttpExecutor";
-
-const { initialize: initHttpExecutor, cleanup: cleanupHttpExecutor } =
-    useHttpExecutor();
-
-onMounted(() => {
-    initHttpExecutor();
-});
-
-onUnmounted(() => {
-    cleanupHttpExecutor();
-});
 </script>
 
 <template>

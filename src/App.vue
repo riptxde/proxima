@@ -11,14 +11,17 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useNavigation } from "@/composables/useNavigation";
 import { useClients } from "@/features/editor/composables/useClients";
 import { useLogs } from "@/features/logs/composables/useLogs";
+import { useHttpExecutor } from "@/features/editor/composables/useHttpExecutor";
 
 const { activePage } = useNavigation();
 const { initialize } = useClients();
 const { initializeLogListener } = useLogs();
+const { initialize: initHttpExecutor } = useHttpExecutor();
 
 onMounted(() => {
     initialize();
     initializeLogListener();
+    initHttpExecutor();
 });
 
 const currentPageComponent = computed(() => {
