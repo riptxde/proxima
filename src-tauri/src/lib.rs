@@ -48,6 +48,14 @@ pub fn run() {
                 eprintln!("Failed to start file watcher: {}", e);
             }
 
+            // Start the HTTP server
+            let app_handle_http = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = services::http_server::start_http_server(app_handle_http).await {
+                    eprintln!("Failed to start HTTP server: {}", e);
+                }
+            });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
