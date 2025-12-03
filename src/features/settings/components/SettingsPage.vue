@@ -216,6 +216,34 @@ const fontSize = computed({
                                     v-model="executionSettings.autoExecute"
                                 />
                             </div>
+
+                            <Separator />
+
+                            <!-- HTTP Request Execution -->
+                            <div
+                                class="flex items-center justify-between py-1.5"
+                            >
+                                <div class="space-y-0 select-none">
+                                    <Label
+                                        for="http-request-execution"
+                                        class="text-sm cursor-pointer"
+                                    >
+                                        HTTP Request Execution
+                                    </Label>
+                                    <p
+                                        class="text-xs text-muted-foreground font-normal"
+                                    >
+                                        Allow script execution from external
+                                        HTTP requests
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="http-request-execution"
+                                    v-model="
+                                        executionSettings.httpRequestExecution
+                                    "
+                                />
+                            </div>
                         </div>
                     </div>
                 </Card>

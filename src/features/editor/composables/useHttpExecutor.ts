@@ -2,6 +2,8 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useExecutor } from "./useExecutor";
 import { useClients } from "./useClients";
 import { useLogger } from "@/composables/useLogger";
+import { useSettings } from "@/features/settings/composables/useSettings";
+import { toast } from "vue-sonner";
 
 interface HttpExecutePayload {
   script: string;
@@ -14,6 +16,7 @@ export function useHttpExecutor() {
   const { executeScript } = useExecutor();
   const { getSelectedClientIds } = useClients();
   const { addLog } = useLogger();
+  const { executionSettings } = useSettings();
 
   const initialize = async () => {
     if (unlistenFn) return; // Already initialized
@@ -22,6 +25,19 @@ export function useHttpExecutor() {
       "http-execute-script",
       async (event) => {
         const { script, source } = event.payload;
+
+        // Check if HTTP request execution is enabled
+        if (!executionSettings.value.httpRequestExecution) {
+          addLog(
+            "warning",
+            "An HTTP script execution request was made, but HTTP request execution is disabled",
+          );
+          toast.warning("HTTP execution denied", {
+            description: "HTTP request execution is disabled in settings.",
+          });
+          return;
+        }
+
         const clientIds = getSelectedClientIds();
 
         addLog("info", `HTTP request received: ${source}`);
