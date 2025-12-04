@@ -24,7 +24,9 @@
         "decorations": false,
         "transparent": false,
         "center": true,
-        "dragDropEnabled": false
+        "dragDropEnabled": false,
+        "theme": "Light",
+        "backgroundColor": "#ffffff"
       }
     ],
     "security": {
