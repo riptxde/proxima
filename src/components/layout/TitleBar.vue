@@ -53,7 +53,7 @@ watch(
             <RadiantText
                 :duration="4"
                 :radiant-width="100"
-                class="text-foreground font-title text-xl tracking-wider transition ease-out hover:text-white hover:duration-300 mt-1.5"
+                class="font-title text-xl tracking-wider transition ease-out hover:text-white hover:duration-300 mt-1.5"
                 @click="showCredits"
                 style="
                     font-feature-settings:
