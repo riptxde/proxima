@@ -12,6 +12,7 @@ import { useNavigation } from "@/composables/useNavigation";
 import { useClients } from "@/features/editor/composables/useClients";
 import { useLogs } from "@/features/logs/composables/useLogs";
 import { useHttpExecutor } from "@/features/editor/composables/useHttpExecutor";
+import StartupAnimation from "@/components/shared/StartupAnimation.vue";
 
 const { activePage } = useNavigation();
 const { initialize } = useClients();
@@ -41,6 +42,7 @@ const currentPageComponent = computed(() => {
 </script>
 
 <template>
+    <StartupAnimation />
     <TooltipProvider>
         <AppShell>
             <component :is="currentPageComponent" />
