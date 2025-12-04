@@ -5,6 +5,7 @@ import Icon from "@/assets/icon.svg";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import RadiantText from "@/components/ui/radiant-text/RadiantText.vue";
 import { useSettings } from "@/features/settings/composables/useSettings";
+import { toast } from "vue-sonner";
 
 const appWindow = getCurrentWindow();
 const { applicationSettings } = useSettings();
@@ -19,6 +20,12 @@ const toggleMaximize = async () => {
 
 const closeWindow = async () => {
     await appWindow.close();
+};
+
+const showCredits = () => {
+    toast("Credits", {
+        description: "Developer: riptxde",
+    });
 };
 
 // Watch for always on top setting changes
@@ -47,11 +54,12 @@ watch(
                 :duration="4"
                 :radiant-width="100"
                 class="text-foreground font-title text-xl tracking-wider transition ease-out hover:text-white hover:duration-300 mt-1.5"
-                data-tauri-drag-region
+                @click="showCredits"
                 style="
                     font-feature-settings:
                         &quot;liga&quot; 1,
                         &quot;calt&quot; 1;
+                    -webkit-app-region: no-drag;
                 "
             >
                 PROXIMA
