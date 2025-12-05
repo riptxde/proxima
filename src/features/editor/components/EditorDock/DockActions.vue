@@ -7,6 +7,7 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Kbd } from "@/components/ui/kbd";
 
 const props = defineProps<{
     selectedCount: number;
@@ -42,7 +43,10 @@ const hasSelectedClients = computed(() => props.selectedCount > 0);
                 </DockIcon>
             </TooltipTrigger>
             <TooltipContent :side-offset="-15">
-                <p>Execute</p>
+                <div class="flex items-center gap-2">
+                    <p>Execute</p>
+                    <Kbd>Ctrl+R</Kbd>
+                </div>
             </TooltipContent>
         </Tooltip>
 
@@ -55,7 +59,10 @@ const hasSelectedClients = computed(() => props.selectedCount > 0);
                 </DockIcon>
             </TooltipTrigger>
             <TooltipContent :side-offset="-15">
-                <p>Clients</p>
+                <div class="flex items-center gap-2">
+                    <p>Clients</p>
+                    <Kbd>Alt+C</Kbd>
+                </div>
             </TooltipContent>
         </Tooltip>
 
@@ -68,7 +75,10 @@ const hasSelectedClients = computed(() => props.selectedCount > 0);
                 </DockIcon>
             </TooltipTrigger>
             <TooltipContent :side-offset="-15">
-                <p>Clear</p>
+                <div class="flex items-center gap-2">
+                    <p>Clear</p>
+                    <Kbd>Alt+X</Kbd>
+                </div>
             </TooltipContent>
         </Tooltip>
 
@@ -81,7 +91,10 @@ const hasSelectedClients = computed(() => props.selectedCount > 0);
                 </DockIcon>
             </TooltipTrigger>
             <TooltipContent :side-offset="-15">
-                <p>Open Script</p>
+                <div class="flex items-center gap-2">
+                    <p>Open Script</p>
+                    <Kbd>Ctrl+O</Kbd>
+                </div>
             </TooltipContent>
         </Tooltip>
 
@@ -94,7 +107,10 @@ const hasSelectedClients = computed(() => props.selectedCount > 0);
                 </DockIcon>
             </TooltipTrigger>
             <TooltipContent :side-offset="-15">
-                <p>Save</p>
+                <div class="flex items-center gap-2">
+                    <p>Save</p>
+                    <Kbd>Ctrl+S</Kbd>
+                </div>
             </TooltipContent>
         </Tooltip>
     </Dock>
