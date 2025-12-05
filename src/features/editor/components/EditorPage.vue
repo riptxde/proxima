@@ -18,10 +18,6 @@ const handleKeyDown = async (event: KeyboardEvent) => {
     // Handle Alt key shortcuts
     if (event.altKey) {
         switch (event.key.toLowerCase()) {
-            case "r":
-                event.preventDefault();
-                window.location.reload();
-                return;
             case "c":
                 event.preventDefault();
                 triggerClients.value++;
