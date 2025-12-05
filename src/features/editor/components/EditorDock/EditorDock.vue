@@ -10,6 +10,14 @@ import { useFileOperations } from "@/features/editor/composables/useFileOperatio
 import { useClients } from "@/features/editor/composables/useClients";
 import { useExecutor } from "@/features/editor/composables/useExecutor";
 
+const props = defineProps<{
+    triggerExecute: number;
+    triggerOpen: number;
+    triggerSave: number;
+    triggerClients: number;
+    triggerClear: number;
+}>();
+
 const { clearActiveTab, getActiveTabContent } = useEditorTabs();
 const { getSelectedClientIds, selectedCount } = useClients();
 const { executeScript } = useExecutor();
@@ -35,6 +43,42 @@ const handleExecute = async () => {
 const handleClientsClick = () => {
     clientsDialogOpen.value = true;
 };
+
+// Watch for keyboard shortcut triggers from parent
+watch(
+    () => props.triggerExecute,
+    () => {
+        handleExecute();
+    },
+);
+
+watch(
+    () => props.triggerOpen,
+    () => {
+        handleOpenScript();
+    },
+);
+
+watch(
+    () => props.triggerSave,
+    () => {
+        handleSaveClick();
+    },
+);
+
+watch(
+    () => props.triggerClients,
+    () => {
+        handleClientsClick();
+    },
+);
+
+watch(
+    () => props.triggerClear,
+    () => {
+        clearActiveTab();
+    },
+);
 
 // Remount dock tooltips when any dialog closes
 // This is absolutely necessary otherwise, tooltips stop working after a dialog opens
