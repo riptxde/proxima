@@ -64,6 +64,23 @@ const hasSelectedClients = computed(() => props.selectedCount > 0);
 
         <Tooltip>
             <TooltipTrigger as-child>
+                <DockIcon @click="$emit('toggleLogs')">
+                    <component
+                        :is="showLogs ? EyeOff : Eye"
+                        class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+                    />
+                </DockIcon>
+            </TooltipTrigger>
+            <TooltipContent :side-offset="-15">
+                <div class="flex items-center gap-2">
+                    <p>{{ showLogs ? "Hide Logs" : "Show Logs" }}</p>
+                    <Kbd>Ctrl+B</Kbd>
+                </div>
+            </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+            <TooltipTrigger as-child>
                 <DockIcon @click="$emit('clients')">
                     <Users
                         class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
@@ -122,23 +139,6 @@ const hasSelectedClients = computed(() => props.selectedCount > 0);
                 <div class="flex items-center gap-2">
                     <p>Save</p>
                     <Kbd>Ctrl+S</Kbd>
-                </div>
-            </TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-            <TooltipTrigger as-child>
-                <DockIcon @click="$emit('toggleLogs')">
-                    <component
-                        :is="showLogs ? EyeOff : Eye"
-                        class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
-                    />
-                </DockIcon>
-            </TooltipTrigger>
-            <TooltipContent :side-offset="-15">
-                <div class="flex items-center gap-2">
-                    <p>{{ showLogs ? "Hide Logs" : "Show Logs" }}</p>
-                    <Kbd>Ctrl+B</Kbd>
                 </div>
             </TooltipContent>
         </Tooltip>
