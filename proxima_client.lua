@@ -15,13 +15,8 @@ local HttpService = game:GetService('HttpService')
 local LocalPlayer = Players.LocalPlayer
 local Socket = nil
 
-while not LocalPlayer do
-    Players.PlayerAdded:Wait()
-    LocalPlayer = Players.LocalPlayer
-end
-
--- User Data
-local Username = LocalPlayer.Name or HttpService:GenerateGUID(false)
+-- User Data (will be set during registration)
+local Username = nil
 
 -- State
 local Reconnecting = false
@@ -42,10 +37,32 @@ local function Log(Level, Message)
     end)
 end
 
+local function Ready()
+    if not Socket then
+        return
+    end
+
+    pcall(function()
+        local Message = HttpService:JSONEncode({
+            type = 'ready'
+        })
+        Socket:Send(Message)
+    end)
+end
+
 local function Register()
     if not Socket then
         return
     end
+
+    -- Wait for LocalPlayer if it doesn't exist yet
+    while not LocalPlayer do
+        Players.PlayerAdded:Wait()
+        LocalPlayer = Players.LocalPlayer
+    end
+
+    -- Set username from LocalPlayer or generate GUID
+    Username = LocalPlayer.Name or HttpService:GenerateGUID(false)
 
     pcall(function()
         local Message = HttpService:JSONEncode({
@@ -121,7 +138,11 @@ local function Connect()
         Connect()
     end)
 
-    Register()
+    -- Send ready message immediately after handlers are set up
+    Ready()
+
+    -- Register in a separate thread to avoid blocking auto-execute scripts
+    coroutine.wrap(Register)()
 end
 
 --/ Main /--

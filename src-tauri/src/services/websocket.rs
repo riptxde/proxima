@@ -22,6 +22,8 @@ const MAX_MISSED_CYCLES: u32 = 2;
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
 enum ClientMessage {
+    #[serde(rename = "ready")]
+    Ready,
     #[serde(rename = "register")]
     Register { username: String },
     #[serde(rename = "pong")]
@@ -171,25 +173,8 @@ async fn handle_client(
                     if let Ok(text) = msg.to_text() {
                         if let Ok(client_msg) = serde_json::from_str::<ClientMessage>(text) {
                             match client_msg {
-                                ClientMessage::Register { username } => {
-                                    let id = Uuid::new_v4().to_string();
-
-                                    let client_info = ClientInfo {
-                                        username: username.clone(),
-                                        sender: tx.clone(),
-                                    };
-
-                                    clients_clone.write().await.insert(id.clone(), client_info);
-                                    client_id = Some(id.clone());
-                                    *client_id_heartbeat.write().await = Some(id.clone());
-
-                                    // Log client registration
-                                    log_ui!(
-                                        &app_handle_clone,
-                                        Success,
-                                        "Client attached: {}",
-                                        username
-                                    );
+                                ClientMessage::Ready => {
+                                    log::info!("Client ready, sending auto-execute scripts");
 
                                     // Check if auto-execute is enabled
                                     let auto_execute =
@@ -212,9 +197,8 @@ async fn handle_client(
                                             log_ui!(
                                                 &app_handle_clone,
                                                 Success,
-                                                "Auto-executed {} on {}",
-                                                script_text,
-                                                username
+                                                "Auto-executing {} on new client",
+                                                script_text
                                             );
 
                                             // Execute each script on this client
@@ -224,13 +208,35 @@ async fn handle_client(
                                                     serde_json::to_string(&execute_msg)
                                                 {
                                                     if tx.send(Message::Text(msg_text)).is_err() {
-                                                        log::error!("Failed to send AutoExec script to client {}", id);
+                                                        log::error!(
+                                                            "Failed to send AutoExec script"
+                                                        );
                                                         break;
                                                     }
                                                 }
                                             }
                                         }
                                     }
+                                }
+                                ClientMessage::Register { username } => {
+                                    let id = Uuid::new_v4().to_string();
+
+                                    let client_info = ClientInfo {
+                                        username: username.clone(),
+                                        sender: tx.clone(),
+                                    };
+
+                                    clients_clone.write().await.insert(id.clone(), client_info);
+                                    client_id = Some(id.clone());
+                                    *client_id_heartbeat.write().await = Some(id.clone());
+
+                                    // Log client registration
+                                    log_ui!(
+                                        &app_handle_clone,
+                                        Success,
+                                        "Client attached: {}",
+                                        username
+                                    );
 
                                     // Emit clients-update event with full list
                                     emit_clients_update(&app_handle_clone, &clients_clone).await;
