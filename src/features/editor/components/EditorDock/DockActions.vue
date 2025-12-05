@@ -1,13 +1,22 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { Dock, DockIcon } from "@/components/ui/dock";
-import { Play, Eraser, FolderOpen, Save, Users } from "lucide-vue-next";
+import {
+    Play,
+    Eraser,
+    FolderOpen,
+    Save,
+    Users,
+    Eye,
+    EyeOff,
+} from "lucide-vue-next";
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Kbd } from "@/components/ui/kbd";
+import { useEditorLogs } from "@/features/editor/composables/useEditorLogs";
 
 const props = defineProps<{
     selectedCount: number;
@@ -19,7 +28,10 @@ defineEmits<{
     open: [];
     save: [];
     clients: [];
+    toggleLogs: [];
 }>();
+
+const { showLogs } = useEditorLogs();
 
 const hasSelectedClients = computed(() => props.selectedCount > 0);
 </script>
@@ -110,6 +122,23 @@ const hasSelectedClients = computed(() => props.selectedCount > 0);
                 <div class="flex items-center gap-2">
                     <p>Save</p>
                     <Kbd>Ctrl+S</Kbd>
+                </div>
+            </TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+            <TooltipTrigger as-child>
+                <DockIcon @click="$emit('toggleLogs')">
+                    <component
+                        :is="showLogs ? EyeOff : Eye"
+                        class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+                    />
+                </DockIcon>
+            </TooltipTrigger>
+            <TooltipContent :side-offset="-15">
+                <div class="flex items-center gap-2">
+                    <p>{{ showLogs ? "Hide Logs" : "Show Logs" }}</p>
+                    <Kbd>Ctrl+B</Kbd>
                 </div>
             </TooltipContent>
         </Tooltip>

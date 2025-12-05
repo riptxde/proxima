@@ -10,6 +10,7 @@ const triggerOpen = ref(0);
 const triggerSave = ref(0);
 const triggerClients = ref(0);
 const triggerClear = ref(0);
+const triggerLogs = ref(0);
 
 const handleKeyDown = async (event: KeyboardEvent) => {
     // Handle Alt key shortcuts
@@ -54,6 +55,13 @@ const handleKeyDown = async (event: KeyboardEvent) => {
             // Trigger save action
             triggerSave.value++;
             break;
+
+        case "b":
+            // Prevent default browser behavior
+            event.preventDefault();
+            // Trigger logs toggle
+            triggerLogs.value++;
+            break;
     }
 };
 
@@ -84,6 +92,7 @@ onUnmounted(() => {
                 :trigger-save="triggerSave"
                 :trigger-clients="triggerClients"
                 :trigger-clear="triggerClear"
+                :trigger-logs="triggerLogs"
             />
         </div>
     </div>

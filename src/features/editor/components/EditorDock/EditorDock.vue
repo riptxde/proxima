@@ -10,6 +10,7 @@ import { useEditorTabs } from "@/features/editor/composables/useEditorTabs";
 import { useFileOperations } from "@/features/editor/composables/useFileOperations";
 import { useClients } from "@/features/editor/composables/useClients";
 import { useExecutor } from "@/features/editor/composables/useExecutor";
+import { useEditorLogs } from "@/features/editor/composables/useEditorLogs";
 
 const props = defineProps<{
     triggerExecute: number;
@@ -17,11 +18,13 @@ const props = defineProps<{
     triggerSave: number;
     triggerClients: number;
     triggerClear: number;
+    triggerLogs: number;
 }>();
 
 const { clearActiveTab, getActiveTabContent } = useEditorTabs();
 const { getSelectedClientIds, selectedCount } = useClients();
 const { executeScript } = useExecutor();
+const { toggleLogs } = useEditorLogs();
 
 const {
     fileInputRef,
@@ -91,6 +94,13 @@ watch(
     },
 );
 
+watch(
+    () => props.triggerLogs,
+    () => {
+        toggleLogs();
+    },
+);
+
 // Remount dock tooltips when any dialog closes
 // This is absolutely necessary otherwise, tooltips stop working after a dialog opens
 watch(
@@ -127,6 +137,7 @@ watch(
                     @open="handleOpenScript"
                     @save="handleSaveClick"
                     @clients="handleClientsClick"
+                    @toggle-logs="toggleLogs"
                 />
             </TooltipProvider>
         </LiquidGlass>

@@ -1,11 +1,18 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
 import { Card } from "@/components/ui/card";
+import {
+    ResizablePanelGroup,
+    ResizablePanel,
+    ResizableHandle,
+} from "@/components/ui/resizable";
 import { MonacoEditor } from "@/components/shared/MonacoEditor";
 import type * as Monaco from "monaco-editor";
 import TabBar from "./TabBar/TabBar.vue";
+import EditorLogsPane from "./EditorLogsPane.vue";
 import { useEditorTabs } from "@/features/editor/composables/useEditorTabs";
 import { useSettings } from "@/features/settings/composables/useSettings";
+import { useEditorLogs } from "@/features/editor/composables/useEditorLogs";
 
 const {
     tabs,
@@ -18,6 +25,7 @@ const {
 } = useEditorTabs();
 
 const { editorSettings } = useSettings();
+const { showLogs } = useEditorLogs();
 
 const activeTab = computed(() =>
     tabs.value.find((tab) => tab.id === activeTabId.value),
@@ -88,24 +96,41 @@ watch(
 </script>
 
 <template>
-    <Card class="h-full overflow-hidden p-2 flex flex-col gap-3">
-        <!-- Tab Bar -->
-        <TabBar
-            :tabs="tabs"
-            :active-tab-id="activeTabId"
-            @add-tab="addTab"
-            @select-tab="selectTab"
-            @rename-tab="renameTab"
-            @close-tab="closeTab"
-        />
+    <ResizablePanelGroup direction="vertical" class="h-full">
+        <!-- Editor Panel -->
+        <ResizablePanel :default-size="showLogs ? 70 : 100" :min-size="30">
+            <Card
+                class="h-full overflow-hidden p-2 flex flex-col gap-3"
+                :class="{ 'rounded-b-none': showLogs }"
+            >
+                <!-- Tab Bar -->
+                <TabBar
+                    :tabs="tabs"
+                    :active-tab-id="activeTabId"
+                    @add-tab="addTab"
+                    @select-tab="selectTab"
+                    @rename-tab="renameTab"
+                    @close-tab="closeTab"
+                />
 
-        <!-- Editor -->
-        <div class="flex-1 overflow-hidden">
-            <MonacoEditor
-                v-model="scriptContent"
-                :options="editorOptions"
-                @mount="handleEditorMount"
-            />
-        </div>
-    </Card>
+                <!-- Editor -->
+                <div class="flex-1 overflow-hidden">
+                    <MonacoEditor
+                        v-model="scriptContent"
+                        :options="editorOptions"
+                        @mount="handleEditorMount"
+                    />
+                </div>
+            </Card>
+        </ResizablePanel>
+
+        <template v-if="showLogs">
+            <ResizableHandle with-handle />
+
+            <!-- Logs Panel -->
+            <ResizablePanel :default-size="30" :min-size="15">
+                <EditorLogsPane />
+            </ResizablePanel>
+        </template>
+    </ResizablePanelGroup>
 </template>
