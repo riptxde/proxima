@@ -3,6 +3,7 @@ import { ref, watch } from "vue";
 import LiquidGlass from "@/components/shared/LiquidGlass.vue";
 import SaveDialog from "@/components/shared/SaveDialog.vue";
 import ClientsDialog from "../ClientsDialog/ClientsDialog.vue";
+import ClearConfirmDialog from "./ClearConfirmDialog.vue";
 import DockActions from "./DockActions.vue";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useEditorTabs } from "@/features/editor/composables/useEditorTabs";
@@ -32,6 +33,7 @@ const {
 } = useFileOperations();
 
 const clientsDialogOpen = ref(false);
+const clearConfirmDialogOpen = ref(false);
 const dockTooltipKey = ref(0);
 
 const handleExecute = async () => {
@@ -42,6 +44,15 @@ const handleExecute = async () => {
 
 const handleClientsClick = () => {
     clientsDialogOpen.value = true;
+};
+
+const handleClearClick = () => {
+    clearConfirmDialogOpen.value = true;
+};
+
+const handleClearConfirm = () => {
+    clearActiveTab();
+    clearConfirmDialogOpen.value = false;
 };
 
 // Watch for keyboard shortcut triggers from parent
@@ -76,16 +87,20 @@ watch(
 watch(
     () => props.triggerClear,
     () => {
-        clearActiveTab();
+        handleClearClick();
     },
 );
 
 // Remount dock tooltips when any dialog closes
 // This is absolutely necessary otherwise, tooltips stop working after a dialog opens
 watch(
-    [saveDialogOpen, clientsDialogOpen],
-    ([newSave, newClients], [oldSave, oldClients]) => {
-        if ((oldSave && !newSave) || (oldClients && !newClients)) {
+    [saveDialogOpen, clientsDialogOpen, clearConfirmDialogOpen],
+    ([newSave, newClients, newClear], [oldSave, oldClients, oldClear]) => {
+        if (
+            (oldSave && !newSave) ||
+            (oldClients && !newClients) ||
+            (oldClear && !newClear)
+        ) {
             dockTooltipKey.value++;
         }
     },
@@ -108,7 +123,7 @@ watch(
                 <DockActions
                     :selected-count="selectedCount"
                     @execute="handleExecute"
-                    @clear="clearActiveTab"
+                    @clear="handleClearClick"
                     @open="handleOpenScript"
                     @save="handleSaveClick"
                     @clients="handleClientsClick"
@@ -121,5 +136,11 @@ watch(
 
         <!-- Clients Dialog -->
         <ClientsDialog v-model:open="clientsDialogOpen" />
+
+        <!-- Clear Confirm Dialog -->
+        <ClearConfirmDialog
+            v-model:open="clearConfirmDialogOpen"
+            @confirm="handleClearConfirm"
+        />
     </div>
 </template>
