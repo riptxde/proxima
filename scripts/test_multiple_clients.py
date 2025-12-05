@@ -12,6 +12,11 @@ async def client_handler(client_id: int, name: str):
     async with websockets.connect(uri) as websocket:
         print(f"[{name}] Connected to Proxima WebSocket server")
 
+        # Send ready message to trigger auto-execute
+        ready_msg = {"type": "ready"}
+        await websocket.send(json.dumps(ready_msg))
+        print(f"[{name}] Sent ready: {ready_msg}")
+
         # Register with a username
         register_msg = {"type": "register", "username": name}
         await websocket.send(json.dumps(register_msg))

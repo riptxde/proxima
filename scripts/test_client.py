@@ -11,6 +11,11 @@ async def test_client(username):
     async with websockets.connect(uri) as websocket:
         print("Connected to Proxima WebSocket server")
 
+        # Send ready message to trigger auto-execute
+        ready_msg = {"type": "ready"}
+        await websocket.send(json.dumps(ready_msg))
+        print(f"Sent ready: {ready_msg}")
+
         # Register with a username
         register_msg = {"type": "register", "username": username}
         await websocket.send(json.dumps(register_msg))
