@@ -13,7 +13,6 @@ import EditorLogsPane from "./EditorLogsPane.vue";
 import { useEditorTabs } from "@/features/editor/composables/useEditorTabs";
 import { useSettings } from "@/features/settings/composables/useSettings";
 import { useEditorLogs } from "@/features/editor/composables/useEditorLogs";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -43,7 +42,6 @@ const {
 
 const closeConfirmDialogOpen = ref(false);
 const tabToClose = ref<number | null>(null);
-const tabBarTooltipKey = ref(0);
 
 const handleCloseTabClick = (tabId: number) => {
     if (hasUnsavedChanges(tabId)) {
@@ -61,14 +59,6 @@ const handleCloseConfirm = () => {
     }
     closeConfirmDialogOpen.value = false;
 };
-
-// Remount tooltips when tabs are added or removed
-watch(
-    () => tabs.value.length,
-    () => {
-        tabBarTooltipKey.value++;
-    },
-);
 
 const { editorSettings } = useSettings();
 const { showLogs } = useEditorLogs();
@@ -168,16 +158,14 @@ watch(
                 :class="{ 'rounded-b-none': showLogs }"
             >
                 <!-- Tab Bar -->
-                <TooltipProvider :key="tabBarTooltipKey">
-                    <TabBar
-                        :tabs="tabs"
-                        :active-tab-id="activeTabId"
-                        @add-tab="addTab"
-                        @select-tab="selectTab"
-                        @rename-tab="renameTab"
-                        @close-tab="handleCloseTabClick"
-                    />
-                </TooltipProvider>
+                <TabBar
+                    :tabs="tabs"
+                    :active-tab-id="activeTabId"
+                    @add-tab="addTab"
+                    @select-tab="selectTab"
+                    @rename-tab="renameTab"
+                    @close-tab="handleCloseTabClick"
+                />
 
                 <!-- Editor -->
                 <div class="flex-1 overflow-hidden">

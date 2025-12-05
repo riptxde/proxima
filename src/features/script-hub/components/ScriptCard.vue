@@ -9,12 +9,6 @@ import {
     AlertCircle,
 } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
 import GlowingEffect from "@/components/ui/glowing-effect/GlowingEffect.vue";
 import type { Script } from "../types/script";
 import { useEditorTabs } from "@/features/editor/composables/useEditorTabs";
@@ -48,7 +42,9 @@ const handleSendToEditor = () => {
 
     openFileAsTab(props.script.title, props.script.script);
     navigate("editor");
-    toast.success(`"${props.script.title}" opened in editor`);
+    toast.success("Script sent to editor", {
+        description: `Name: ${props.script.title}`,
+    });
 };
 
 const handleViewDetails = async () => {
@@ -161,41 +157,25 @@ const handleViewDetails = async () => {
                     </p>
                 </div>
 
-                <TooltipProvider>
-                    <div class="flex gap-2 mt-3">
-                        <Tooltip>
-                            <TooltipTrigger as-child>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    class="flex-1 h-9"
-                                    @click="handleSendToEditor"
-                                >
-                                    <Send class="w-4 h-4" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom">
-                                <p>Send to Editor</p>
-                            </TooltipContent>
-                        </Tooltip>
+                <div class="flex gap-2 mt-3">
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        class="flex-1 h-9"
+                        @click="handleSendToEditor"
+                    >
+                        <Send class="w-4 h-4" />
+                    </Button>
 
-                        <Tooltip>
-                            <TooltipTrigger as-child>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    class="w-9 h-9 p-0"
-                                    @click="handleViewDetails"
-                                >
-                                    <Info class="w-4 h-4" />
-                                </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom">
-                                <p>View Details</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </div>
-                </TooltipProvider>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        class="w-9 h-9 p-0"
+                        @click="handleViewDetails"
+                    >
+                        <Info class="w-4 h-4" />
+                    </Button>
+                </div>
             </div>
         </div>
     </div>
