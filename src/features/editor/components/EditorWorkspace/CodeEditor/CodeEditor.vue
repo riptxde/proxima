@@ -13,6 +13,22 @@ import EditorLogsPane from "./EditorLogsPane.vue";
 import { useEditorTabs } from "@/features/editor/composables/useEditorTabs";
 import { useSettings } from "@/features/settings/composables/useSettings";
 import { useEditorLogs } from "@/features/editor/composables/useEditorLogs";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
+const props = defineProps<{
+    triggerNewTab: number;
+    triggerCloseTab: number;
+}>();
 
 const {
     tabs,
@@ -22,7 +38,37 @@ const {
     selectTab,
     renameTab,
     updateTabContent,
+    hasUnsavedChanges,
 } = useEditorTabs();
+
+const closeConfirmDialogOpen = ref(false);
+const tabToClose = ref<number | null>(null);
+const tabBarTooltipKey = ref(0);
+
+const handleCloseTabClick = (tabId: number) => {
+    if (hasUnsavedChanges(tabId)) {
+        tabToClose.value = tabId;
+        closeConfirmDialogOpen.value = true;
+    } else {
+        closeTab(tabId);
+    }
+};
+
+const handleCloseConfirm = () => {
+    if (tabToClose.value !== null) {
+        closeTab(tabToClose.value);
+        tabToClose.value = null;
+    }
+    closeConfirmDialogOpen.value = false;
+};
+
+// Remount tab bar tooltips when close confirm dialog closes
+// This is absolutely necessary otherwise, tooltips stop working after a dialog opens
+watch(closeConfirmDialogOpen, (newValue, oldValue) => {
+    if (oldValue && !newValue) {
+        tabBarTooltipKey.value++;
+    }
+});
 
 const { editorSettings } = useSettings();
 const { showLogs } = useEditorLogs();
@@ -93,6 +139,24 @@ watch(
     },
     { deep: true },
 );
+
+// Watch for new tab trigger
+watch(
+    () => props.triggerNewTab,
+    () => {
+        addTab();
+    },
+);
+
+// Watch for close tab trigger
+watch(
+    () => props.triggerCloseTab,
+    () => {
+        if (activeTabId.value) {
+            handleCloseTabClick(activeTabId.value);
+        }
+    },
+);
 </script>
 
 <template>
@@ -104,14 +168,16 @@ watch(
                 :class="{ 'rounded-b-none': showLogs }"
             >
                 <!-- Tab Bar -->
-                <TabBar
-                    :tabs="tabs"
-                    :active-tab-id="activeTabId"
-                    @add-tab="addTab"
-                    @select-tab="selectTab"
-                    @rename-tab="renameTab"
-                    @close-tab="closeTab"
-                />
+                <TooltipProvider :key="tabBarTooltipKey">
+                    <TabBar
+                        :tabs="tabs"
+                        :active-tab-id="activeTabId"
+                        @add-tab="addTab"
+                        @select-tab="selectTab"
+                        @rename-tab="renameTab"
+                        @close-tab="handleCloseTabClick"
+                    />
+                </TooltipProvider>
 
                 <!-- Editor -->
                 <div class="flex-1 overflow-hidden">
@@ -133,4 +199,26 @@ watch(
             </ResizablePanel>
         </template>
     </ResizablePanelGroup>
+
+    <!-- Close Confirmation Dialog -->
+    <AlertDialog
+        :open="closeConfirmDialogOpen"
+        @update:open="closeConfirmDialogOpen = $event"
+    >
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+                <AlertDialogDescription>
+                    This tab has unsaved changes. Are you sure you want to close
+                    it? Your changes will be lost.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction @click="handleCloseConfirm">
+                    Close Tab
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
 </template>

@@ -3,6 +3,7 @@ export interface Tab {
   name: string;
   content: string;
   filePath?: string;
+  savedContent?: string;
 }
 
 export interface TabUIState {

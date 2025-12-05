@@ -11,6 +11,8 @@ const triggerSave = ref(0);
 const triggerClients = ref(0);
 const triggerClear = ref(0);
 const triggerLogs = ref(0);
+const triggerNewTab = ref(0);
+const triggerCloseTab = ref(0);
 
 const handleKeyDown = async (event: KeyboardEvent) => {
     // Handle Alt key shortcuts
@@ -62,6 +64,20 @@ const handleKeyDown = async (event: KeyboardEvent) => {
             // Trigger logs toggle
             triggerLogs.value++;
             break;
+
+        case "t":
+            // Prevent default browser new tab
+            event.preventDefault();
+            // Trigger new tab action
+            triggerNewTab.value++;
+            break;
+
+        case "w":
+            // Prevent default browser close tab
+            event.preventDefault();
+            // Trigger close tab action
+            triggerCloseTab.value++;
+            break;
     }
 };
 
@@ -85,7 +101,10 @@ onUnmounted(() => {
 
         <!-- Editor Workspace -->
         <div class="relative z-10 flex-1 flex flex-col overflow-hidden">
-            <EditorWorkspace />
+            <EditorWorkspace
+                :trigger-new-tab="triggerNewTab"
+                :trigger-close-tab="triggerCloseTab"
+            />
             <EditorDock
                 :trigger-execute="triggerExecute"
                 :trigger-open="triggerOpen"

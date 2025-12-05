@@ -6,6 +6,11 @@ import {
 } from "@/components/ui/resizable";
 import CodeEditor from "./CodeEditor/CodeEditor.vue";
 import FileExplorer from "./FileExplorer/FileExplorer.vue";
+
+defineProps<{
+    triggerNewTab: number;
+    triggerCloseTab: number;
+}>();
 </script>
 
 <template>
@@ -13,7 +18,10 @@ import FileExplorer from "./FileExplorer/FileExplorer.vue";
         <ResizablePanelGroup direction="horizontal" class="h-full gap-4">
             <!-- Script Editor -->
             <ResizablePanel :default-size="72.5" :min-size="30">
-                <CodeEditor />
+                <CodeEditor
+                    :trigger-new-tab="triggerNewTab"
+                    :trigger-close-tab="triggerCloseTab"
+                />
             </ResizablePanel>
 
             <ResizableHandle with-handle />

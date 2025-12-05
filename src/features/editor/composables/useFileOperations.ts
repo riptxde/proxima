@@ -10,6 +10,8 @@ export function useFileOperations() {
     getActiveTabContent,
     getActiveTabFilePath,
     updateActiveTabFilePath,
+    markTabAsSaved,
+    getActiveTab,
   } = useEditorTabs();
   const { addLog } = useLogger();
 
@@ -62,6 +64,12 @@ export function useFileOperations() {
         content,
       });
 
+      // Mark tab as saved
+      const activeTab = getActiveTab();
+      if (activeTab) {
+        markTabAsSaved(activeTab.id);
+      }
+
       toast.success("File saved successfully", {
         description: relativePath,
       });
@@ -91,6 +99,12 @@ export function useFileOperations() {
 
       // Update the active tab's filepath
       updateActiveTabFilePath(relativePath);
+
+      // Mark tab as saved
+      const activeTab = getActiveTab();
+      if (activeTab) {
+        markTabAsSaved(activeTab.id);
+      }
 
       toast.success("File saved successfully", {
         description: relativePath,

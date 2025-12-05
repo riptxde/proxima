@@ -8,7 +8,14 @@ let isInitialized = false;
 
 // Default state
 const DEFAULT_TABS_STATE = {
-  tabs: [{ id: 1, name: "Script 1", content: "-- Write your script here..." }],
+  tabs: [
+    {
+      id: 1,
+      name: "Script 1",
+      content: "-- Write your script here...",
+      savedContent: "-- Write your script here...",
+    },
+  ],
   activeTabId: 1,
   nextTabId: 2,
 };
@@ -103,6 +110,7 @@ export function useEditorTabs() {
       name: fileName,
       content: content,
       filePath: normalizedPath,
+      savedContent: content,
     };
 
     nextTabId.value++;
@@ -129,10 +137,12 @@ export function useEditorTabs() {
       scriptNumber++;
     }
 
+    const defaultContent = "-- Write your script here...";
     const newTab: Tab = {
       id: nextTabId.value,
       name: `Script ${scriptNumber}`,
-      content: "-- Write your script here...",
+      content: defaultContent,
+      savedContent: defaultContent,
     };
     nextTabId.value++;
     tabs.value.push(newTab);
@@ -187,6 +197,7 @@ export function useEditorTabs() {
       id: nextTabId.value,
       name: fileName,
       content: content,
+      savedContent: content,
     };
 
     nextTabId.value++;
@@ -212,6 +223,23 @@ export function useEditorTabs() {
     }
   };
 
+  const hasUnsavedChanges = (tabId: number) => {
+    const tab = tabs.value.find((t) => t.id === tabId);
+    if (!tab) return false;
+    return tab.content !== tab.savedContent;
+  };
+
+  const markTabAsSaved = (tabId: number) => {
+    const tab = tabs.value.find((t) => t.id === tabId);
+    if (tab) {
+      tab.savedContent = tab.content;
+    }
+  };
+
+  const getActiveTab = () => {
+    return tabs.value.find((t) => t.id === activeTabId.value);
+  };
+
   return {
     tabs,
     activeTabId,
@@ -226,5 +254,8 @@ export function useEditorTabs() {
     getActiveTabContent,
     getActiveTabFilePath,
     updateActiveTabFilePath,
+    hasUnsavedChanges,
+    markTabAsSaved,
+    getActiveTab,
   };
 }
