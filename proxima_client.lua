@@ -1,0 +1,128 @@
+--/ Definitions /--
+-- Constants
+local PROXIMA_URL = 'ws://localhost:13376'
+local RECONNECT_DELAY = 5
+local LOG_INFO = 0
+local LOG_SUCCESS = 1
+local LOG_WARNING = 2
+local LOG_ERROR = 3
+
+-- Services
+local Players = game:GetService('Players')
+local HttpService = game:GetService('HttpService')
+
+-- Objects
+local LocalPlayer = Players.LocalPlayer
+local Socket = nil
+
+while not LocalPlayer do
+    Players.PlayerAdded:Wait()
+    LocalPlayer = Players.LocalPlayer
+end
+
+-- User Data
+local Username = LocalPlayer.Name or HttpService:GenerateGUID(false)
+
+-- State
+local Reconnecting = false
+
+--/ Functions /--
+local function Log(Level, Message)
+    if not Socket then
+        return
+    end
+
+    pcall(function()
+        local Message = HttpService:JSONEncode({
+            type = 'log',
+            level = Level,
+            message = Message or ''
+        })
+        Socket:Send(Message)
+    end)
+end
+
+local function Register()
+    if not Socket then
+        return
+    end
+
+    pcall(function()
+        local Message = HttpService:JSONEncode({
+            type = 'register',
+            username = Username
+        })
+        Socket:Send(Message)
+    end)
+end
+
+local function Execute(Script)
+    local Func, Err = loadstring(Script)
+
+    if not Func then
+        Log(LOG_ERROR, tostring(Err))
+        return
+    end
+
+    xpcall(Func, function(Err)
+        Log(LOG_ERROR, tostring(Err))
+    end)
+end
+
+local function HandleMessage(Message)
+    local Success, Data = pcall(function()
+        return HttpService:JSONDecode(Message)
+    end)
+
+    if not Success then
+        return
+    end
+
+    if Data.type == 'ping' then
+        pcall(function()
+            local Message = HttpService:JSONEncode({
+                type = 'pong'
+            })
+            Socket:Send(Message)
+        end)
+    elseif Data.type == 'execute' then
+        Execute(Data.script)
+    end
+end
+
+local function Connect()
+    if Reconnecting then
+        return
+    end
+
+    local Success, Result = pcall(function()
+        return WebSocket.connect(PROXIMA_URL)
+    end)
+
+    if not Success then
+        Reconnecting = true
+        wait(RECONNECT_DELAY)
+        Reconnecting = false
+        Connect()
+        return
+    end
+
+    Socket = Result
+
+    Socket.OnMessage:Connect(function(Message)
+        HandleMessage(Message)
+    end)
+
+    Socket.OnClose:Connect(function()
+        Socket = nil
+        Reconnecting = true
+        wait(RECONNECT_DELAY)
+        Reconnecting = false
+        Connect()
+    end)
+
+    Register()
+end
+
+--/ Main /--
+Connect()
