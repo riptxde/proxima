@@ -1,2 +1,2 @@
-# Exclude shadcn-vue, Inspira UI, and other common UI components from language statistics
-src/components/** linguist-vendored
+src/components/ui/** linguist-vendored
+src/features/** linguist-vendored
