@@ -10,22 +10,26 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { useClients } from "@/features/editor/composables/useClients";
+import type { Client } from "@/features/editor/types/executor";
 
-const { clients, isClientSelected, toggleClient, selectAll, deselectAll } =
-    useClients();
+const props = defineProps<{
+    clients: Client[];
+}>();
+
+const { isClientSelected, toggleClient, selectAll, deselectAll } = useClients();
 
 const allSelected = computed(() => {
     return (
-        clients.value.length > 0 &&
-        clients.value.every((c) => isClientSelected(c.id))
+        props.clients.length > 0 &&
+        props.clients.every((c) => isClientSelected(c.id))
     );
 });
 
 const someSelected = computed(() => {
-    const selectedCount = clients.value.filter((c) =>
+    const selectedCount = props.clients.filter((c) =>
         isClientSelected(c.id),
     ).length;
-    return selectedCount > 0 && selectedCount < clients.value.length;
+    return selectedCount > 0 && selectedCount < props.clients.length;
 });
 
 const toggleAll = () => {
@@ -39,7 +43,7 @@ const toggleAll = () => {
 
 <template>
     <div class="rounded-md border overflow-hidden">
-        <div class="max-h-[450px] overflow-y-auto">
+        <div class="max-h-[50vh] overflow-y-auto">
             <Table>
                 <TableHeader class="sticky top-0 bg-card z-10 border-b">
                     <TableRow>
