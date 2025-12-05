@@ -98,7 +98,7 @@ watch(
 <template>
     <ResizablePanelGroup direction="vertical" class="h-full">
         <!-- Editor Panel -->
-        <ResizablePanel :default-size="showLogs ? 70 : 100" :min-size="30">
+        <ResizablePanel :default-size="65" :min-size="30">
             <Card
                 class="h-full overflow-hidden p-2 flex flex-col gap-3"
                 :class="{ 'rounded-b-none': showLogs }"
@@ -128,7 +128,7 @@ watch(
             <ResizableHandle with-handle />
 
             <!-- Logs Panel -->
-            <ResizablePanel :default-size="30" :min-size="15">
+            <ResizablePanel :default-size="35" :min-size="15">
                 <EditorLogsPane />
             </ResizablePanel>
         </template>

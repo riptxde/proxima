@@ -1,49 +1,12 @@
 <script setup lang="ts">
-import { ref } from "vue";
 import { Card } from "@/components/ui/card";
 import { Info, AlertTriangle, XCircle, CheckCircle } from "lucide-vue-next";
+import { useLogs } from "@/features/logs/composables/useLogs";
+import type { LogLevel } from "@/features/logs/types/log";
 
-interface DummyLog {
-    id: string;
-    timestamp: string;
-    level: "info" | "success" | "warning" | "error";
-    message: string;
-}
+const { allLogs } = useLogs();
 
-const dummyLogs = ref<DummyLog[]>([
-    {
-        id: "1",
-        timestamp: new Date().toLocaleTimeString(),
-        level: "info",
-        message: "Script editor initialized",
-    },
-    {
-        id: "2",
-        timestamp: new Date().toLocaleTimeString(),
-        level: "success",
-        message: "File loaded successfully: script.lua",
-    },
-    {
-        id: "3",
-        timestamp: new Date().toLocaleTimeString(),
-        level: "warning",
-        message: "No clients connected",
-    },
-    {
-        id: "4",
-        timestamp: new Date().toLocaleTimeString(),
-        level: "error",
-        message: "Failed to execute script: Invalid syntax",
-    },
-    {
-        id: "5",
-        timestamp: new Date().toLocaleTimeString(),
-        level: "success",
-        message: "Script executed on 2 clients",
-    },
-]);
-
-const levelConfig = {
+const levelConfig: Record<LogLevel, { icon: any; color: string }> = {
     info: {
         icon: Info,
         color: "text-blue-500",
@@ -61,19 +24,29 @@ const levelConfig = {
         color: "text-red-500",
     },
 };
+
+const formatTime = (date: Date) => {
+    return date.toLocaleTimeString();
+};
 </script>
 
 <template>
     <Card class="h-full overflow-y-auto p-2 rounded-t-none border-t-0">
-        <div class="space-y-1 font-mono text-xs">
+        <div
+            v-if="allLogs.length === 0"
+            class="text-muted-foreground text-center font-mono text-sm select-none h-full flex items-center justify-center"
+        >
+            No logs to display
+        </div>
+        <div v-else class="space-y-1 font-mono text-xs">
             <div
-                v-for="log in dummyLogs"
+                v-for="log in allLogs"
                 :key="log.id"
                 class="flex items-start gap-2 px-2 py-1.5 hover:bg-muted/50 rounded"
             >
                 <!-- Timestamp -->
                 <span class="text-muted-foreground whitespace-nowrap">
-                    {{ log.timestamp }}
+                    {{ formatTime(log.timestamp) }}
                 </span>
 
                 <!-- Level Icon -->
