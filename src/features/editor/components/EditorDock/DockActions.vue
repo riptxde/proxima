@@ -8,7 +8,7 @@ import {
     Save,
     Users,
     Eye,
-    EyeOff,
+    EyeClosed,
 } from "lucide-vue-next";
 import {
     Tooltip,
@@ -66,7 +66,7 @@ const hasSelectedClients = computed(() => props.selectedCount > 0);
             <TooltipTrigger as-child>
                 <DockIcon @click="$emit('toggleLogs')">
                     <component
-                        :is="showLogs ? EyeOff : Eye"
+                        :is="showLogs ? EyeClosed : Eye"
                         class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
                     />
                 </DockIcon>
