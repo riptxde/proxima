@@ -62,13 +62,13 @@ const handleCloseConfirm = () => {
     closeConfirmDialogOpen.value = false;
 };
 
-// Remount tab bar tooltips when close confirm dialog closes
-// This is absolutely necessary otherwise, tooltips stop working after a dialog opens
-watch(closeConfirmDialogOpen, (newValue, oldValue) => {
-    if (oldValue && !newValue) {
+// Remount tooltips when tabs are added or removed
+watch(
+    () => tabs.value.length,
+    () => {
         tabBarTooltipKey.value++;
-    }
-});
+    },
+);
 
 const { editorSettings } = useSettings();
 const { showLogs } = useEditorLogs();
