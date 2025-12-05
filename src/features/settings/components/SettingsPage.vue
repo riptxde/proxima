@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
-import { ScrollText, Play, Settings } from "lucide-vue-next";
+import { CodeXml, Play, Settings } from "lucide-vue-next";
 import { useSettings } from "../composables/useSettings";
 
 const { editorSettings, executionSettings, applicationSettings } =
@@ -38,7 +38,7 @@ const fontSize = computed({
                     <div class="space-y-3">
                         <div class="space-y-0.5 select-none">
                             <div class="flex items-center gap-2">
-                                <ScrollText class="w-4 h-4" />
+                                <CodeXml class="w-4 h-4" />
                                 <h2 class="text-base font-semibold">Editor</h2>
                             </div>
                             <p class="text-xs text-muted-foreground">
