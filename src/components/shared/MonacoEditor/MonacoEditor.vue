@@ -75,3 +75,17 @@ const handleMount = (
         class="h-full w-full"
     />
 </template>
+
+<style>
+.monaco-editor .scroll-decoration {
+    box-shadow: none !important;
+}
+
+.monaco-editor .sticky-widget {
+    box-shadow: none !important;
+}
+
+.monaco-editor .minimap-shadow-visible {
+    box-shadow: none !important;
+}
+</style>
