@@ -144,7 +144,7 @@ const fontSize = computed({
                                 <Input
                                     id="font"
                                     v-model="editorSettings.font"
-                                    placeholder="Cascadia Code"
+                                    placeholder="Lilex"
                                     class="w-full"
                                 />
                             </div>

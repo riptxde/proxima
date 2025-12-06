@@ -28,7 +28,7 @@ export const DEFAULT_SETTINGS: Settings = {
     wordWrap: false,
     minimap: false,
     fontSize: 14,
-    font: "Cascadia Code",
+    font: "Lilex",
     fontLigatures: false,
     smoothCursor: true,
     smoothCursorBlink: true,

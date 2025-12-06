@@ -7,17 +7,17 @@
 }
 
 @font-face {
-    font-family: "Cascadia Code";
-    src: url("/src/assets/fonts/CascadiaCode.woff2") format("woff2");
-    font-weight: 200 700;
+    font-family: "Lilex";
+    src: url("/src/assets/fonts/Lilex[wght].ttf") format("truetype");
+    font-weight: 100 900;
     font-style: normal;
     font-display: swap;
 }
 
 @font-face {
-    font-family: "Cascadia Code";
-    src: url("/src/assets/fonts/CascadiaCodeItalic.woff2") format("woff2");
-    font-weight: 200 700;
+    font-family: "Lilex";
+    src: url("/src/assets/fonts/Lilex-Italic[wght].ttf") format("truetype");
+    font-weight: 100 900;
     font-style: italic;
     font-display: swap;
 }
@@ -103,7 +103,7 @@
     --app-shell-primary-foreground: #fafafa;
     --tab-bar: #212121;
     --font-sans: "Geist", system-ui, -apple-system, sans-serif;
-    --font-mono: "Cascadia Code", ui-monospace, monospace;
+    --font-mono: "Lilex", ui-monospace, monospace;
     --font-title: "Foglihtenno06", monospace;
 }
 

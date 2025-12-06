@@ -26,7 +26,7 @@ const props = withDefaults(defineProps<Props>(), {
             horizontalScrollbarSize: 12,
         },
         fontSize: 14,
-        fontFamily: "Cascadia Code, ui-monospace, monospace",
+        fontFamily: "Lilex, ui-monospace, monospace",
         lineNumbers: "on",
         roundedSelection: true,
         padding: {
