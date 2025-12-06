@@ -1,3 +1,4 @@
+use crate::log_ui;
 use crate::services::filesystem;
 use crate::utils::{paths, security};
 use std::fs;
@@ -72,13 +73,7 @@ pub fn save_file(
         .replace('\\', "/");
 
     // Log successful file save
-    let _ = app.emit(
-        "log-message",
-        serde_json::json!({
-            "level": 1,
-            "message": format!("File saved: {}", relative_path)
-        }),
-    );
+    log_ui!(&app, Success, "File saved: {}", relative_path);
 
     Ok(relative_path)
 }
@@ -135,12 +130,12 @@ pub fn rename_file(
     let _ = app.emit("file-tree-changed", ());
 
     // Log the rename operation
-    let _ = app.emit(
-        "log-message",
-        serde_json::json!({
-            "level": 1,
-            "message": format!("Renamed: {} → {}", relative_path, new_relative_path)
-        }),
+    log_ui!(
+        &app,
+        Success,
+        "Renamed: {} -> {}",
+        relative_path,
+        new_relative_path
     );
 
     Ok(new_relative_path)
@@ -172,13 +167,7 @@ pub fn delete_file(app: AppHandle, relative_path: String, is_folder: bool) -> Re
 
     // Log the delete operation
     let item_type = if is_folder { "folder" } else { "file" };
-    let _ = app.emit(
-        "log-message",
-        serde_json::json!({
-            "level": 1,
-            "message": format!("Deleted {}: {}", item_type, relative_path)
-        }),
-    );
+    log_ui!(&app, Success, "Deleted {}: {}", item_type, relative_path);
 
     Ok(())
 }
@@ -220,12 +209,11 @@ pub fn open_file_location(app: AppHandle, relative_path: String) -> Result<(), S
     }
 
     // Log the operation
-    let _ = app.emit(
-        "log-message",
-        serde_json::json!({
-            "level": 0,
-            "message": format!("Opened file/folder location: {}", parent_dir.display())
-        }),
+    log_ui!(
+        &app,
+        Info,
+        "Opened file/folder location: {}",
+        parent_dir.display()
     );
 
     Ok(())

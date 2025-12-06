@@ -1,6 +1,7 @@
+use crate::log_ui;
 use crate::models::ExecuteRequest;
 use crate::services::websocket::ClientRegistry;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, State};
 
 #[tauri::command]
 pub async fn execute_script(
@@ -35,10 +36,7 @@ pub async fn execute_script(
         format!("{} clients", client_count)
     };
 
-    let _ = app.emit("log-message", serde_json::json!({
-        "level": 1,
-        "message": format!("Script ran on {}", client_text)
-    }));
+    log_ui!(&app, Success, "Script ran on {}", client_text);
 
     Ok(())
 }
