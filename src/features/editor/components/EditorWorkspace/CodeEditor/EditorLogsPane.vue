@@ -45,19 +45,21 @@ const formatTime = (date: Date) => {
                 class="flex items-start gap-2 px-2 py-1.5 hover:bg-muted/50 rounded"
             >
                 <!-- Timestamp -->
-                <span class="text-muted-foreground whitespace-nowrap">
+                <span class="text-muted-foreground whitespace-nowrap shrink-0">
                     {{ formatTime(log.timestamp) }}
                 </span>
 
                 <!-- Level Icon -->
                 <component
                     :is="levelConfig[log.level].icon"
-                    class="w-4 h-4"
+                    :size="16"
+                    class="shrink-0"
+                    style="min-width: 16px; min-height: 16px"
                     :class="levelConfig[log.level].color"
                 />
 
                 <!-- Message -->
-                <span class="text-foreground flex-1">
+                <span class="text-foreground flex-1 min-w-0 wrap-break-word">
                     {{ log.message }}
                 </span>
             </div>
