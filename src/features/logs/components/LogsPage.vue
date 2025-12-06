@@ -178,7 +178,9 @@ const isLevelActive = (level: LogLevel) => {
                         </div>
 
                         <!-- Message -->
-                        <span class="text-foreground flex-1 leading-relaxed">
+                        <span
+                            class="text-foreground flex-1 leading-relaxed whitespace-pre-wrap"
+                        >
                             {{ log.message }}
                         </span>
                     </div>

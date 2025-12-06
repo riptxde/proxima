@@ -59,7 +59,9 @@ const formatTime = (date: Date) => {
                 />
 
                 <!-- Message -->
-                <span class="text-foreground flex-1 min-w-0 wrap-break-word">
+                <span
+                    class="text-foreground flex-1 min-w-0 wrap-break-word whitespace-pre-wrap"
+                >
                     {{ log.message }}
                 </span>
             </div>
