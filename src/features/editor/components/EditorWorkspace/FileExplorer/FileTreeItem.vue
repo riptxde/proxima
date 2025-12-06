@@ -7,7 +7,7 @@ import {
     ContextMenuSeparator,
     ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { FolderOpenIcon, FileEditIcon, TrashIcon } from "lucide-vue-next";
+import { FolderOpen, Pencil, Trash } from "lucide-vue-next";
 
 defineProps<{
     id: string;
@@ -30,16 +30,16 @@ const emit = defineEmits<{
         </ContextMenuTrigger>
         <ContextMenuContent class="w-48">
             <ContextMenuItem @click="emit('openLocation')">
-                <FolderOpenIcon />
+                <FolderOpen />
                 Open File Location
             </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem @click="emit('rename')">
-                <FileEditIcon />
+                <Pencil />
                 Rename
             </ContextMenuItem>
             <ContextMenuItem @click="emit('delete')" variant="destructive">
-                <TrashIcon />
+                <Trash />
                 Delete
             </ContextMenuItem>
         </ContextMenuContent>
