@@ -111,6 +111,12 @@ const editorOptions = computed(() => ({
     overviewRulerLanes: 0,
     hideCursorInOverviewRuler: true,
     scrollBeyondLastLine: false,
+    cursorSmoothCaretAnimation: editorSettings.value.smoothCursor
+        ? ("on" as const)
+        : ("off" as const),
+    cursorBlinking: editorSettings.value.smoothCursorBlink
+        ? ("smooth" as const)
+        : ("blink" as const),
 }));
 
 // Watch settings changes and update Monaco manually
@@ -125,6 +131,8 @@ watch(
             fontFamily: `${settings.font}, ui-monospace, monospace`,
             fontLigatures: settings.fontLigatures,
             wordWrap: settings.wordWrap ? "on" : "off",
+            cursorSmoothCaretAnimation: settings.smoothCursor ? "on" : "off",
+            cursorBlinking: settings.smoothCursorBlink ? "smooth" : "blink",
         });
     },
     { deep: true },

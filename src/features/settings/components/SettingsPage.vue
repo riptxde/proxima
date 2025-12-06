@@ -173,6 +173,56 @@ const fontSize = computed({
                                     v-model="editorSettings.fontLigatures"
                                 />
                             </div>
+
+                            <Separator />
+
+                            <!-- Smooth Cursor -->
+                            <div
+                                class="flex items-center justify-between py-1.5"
+                            >
+                                <div class="space-y-0 select-none">
+                                    <Label
+                                        for="smooth-cursor"
+                                        class="text-sm cursor-pointer"
+                                    >
+                                        Smooth Cursor
+                                    </Label>
+                                    <p
+                                        class="text-xs text-muted-foreground font-normal"
+                                    >
+                                        Enable smooth cursor movement animation
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="smooth-cursor"
+                                    v-model="editorSettings.smoothCursor"
+                                />
+                            </div>
+
+                            <Separator />
+
+                            <!-- Smooth Cursor Blink -->
+                            <div
+                                class="flex items-center justify-between py-1.5"
+                            >
+                                <div class="space-y-0 select-none">
+                                    <Label
+                                        for="smooth-cursor-blink"
+                                        class="text-sm cursor-pointer"
+                                    >
+                                        Smooth Cursor Blink
+                                    </Label>
+                                    <p
+                                        class="text-xs text-muted-foreground font-normal"
+                                    >
+                                        Enable smooth cursor blinking animation
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="smooth-cursor-blink"
+                                    v-model="editorSettings.smoothCursorBlink"
+                                />
+                            </div>
                         </div>
                     </div>
                 </Card>

@@ -36,6 +36,8 @@ const props = withDefaults(defineProps<Props>(), {
         overviewRulerLanes: 0,
         hideCursorInOverviewRuler: true,
         scrollBeyondLastLine: false,
+        cursorSmoothCaretAnimation: "on",
+        cursorBlinking: "smooth",
     }),
 });
 

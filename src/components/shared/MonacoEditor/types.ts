@@ -22,6 +22,15 @@ export interface MonacoEditorOptions {
   overviewRulerLanes?: number;
   hideCursorInOverviewRuler?: boolean;
   scrollBeyondLastLine?: boolean;
+  cursorSmoothCaretAnimation?: "off" | "explicit" | "on";
+  cursorBlinking?: "blink" | "smooth" | "phase" | "expand" | "solid";
+  cursorStyle?:
+    | "line"
+    | "block"
+    | "underline"
+    | "line-thin"
+    | "block-outline"
+    | "underline-thin";
 }
 
 export type MonacoInstance = Monaco.editor.IStandaloneCodeEditor;

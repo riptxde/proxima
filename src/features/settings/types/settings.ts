@@ -4,6 +4,8 @@ export interface EditorSettings {
   fontSize: number;
   font: string;
   fontLigatures: boolean;
+  smoothCursor: boolean;
+  smoothCursorBlink: boolean;
 }
 
 export interface ExecutionSettings {
@@ -28,6 +30,8 @@ export const DEFAULT_SETTINGS: Settings = {
     fontSize: 14,
     font: "Cascadia Code",
     fontLigatures: false,
+    smoothCursor: true,
+    smoothCursorBlink: true,
   },
   execution: {
     autoExecute: true,
