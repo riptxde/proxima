@@ -6,7 +6,8 @@ mod models;
 mod services;
 
 use commands::editor::{
-    get_scripts_path, initialize_directories, read_file_content, read_file_tree, save_file,
+    delete_file, get_scripts_path, initialize_directories, open_file_location, read_file_content,
+    read_file_tree, rename_file, save_file,
 };
 use commands::executor::{execute_script, get_attached_clients};
 use commands::logs::add_log;
@@ -82,6 +83,9 @@ pub fn run() {
             read_file_tree,
             read_file_content,
             save_file,
+            rename_file,
+            delete_file,
+            open_file_location,
             // Executor commands
             execute_script,
             get_attached_clients,

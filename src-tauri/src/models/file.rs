@@ -13,6 +13,7 @@ pub enum FileNode {
     Folder {
         id: String,
         name: String,
+        path: String, // Relative path from base directory
         children: Vec<FileNode>,
     },
 }

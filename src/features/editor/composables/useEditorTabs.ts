@@ -240,6 +240,35 @@ export function useEditorTabs() {
     return tabs.value.find((t) => t.id === activeTabId.value);
   };
 
+  const updateTabFilePath = (oldPath: string, newPath: string) => {
+    // Normalize paths to use forward slashes
+    const normalizedOldPath = oldPath.replace(/\\/g, "/");
+    const normalizedNewPath = newPath.replace(/\\/g, "/");
+
+    // Find and update the tab with the old file path
+    const tab = tabs.value.find((t) => t.filePath === normalizedOldPath);
+    if (tab) {
+      tab.filePath = normalizedNewPath;
+
+      // Extract new filename from path
+      const newFileName = normalizedNewPath.split("/").pop();
+      if (newFileName) {
+        tab.name = newFileName;
+      }
+    }
+  };
+
+  const closeTabByFilePath = (filePath: string) => {
+    // Normalize path to use forward slashes
+    const normalizedPath = filePath.replace(/\\/g, "/");
+
+    // Find tab with this file path
+    const tab = tabs.value.find((t) => t.filePath === normalizedPath);
+    if (tab) {
+      closeTab(tab.id);
+    }
+  };
+
   return {
     tabs,
     activeTabId,
@@ -257,5 +286,7 @@ export function useEditorTabs() {
     hasUnsavedChanges,
     markTabAsSaved,
     getActiveTab,
+    updateTabFilePath,
+    closeTabByFilePath,
   };
 }

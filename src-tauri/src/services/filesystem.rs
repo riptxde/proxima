@@ -83,17 +83,17 @@ fn read_directory(path: &Path, base_dir: &Path, id: &str, name: &str) -> Result<
 
         let entry_id = format!("{}-{}", id, id_counter);
 
+        // Calculate relative path from base directory with forward slashes
+        let relative_path = entry_path
+            .strip_prefix(base_dir)
+            .map_err(|e| format!("Failed to get relative path: {}", e))?
+            .to_string_lossy()
+            .replace('\\', "/");
+
         if entry_path.is_dir() {
             let child_node = read_directory(&entry_path, base_dir, &entry_id, &entry_name)?;
             children.push(child_node);
         } else {
-            // Calculate relative path from base directory with forward slashes
-            let relative_path = entry_path
-                .strip_prefix(base_dir)
-                .map_err(|e| format!("Failed to get relative path: {}", e))?
-                .to_string_lossy()
-                .replace('\\', "/");
-
             children.push(FileNode::File {
                 id: entry_id,
                 name: entry_name,
@@ -102,9 +102,17 @@ fn read_directory(path: &Path, base_dir: &Path, id: &str, name: &str) -> Result<
         }
     }
 
+    // Calculate relative path for the current folder
+    let folder_path = path
+        .strip_prefix(base_dir)
+        .map_err(|e| format!("Failed to get relative path: {}", e))?
+        .to_string_lossy()
+        .replace('\\', "/");
+
     Ok(FileNode::Folder {
         id: id.to_string(),
         name: name.to_string(),
+        path: folder_path,
         children,
     })
 }
