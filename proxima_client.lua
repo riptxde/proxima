@@ -22,18 +22,24 @@ local Username = nil
 local Reconnecting = false
 
 --/ Functions /--
-local function Log(Level, Message)
+local function Log(Level, ...)
     if not Socket then
         return
     end
 
+    local Args = {...}
+    for i = 1, #Args do
+        Args[i] = tostring(Args[i])
+    end
+    local Message = table.concat(Args, ' ')
+
     pcall(function()
-        local Message = HttpService:JSONEncode({
+        local Payload = HttpService:JSONEncode({
             type = 'log',
             level = Level,
-            message = Message or ''
+            message = Message
         })
-        Socket:Send(Message)
+        Socket:Send(Payload)
     end)
 end
 
@@ -146,4 +152,23 @@ local function Connect()
 end
 
 --/ Main /--
+-- Setup console functions in getgenv()
+local Env = getgenv()
+
+Env.printconsole = function(...)
+    Log(LOG_INFO, ...)
+end
+
+Env.successconsole = function(...)
+    Log(LOG_SUCCESS, ...)
+end
+
+Env.warnconsole = function(...)
+    Log(LOG_WARNING, ...)
+end
+
+Env.errorconsole = function(...)
+    Log(LOG_ERROR, ...)
+end
+
 Connect()
