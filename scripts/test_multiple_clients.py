@@ -5,7 +5,7 @@ import sys
 import websockets
 
 
-async def client_handler(client_id: int, name: str):
+async def client_handler(_client_id: int, name: str):
     """Handle a single WebSocket client connection."""
     uri = "ws://localhost:13376"
 
