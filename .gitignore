@@ -23,7 +23,10 @@ dist-ssr
 *.sw?
 
 # Files for testing in development
-@dev/
+@dev
+
+# Final tauri distribution files
+dist-tauri
 
 # Build hash cache
 .vue_build_hash
