@@ -39,6 +39,7 @@
     "windows": {
       "wix": null,
       "nsis": {
+        "template": "windows/installer.nsi",
         "displayLanguageSelector": false,
         "installerIcon": "icons/icon.ico",
         "installMode": "currentUser",

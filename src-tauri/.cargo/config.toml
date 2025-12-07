@@ -1,0 +1,5 @@
+# Static linking configuration for Windows
+# This eliminates the vcredist dependency by statically linking the C runtime
+
+[target.'cfg(all(windows, target_env = "msvc"))']
+rustflags = ["-C", "target-feature=+crt-static"]
