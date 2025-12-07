@@ -22,11 +22,11 @@ pub fn validate_scripts_folder(folder: &str) -> Result<(), String> {
     // Normalize path separators
     let normalized = folder.replace('\\', "/");
 
-    // Check if it starts with Scripts/ or AutoExec/ or is exactly Scripts or AutoExec
-    let is_valid = normalized.starts_with("Scripts/")
-        || normalized.starts_with("AutoExec/")
-        || normalized == "Scripts"
-        || normalized == "AutoExec";
+    // Check if it starts with scripts/ or autoexec/ or is exactly scripts or autoexec
+    let is_valid = normalized.starts_with("scripts/")
+        || normalized.starts_with("autoexec/")
+        || normalized == "scripts"
+        || normalized == "autoexec";
 
     if !is_valid {
         return Err("Invalid folder: must be within 'Scripts' or 'AutoExec' directory".to_string());
@@ -42,8 +42,8 @@ pub fn validate_scripts_folder(folder: &str) -> Result<(), String> {
 
 /// Validate that a file path is within Scripts or AutoExec after it has been created
 pub fn validate_scripts_path(file_path: &Path, base_dir: &Path) -> Result<(), String> {
-    let scripts_path = base_dir.join("Scripts");
-    let autoexec_path = base_dir.join("AutoExec");
+    let scripts_path = base_dir.join("scripts");
+    let autoexec_path = base_dir.join("autoexec");
 
     let is_in_scripts = validate_path(file_path, &scripts_path).is_ok();
     let is_in_autoexec = validate_path(file_path, &autoexec_path).is_ok();

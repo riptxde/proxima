@@ -5,6 +5,7 @@ use std::sync::mpsc::channel;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
+use crate::log_ui;
 use crate::utils::paths;
 
 const DEBOUNCE_DURATION_MS: u64 = 500;
@@ -12,8 +13,8 @@ const DEBOUNCE_DURATION_MS: u64 = 500;
 /// Start watching Scripts and AutoExec directories for file changes
 pub fn start_file_watcher(app: AppHandle) -> Result<(), String> {
     let base_dir = paths::get_base_directory(&app)?;
-    let scripts_dir = base_dir.join("Scripts");
-    let autoexec_dir = base_dir.join("AutoExec");
+    let scripts_dir = base_dir.join("scripts");
+    let autoexec_dir = base_dir.join("autoexec");
 
     log::info!("File watcher initialized");
 
@@ -59,11 +60,19 @@ fn watch_directories(
 
     // Event loop - emit to frontend when files change
     while rx.recv().is_ok() {
-        if let Err(e) = app.emit("file-tree-changed", ()) {
-            log::error!("Failed to emit file tree change event: {}", e);
+        // Emit to main window
+        if let Err(e) = app.emit_to("main", "file-tree-changed", ()) {
+            log::error!(
+                "Failed to emit file tree change event to main window: {}",
+                e
+            );
+        } else {
+            log_ui!(
+                &app,
+                Info,
+                "File watcher detected an update to the file tree"
+            );
         }
-
-        log::debug!("File watcher detected file tree change");
     }
 
     Ok(())

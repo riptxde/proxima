@@ -86,7 +86,7 @@ export function useFileOperations() {
 
   const handleSave = async (
     filename: string,
-    folder: "Scripts" | "AutoExec",
+    folder: "scripts" | "autoexec",
   ) => {
     try {
       const content = getActiveTabContent();

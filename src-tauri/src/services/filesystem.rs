@@ -9,8 +9,8 @@ use crate::utils::paths;
 pub fn initialize_directories(app: &AppHandle) -> Result<(), String> {
     let base_dir = paths::get_base_directory(app)?;
 
-    let scripts_dir = base_dir.join("Scripts");
-    let autoexec_dir = base_dir.join("AutoExec");
+    let scripts_dir = base_dir.join("scripts");
+    let autoexec_dir = base_dir.join("autoexec");
 
     let mut created_dirs = Vec::new();
 
@@ -41,14 +41,14 @@ pub fn build_file_tree(app: &AppHandle) -> Result<Vec<FileNode>, String> {
     let mut nodes = Vec::new();
 
     // Read Scripts directory
-    let scripts_dir = base_dir.join("Scripts");
+    let scripts_dir = base_dir.join("scripts");
     if scripts_dir.exists() {
         let scripts_node = read_directory(&scripts_dir, &base_dir, "scripts", "Scripts")?;
         nodes.push(scripts_node);
     }
 
     // Read AutoExec directory
-    let autoexec_dir = base_dir.join("AutoExec");
+    let autoexec_dir = base_dir.join("autoexec");
     if autoexec_dir.exists() {
         let autoexec_node = read_directory(&autoexec_dir, &base_dir, "autoexec", "AutoExec")?;
         nodes.push(autoexec_node);

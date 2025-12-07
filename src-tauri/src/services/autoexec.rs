@@ -13,7 +13,7 @@ pub fn get_autoexec_scripts(app: &AppHandle) -> Vec<String> {
         }
     };
 
-    let autoexec_dir = base_dir.join("AutoExec");
+    let autoexec_dir = base_dir.join("autoexec");
 
     if !autoexec_dir.exists() {
         return vec![];

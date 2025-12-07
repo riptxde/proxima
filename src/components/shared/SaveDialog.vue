@@ -24,18 +24,18 @@ defineProps<{
 
 const emit = defineEmits<{
     "update:open": [value: boolean];
-    save: [filename: string, folder: "Scripts" | "AutoExec"];
+    save: [filename: string, folder: "scripts" | "autoexec"];
 }>();
 
 const filename = ref("");
-const selectedFolder = ref<"Scripts" | "AutoExec">("Scripts");
+const selectedFolder = ref<"scripts" | "autoexec">("scripts");
 
 const handleSave = () => {
     if (filename.value.trim()) {
         emit("save", filename.value.trim(), selectedFolder.value);
         // Reset form
         filename.value = "";
-        selectedFolder.value = "Scripts";
+        selectedFolder.value = "scripts";
         emit("update:open", false);
     }
 };
@@ -43,7 +43,7 @@ const handleSave = () => {
 const handleCancel = () => {
     // Reset form
     filename.value = "";
-    selectedFolder.value = "Scripts";
+    selectedFolder.value = "scripts";
     emit("update:open", false);
 };
 </script>
@@ -79,8 +79,8 @@ const handleCancel = () => {
                             <SelectValue placeholder="Select folder" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="Scripts"> Scripts </SelectItem>
-                            <SelectItem value="AutoExec"> AutoExec </SelectItem>
+                            <SelectItem value="scripts"> Scripts </SelectItem>
+                            <SelectItem value="autoexec"> AutoExec </SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
