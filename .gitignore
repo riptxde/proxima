@@ -24,3 +24,6 @@ dist-ssr
 
 # Files for testing in development
 @dev/
+
+# Build hash cache
+.vue_build_hash
