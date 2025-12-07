@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/build.js",
+    "build": "node scripts/vue_build.js",
     "build:force": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
