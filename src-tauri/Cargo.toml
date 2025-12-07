@@ -3,8 +3,8 @@ name = "proxima"
 version = "0.1.0"
 description = "A universal script executor custom UI"
 authors = ["riptxde"]
-license = ""
-repository = ""
+license = "AGPL-3.0"
+repository = "https://github.com/riptxde/proxima"
 edition = "2021"
 rust-version = "1.77.2"
 
