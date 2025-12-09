@@ -1,6 +1,6 @@
 use crate::log_ui;
 use crate::services::filesystem;
-use crate::utils::{paths, security};
+use crate::utils::paths;
 use std::fs;
 use tauri::{AppHandle, Emitter};
 
@@ -23,9 +23,6 @@ pub fn read_file_content(app: AppHandle, relative_path: String) -> Result<String
     let base_dir = paths::get_base_directory(&app)?;
     let file_path = base_dir.join(relative_path);
 
-    // Security check: ensure the file is within the base directory
-    security::validate_path(&file_path, &base_dir)?;
-
     fs::read_to_string(&file_path).map_err(|e| format!("Failed to read file: {}", e))
 }
 
@@ -39,9 +36,6 @@ pub fn save_file(
 ) -> Result<String, String> {
     let base_dir = paths::get_base_directory(&app)?;
 
-    // Validate folder is within Scripts or AutoExec before creating anything
-    security::validate_scripts_folder(&folder)?;
-
     // Build the target folder path
     let folder_path = base_dir.join(&folder);
 
@@ -51,19 +45,10 @@ pub fn save_file(
             .map_err(|e| format!("Failed to create directory: {}", e))?;
     }
 
-    // Sanitize filename to prevent path traversal
-    let safe_filename = security::sanitize_filename(&filename)?;
-    let file_path = folder_path.join(&safe_filename);
+    let file_path = folder_path.join(&filename);
 
-    // Write the file first (we need it to exist for canonicalization)
+    // Write the file
     fs::write(&file_path, content).map_err(|e| format!("Failed to write file: {}", e))?;
-
-    // Security validation: ensure the final path is within Scripts or AutoExec using canonicalization
-    if let Err(e) = security::validate_scripts_path(&file_path, &base_dir) {
-        // Remove the file we just wrote since it's in an invalid location
-        let _ = fs::remove_file(&file_path);
-        return Err(e);
-    }
 
     // Return the relative path with forward slashes
     let relative_path = file_path
@@ -88,17 +73,11 @@ pub fn rename_file(
     let base_dir = paths::get_base_directory(&app)?;
     let old_path = base_dir.join(&relative_path);
 
-    // Security check: ensure the old path is within the base directory
-    security::validate_path(&old_path, &base_dir)?;
-
-    // Sanitize the new name to prevent path traversal
-    let safe_new_name = security::sanitize_filename(&new_name)?;
-
     // Build the new path (same parent directory, new name)
     let parent = old_path
         .parent()
         .ok_or_else(|| "Invalid file path".to_string())?;
-    let new_path = parent.join(&safe_new_name);
+    let new_path = parent.join(&new_name);
 
     // Check if the old path exists
     if !old_path.exists() {
@@ -109,15 +88,12 @@ pub fn rename_file(
     if new_path.exists() {
         return Err(format!(
             "A file or folder named '{}' already exists",
-            safe_new_name
+            new_name
         ));
     }
 
     // Perform the rename
     fs::rename(&old_path, &new_path).map_err(|e| format!("Failed to rename: {}", e))?;
-
-    // Security validation: ensure the new path is still within Scripts or AutoExec
-    security::validate_scripts_path(&new_path, &base_dir)?;
 
     // Get the new relative path
     let new_relative_path = new_path
@@ -146,9 +122,6 @@ pub fn rename_file(
 pub fn delete_file(app: AppHandle, relative_path: String, is_folder: bool) -> Result<(), String> {
     let base_dir = paths::get_base_directory(&app)?;
     let file_path = base_dir.join(&relative_path);
-
-    // Security check: ensure the path is within the base directory
-    security::validate_path(&file_path, &base_dir)?;
 
     // Check if the path exists
     if !file_path.exists() {
@@ -180,9 +153,6 @@ pub fn open_file_location(app: AppHandle, relative_path: String) -> Result<(), S
     // Normalize path separators to backslashes on Windows
     let normalized_path = relative_path.replace('/', "\\");
     let file_path = base_dir.join(&normalized_path);
-
-    // Security check: ensure the path is within the base directory
-    security::validate_path(&file_path, &base_dir)?;
 
     // Get the parent directory
     let parent_dir = if file_path.is_file() {
