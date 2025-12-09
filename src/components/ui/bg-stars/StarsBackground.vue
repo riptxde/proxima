@@ -140,7 +140,7 @@ const boxShadow2 = ref("");
 const boxShadow3 = ref("");
 
 onMounted(() => {
-    boxShadow1.value = generateStars(2400, props.starColor);
+    boxShadow1.value = generateStars(1400, props.starColor);
     boxShadow2.value = generateStars(560, props.starColor);
     boxShadow3.value = generateStars(280, props.starColor);
 
@@ -156,7 +156,7 @@ onUnmounted(() => {
 watch(
     () => props.starColor,
     (newColor) => {
-        boxShadow1.value = generateStars(2400, newColor);
+        boxShadow1.value = generateStars(1400, newColor);
         boxShadow2.value = generateStars(560, newColor);
         boxShadow3.value = generateStars(280, newColor);
     },

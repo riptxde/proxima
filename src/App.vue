@@ -20,33 +20,33 @@ const { initializeLogListener } = useLogs();
 const { initialize: initHttpExecutor } = useHttpExecutor();
 
 onMounted(() => {
-    initialize();
-    initializeLogListener();
-    initHttpExecutor();
+  initialize();
+  initializeLogListener();
+  initHttpExecutor();
 });
 
 const currentPageComponent = computed(() => {
-    switch (activePage.value) {
-        case "editor":
-            return EditorPage;
-        case "script-hub":
-            return ScriptHubPage;
-        case "logs":
-            return LogsPage;
-        case "settings":
-            return SettingsPage;
-        default:
-            return EditorPage;
-    }
+  switch (activePage.value) {
+    case "editor":
+      return EditorPage;
+    case "script-hub":
+      return ScriptHubPage;
+    case "logs":
+      return LogsPage;
+    case "settings":
+      return SettingsPage;
+    default:
+      return EditorPage;
+  }
 });
 </script>
 
 <template>
-    <StartupAnimation />
-    <TooltipProvider>
-        <AppShell>
-            <component :is="currentPageComponent" />
-        </AppShell>
-        <Toaster position="top-center" :duration="2000" />
-    </TooltipProvider>
+  <StartupAnimation />
+  <TooltipProvider>
+    <AppShell>
+      <component :is="currentPageComponent" />
+    </AppShell>
+    <Toaster position="top-center" :duration="2000" />
+  </TooltipProvider>
 </template>
