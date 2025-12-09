@@ -23,6 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { detectLanguage } from "@/features/editor/utils/languageDetection";
 
 const props = defineProps<{
   triggerNewTab: number;
@@ -77,13 +78,13 @@ const scriptContent = computed({
   },
 });
 
-// Compute language based on file name
+// Compute language based on file path
 const editorLanguage = computed(() => {
-  const tabName = activeTab.value?.name;
-  if (tabName === ".proximaignore") {
-    return "ini";
+  const filePath = activeTab.value?.filePath;
+  if (!filePath) {
+    return "lua"; // Default to Lua for tabs without a file
   }
-  return "lua";
+  return detectLanguage(filePath);
 });
 
 // Monaco editor instance
