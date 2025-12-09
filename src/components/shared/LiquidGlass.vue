@@ -1,135 +1,133 @@
 <template>
-    <div ref="liquidGlassRoot" class="effect" :style="baseStyle">
-        <div class="slot-container">
-            <slot />
-        </div>
-
-        <svg class="filter" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <filter
-                    id="dockDisplacementFilter"
-                    color-interpolation-filters="sRGB"
-                >
-                    <feImage
-                        x="0"
-                        y="0"
-                        width="100%"
-                        height="100%"
-                        :href="displacementDataUri"
-                        result="map"
-                    />
-                    <feDisplacementMap
-                        id="redchannel"
-                        in="SourceGraphic"
-                        in2="map"
-                        :xChannelSelector="xChannel"
-                        :yChannelSelector="yChannel"
-                        :scale="scale + rOffset"
-                        result="dispRed"
-                    />
-                    <feColorMatrix
-                        in="dispRed"
-                        type="matrix"
-                        values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0"
-                        result="red"
-                    />
-                    <feDisplacementMap
-                        id="greenchannel"
-                        in="SourceGraphic"
-                        in2="map"
-                        :xChannelSelector="xChannel"
-                        :yChannelSelector="yChannel"
-                        :scale="scale + gOffset"
-                        result="dispGreen"
-                    />
-                    <feColorMatrix
-                        in="dispGreen"
-                        type="matrix"
-                        values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0"
-                        result="green"
-                    />
-                    <feDisplacementMap
-                        id="bluechannel"
-                        in="SourceGraphic"
-                        in2="map"
-                        :xChannelSelector="xChannel"
-                        :yChannelSelector="yChannel"
-                        :scale="scale + bOffset"
-                        result="dispBlue"
-                    />
-                    <feColorMatrix
-                        in="dispBlue"
-                        type="matrix"
-                        values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0"
-                        result="blue"
-                    />
-                    <feBlend in="red" in2="green" mode="screen" result="rg" />
-                    <feBlend in="rg" in2="blue" mode="screen" result="output" />
-                    <feGaussianBlur :stdDeviation="displace" />
-                </filter>
-            </defs>
-        </svg>
+  <div ref="liquidGlassRoot" class="effect" :style="baseStyle">
+    <div class="slot-container">
+      <slot />
     </div>
+
+    <svg class="filter" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="dockDisplacementFilter" color-interpolation-filters="sRGB">
+          <feImage
+            x="0"
+            y="0"
+            width="100%"
+            height="100%"
+            :href="displacementDataUri"
+            result="map"
+          />
+          <feDisplacementMap
+            id="redchannel"
+            in="SourceGraphic"
+            in2="map"
+            :xChannelSelector="xChannel"
+            :yChannelSelector="yChannel"
+            :scale="scale + rOffset"
+            result="dispRed"
+          />
+          <feColorMatrix
+            in="dispRed"
+            type="matrix"
+            values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0"
+            result="red"
+          />
+          <feDisplacementMap
+            id="greenchannel"
+            in="SourceGraphic"
+            in2="map"
+            :xChannelSelector="xChannel"
+            :yChannelSelector="yChannel"
+            :scale="scale + gOffset"
+            result="dispGreen"
+          />
+          <feColorMatrix
+            in="dispGreen"
+            type="matrix"
+            values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0"
+            result="green"
+          />
+          <feDisplacementMap
+            id="bluechannel"
+            in="SourceGraphic"
+            in2="map"
+            :xChannelSelector="xChannel"
+            :yChannelSelector="yChannel"
+            :scale="scale + bOffset"
+            result="dispBlue"
+          />
+          <feColorMatrix
+            in="dispBlue"
+            type="matrix"
+            values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0"
+            result="blue"
+          />
+          <feBlend in="red" in2="green" mode="screen" result="rg" />
+          <feBlend in="rg" in2="blue" mode="screen" result="output" />
+          <feGaussianBlur :stdDeviation="displace" />
+        </filter>
+      </defs>
+    </svg>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
 
 interface Props {
-    radius?: number;
-    border?: number;
-    lightness?: number;
-    displace?: number;
-    blend?: string;
-    xChannel?: "R" | "G" | "B";
-    yChannel?: "R" | "G" | "B";
-    alpha?: number;
-    blur?: number;
-    rOffset?: number;
-    gOffset?: number;
-    bOffset?: number;
-    scale?: number;
-    frost?: number;
+  radius?: number;
+  border?: number;
+  lightness?: number;
+  displace?: number;
+  blend?: string;
+  xChannel?: "R" | "G" | "B";
+  yChannel?: "R" | "G" | "B";
+  alpha?: number;
+  blur?: number;
+  rOffset?: number;
+  gOffset?: number;
+  bOffset?: number;
+  scale?: number;
+  frost?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-    radius: 8,
-    border: 0.07,
-    lightness: 50,
-    blend: "difference",
-    xChannel: "R",
-    yChannel: "B",
-    alpha: 0.93,
-    blur: 11,
-    rOffset: 0,
-    gOffset: 10,
-    bOffset: 20,
-    scale: -180,
-    frost: 0.05,
+  radius: 8,
+  border: 0.07,
+  lightness: 50,
+  blend: "difference",
+  xChannel: "R",
+  yChannel: "B",
+  alpha: 0.93,
+  blur: 11,
+  rOffset: 0,
+  gOffset: 10,
+  bOffset: 20,
+  scale: -180,
+  frost: 0.05,
 });
 
 const liquidGlassRoot = ref<HTMLElement | null>(null);
 const dimensions = reactive({
-    width: 0,
-    height: 0,
+  width: 0,
+  height: 0,
 });
 
 let observer: ResizeObserver | null = null;
+let resizeTimeout: number | null = null;
 
 const baseStyle = computed(() => {
-    return {
-        "--frost": props.frost,
-        "border-radius": `${props.radius}px`,
-    };
+  return {
+    "--frost": props.frost,
+    "border-radius": `${props.radius}px`,
+  };
 });
 
 const displacementImage = computed(() => {
-    const border =
-        Math.min(dimensions.width, dimensions.height) * (props.border * 0.5);
-    const yBorder =
-        Math.min(dimensions.width, dimensions.height) * (props.border * 0.5);
+  const border =
+    Math.min(dimensions.width, dimensions.height) * (props.border * 0.5);
+  const yBorder =
+    Math.min(dimensions.width, dimensions.height) * (props.border * 0.5);
 
-    return `
+  return `
     <svg viewBox="0 0 ${dimensions.width} ${dimensions.height}" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="red" x1="100%" y1="0%" x2="0%" y2="0%">
@@ -158,71 +156,80 @@ const displacementImage = computed(() => {
 });
 
 const displacementDataUri = computed(() => {
-    const encoded = encodeURIComponent(displacementImage.value);
-    return `data:image/svg+xml,${encoded}`;
+  const encoded = encodeURIComponent(displacementImage.value);
+  return `data:image/svg+xml,${encoded}`;
 });
 
 onMounted(() => {
-    if (!liquidGlassRoot.value) return;
+  if (!liquidGlassRoot.value) return;
 
-    observer = new ResizeObserver((entries) => {
-        const entry = entries[0];
-        if (!entry) return;
+  observer = new ResizeObserver((entries) => {
+    const entry = entries[0];
+    if (!entry) return;
 
-        let width = 0;
-        let height = 0;
+    if (resizeTimeout !== null) {
+      clearTimeout(resizeTimeout);
+    }
 
-        if (entry.borderBoxSize && entry.borderBoxSize?.length) {
-            width = entry.borderBoxSize[0]!.inlineSize;
-            height = entry.borderBoxSize[0]!.blockSize;
-        } else if (entry.contentRect) {
-            width = entry.contentRect.width;
-            height = entry.contentRect.height;
-        }
+    resizeTimeout = setTimeout(() => {
+      let width = 0;
+      let height = 0;
 
-        dimensions.width = width;
-        dimensions.height = height;
-    });
+      if (entry.borderBoxSize && entry.borderBoxSize?.length) {
+        width = entry.borderBoxSize[0]!.inlineSize;
+        height = entry.borderBoxSize[0]!.blockSize;
+      } else if (entry.contentRect) {
+        width = entry.contentRect.width;
+        height = entry.contentRect.height;
+      }
 
-    observer.observe(liquidGlassRoot.value);
+      dimensions.width = width;
+      dimensions.height = height;
+    }, 20);
+  });
+
+  observer.observe(liquidGlassRoot.value);
 });
 
 onUnmounted(() => {
-    observer?.disconnect();
+  if (resizeTimeout !== null) {
+    clearTimeout(resizeTimeout);
+  }
+  observer?.disconnect();
 });
 </script>
 
 <style scoped>
 .effect {
-    position: relative;
-    display: inline-block;
-    opacity: 1;
-    border-radius: inherit;
-    backdrop-filter: url(#dockDisplacementFilter);
-    background: hsl(0 0% 0% / var(--frost, 0));
-    box-shadow:
-        0 0 2px 1px rgba(255, 255, 255, 0.1) inset,
-        0 0 10px 4px rgba(255, 255, 255, 0.05) inset,
-        0px 4px 16px rgba(17, 17, 26, 0.05),
-        0px 8px 24px rgba(17, 17, 26, 0.05),
-        0px 16px 56px rgba(17, 17, 26, 0.05),
-        0px 4px 16px rgba(17, 17, 26, 0.05) inset,
-        0px 8px 24px rgba(17, 17, 26, 0.05) inset,
-        0px 16px 56px rgba(17, 17, 26, 0.05) inset;
+  position: relative;
+  display: inline-block;
+  opacity: 1;
+  border-radius: inherit;
+  backdrop-filter: url(#dockDisplacementFilter);
+  background: hsl(0 0% 0% / var(--frost, 0));
+  box-shadow:
+    0 0 2px 1px rgba(255, 255, 255, 0.1) inset,
+    0 0 10px 4px rgba(255, 255, 255, 0.05) inset,
+    0px 4px 16px rgba(17, 17, 26, 0.05),
+    0px 8px 24px rgba(17, 17, 26, 0.05),
+    0px 16px 56px rgba(17, 17, 26, 0.05),
+    0px 4px 16px rgba(17, 17, 26, 0.05) inset,
+    0px 8px 24px rgba(17, 17, 26, 0.05) inset,
+    0px 16px 56px rgba(17, 17, 26, 0.05) inset;
 }
 
 .slot-container {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    border-radius: inherit;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-radius: inherit;
 }
 
 .filter {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 </style>
