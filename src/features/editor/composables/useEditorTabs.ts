@@ -38,7 +38,7 @@ async function initializeStore() {
   const { addLog } = useLogger();
 
   try {
-    // Get the base directory (same as Scripts/AutoExec location)
+    // Get the base directory (same as scripts/autoexec location)
     const basePath = await getScriptsPath();
     const storePath = await join(basePath, "tabs.json");
 

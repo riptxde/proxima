@@ -181,7 +181,7 @@ async fn handle_client(
                                         get_auto_execute_setting(&app_handle_clone).await;
 
                                     if auto_execute {
-                                        // Get AutoExec scripts
+                                        // Get autoexec scripts
                                         let scripts =
                                             autoexec::get_autoexec_scripts(&app_handle_clone);
 
@@ -209,7 +209,7 @@ async fn handle_client(
                                                 {
                                                     if tx.send(Message::Text(msg_text)).is_err() {
                                                         log::error!(
-                                                            "Failed to send AutoExec script"
+                                                            "Failed to send autoexec script"
                                                         );
                                                         break;
                                                     }

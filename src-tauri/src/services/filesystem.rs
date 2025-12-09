@@ -6,7 +6,7 @@ use tauri::AppHandle;
 
 use crate::utils::paths;
 
-/// Initialize the Scripts and AutoExec directories if they don't exist
+/// Initialize the scripts and autoexec directories if they don't exist
 pub fn initialize_directories(app: &AppHandle) -> Result<(), String> {
     let base_dir = paths::get_base_directory(app)?;
 
@@ -40,26 +40,38 @@ pub fn initialize_directories(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// Build the file tree for Scripts and AutoExec directories
+/// Build the file tree for scripts and autoexec directories
 pub fn build_file_tree(app: &AppHandle) -> Result<Vec<FileNode>, String> {
     let base_dir = paths::get_base_directory(app)?;
     let mut nodes = Vec::new();
 
-    // Read Scripts directory
+    // Read scripts directory
     let scripts_dir = base_dir.join("scripts");
     if scripts_dir.exists() {
         let ignore_file = scripts_dir.join(".proximaignore");
         let ignore_patterns = IgnorePatterns::from_file(&ignore_file)?;
-        let scripts_node = read_directory(&scripts_dir, &base_dir, "scripts", "Scripts", &ignore_patterns)?;
+        let scripts_node = read_directory(
+            &scripts_dir,
+            &base_dir,
+            "scripts",
+            "Scripts",
+            &ignore_patterns,
+        )?;
         nodes.push(scripts_node);
     }
 
-    // Read AutoExec directory
+    // Read autoexec directory
     let autoexec_dir = base_dir.join("autoexec");
     if autoexec_dir.exists() {
         let ignore_file = autoexec_dir.join(".proximaignore");
         let ignore_patterns = IgnorePatterns::from_file(&ignore_file)?;
-        let autoexec_node = read_directory(&autoexec_dir, &base_dir, "autoexec", "AutoExec", &ignore_patterns)?;
+        let autoexec_node = read_directory(
+            &autoexec_dir,
+            &base_dir,
+            "autoexec",
+            "AutoExec",
+            &ignore_patterns,
+        )?;
         nodes.push(autoexec_node);
     }
 
@@ -67,7 +79,13 @@ pub fn build_file_tree(app: &AppHandle) -> Result<Vec<FileNode>, String> {
 }
 
 /// Recursively read a directory and build a FileNode tree
-fn read_directory(path: &Path, base_dir: &Path, id: &str, name: &str, ignore_patterns: &IgnorePatterns) -> Result<FileNode, String> {
+fn read_directory(
+    path: &Path,
+    base_dir: &Path,
+    id: &str,
+    name: &str,
+    ignore_patterns: &IgnorePatterns,
+) -> Result<FileNode, String> {
     let mut children = Vec::new();
 
     let entries = fs::read_dir(path)
@@ -111,7 +129,13 @@ fn read_directory(path: &Path, base_dir: &Path, id: &str, name: &str, ignore_pat
             .replace('\\', "/");
 
         if is_dir {
-            let child_node = read_directory(&entry_path, base_dir, &entry_id, &entry_name, ignore_patterns)?;
+            let child_node = read_directory(
+                &entry_path,
+                base_dir,
+                &entry_id,
+                &entry_name,
+                ignore_patterns,
+            )?;
             children.push(child_node);
         } else {
             children.push(FileNode::File {

@@ -2,7 +2,7 @@ use crate::models::FileNode;
 use crate::services::filesystem;
 use tauri::AppHandle;
 
-/// Read the file tree for Scripts and AutoExec directories
+/// Read the file tree for scripts and autoexec directories
 /// This is an async command to prevent blocking the UI when loading large file trees
 #[tauri::command]
 pub async fn read_file_tree(app: AppHandle) -> Result<Vec<FileNode>, String> {

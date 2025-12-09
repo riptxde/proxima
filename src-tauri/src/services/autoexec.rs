@@ -3,12 +3,12 @@ use std::fs;
 use std::path::Path;
 use tauri::AppHandle;
 
-/// Get all AutoExec scripts with their contents
+/// Get all autoexec scripts with their contents
 pub fn get_autoexec_scripts(app: &AppHandle) -> Vec<String> {
     let base_dir = match paths::get_base_directory(app) {
         Ok(dir) => dir,
         Err(e) => {
-            log::error!("Failed to get base directory for AutoExec: {}", e);
+            log::error!("Failed to get base directory for autoexec: {}", e);
             return vec![];
         }
     };

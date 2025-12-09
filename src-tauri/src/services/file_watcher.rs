@@ -10,7 +10,7 @@ use crate::utils::paths;
 
 const DEBOUNCE_DURATION_MS: u64 = 500;
 
-/// Start watching Scripts and AutoExec directories for file changes
+/// Start watching scripts and autoexec directories for file changes
 pub fn start_file_watcher(app: AppHandle) -> Result<(), String> {
     let base_dir = paths::get_base_directory(&app)?;
     let scripts_dir = base_dir.join("scripts");

@@ -11,7 +11,7 @@ pub fn get_scripts_path(app: AppHandle) -> Result<String, String> {
     Ok(base_dir.to_string_lossy().to_string())
 }
 
-/// Initialize Scripts and AutoExec directories
+/// Initialize scripts and autoexec directories
 #[tauri::command]
 pub fn initialize_directories(app: AppHandle) -> Result<(), String> {
     filesystem::initialize_directories(&app)
@@ -26,7 +26,7 @@ pub fn read_file_content(app: AppHandle, relative_path: String) -> Result<String
     fs::read_to_string(&file_path).map_err(|e| format!("Failed to read file: {}", e))
 }
 
-/// Save a file to Scripts or AutoExec folder or any descendant path
+/// Save a file to scripts or autoexec folder or any descendant path
 #[tauri::command]
 pub fn save_file(
     app: AppHandle,
