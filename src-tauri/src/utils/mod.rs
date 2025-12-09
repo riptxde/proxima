@@ -2,3 +2,4 @@
 pub mod logging;
 pub mod paths;
 pub mod security;
+pub mod ignore;

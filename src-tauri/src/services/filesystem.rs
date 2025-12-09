@@ -1,4 +1,5 @@
 use crate::models::FileNode;
+use crate::utils::ignore::{ensure_ignore_file, IgnorePatterns};
 use std::fs;
 use std::path::Path;
 use tauri::AppHandle;
@@ -27,6 +28,10 @@ pub fn initialize_directories(app: &AppHandle) -> Result<(), String> {
         created_dirs.push("AutoExec");
     }
 
+    // Create default .proximaignore files
+    ensure_ignore_file(&scripts_dir)?;
+    ensure_ignore_file(&autoexec_dir)?;
+
     // Log directory initialization
     if !created_dirs.is_empty() {
         log::info!("Initialized directories: {}", created_dirs.join(", "));
@@ -43,14 +48,18 @@ pub fn build_file_tree(app: &AppHandle) -> Result<Vec<FileNode>, String> {
     // Read Scripts directory
     let scripts_dir = base_dir.join("scripts");
     if scripts_dir.exists() {
-        let scripts_node = read_directory(&scripts_dir, &base_dir, "scripts", "Scripts")?;
+        let ignore_file = scripts_dir.join(".proximaignore");
+        let ignore_patterns = IgnorePatterns::from_file(&ignore_file)?;
+        let scripts_node = read_directory(&scripts_dir, &base_dir, "scripts", "Scripts", &ignore_patterns)?;
         nodes.push(scripts_node);
     }
 
     // Read AutoExec directory
     let autoexec_dir = base_dir.join("autoexec");
     if autoexec_dir.exists() {
-        let autoexec_node = read_directory(&autoexec_dir, &base_dir, "autoexec", "AutoExec")?;
+        let ignore_file = autoexec_dir.join(".proximaignore");
+        let ignore_patterns = IgnorePatterns::from_file(&ignore_file)?;
+        let autoexec_node = read_directory(&autoexec_dir, &base_dir, "autoexec", "AutoExec", &ignore_patterns)?;
         nodes.push(autoexec_node);
     }
 
@@ -58,7 +67,7 @@ pub fn build_file_tree(app: &AppHandle) -> Result<Vec<FileNode>, String> {
 }
 
 /// Recursively read a directory and build a FileNode tree
-fn read_directory(path: &Path, base_dir: &Path, id: &str, name: &str) -> Result<FileNode, String> {
+fn read_directory(path: &Path, base_dir: &Path, id: &str, name: &str, ignore_patterns: &IgnorePatterns) -> Result<FileNode, String> {
     let mut children = Vec::new();
 
     let entries = fs::read_dir(path)
@@ -77,11 +86,22 @@ fn read_directory(path: &Path, base_dir: &Path, id: &str, name: &str) -> Result<
         }
     });
 
-    for (id_counter, entry) in sorted_entries.into_iter().enumerate() {
+    let mut id_counter = 0;
+    for entry in sorted_entries.into_iter() {
         let entry_path = entry.path();
         let entry_name = entry.file_name().to_string_lossy().to_string();
+        let is_dir = entry_path.is_dir();
+
+        // Calculate relative path from the parent directory being scanned
+        let relative_from_parent = Path::new(&entry_name);
+
+        // Check if this entry should be ignored
+        if ignore_patterns.is_ignored(relative_from_parent, is_dir) {
+            continue;
+        }
 
         let entry_id = format!("{}-{}", id, id_counter);
+        id_counter += 1;
 
         // Calculate relative path from base directory with forward slashes
         let relative_path = entry_path
@@ -90,8 +110,8 @@ fn read_directory(path: &Path, base_dir: &Path, id: &str, name: &str) -> Result<
             .to_string_lossy()
             .replace('\\', "/");
 
-        if entry_path.is_dir() {
-            let child_node = read_directory(&entry_path, base_dir, &entry_id, &entry_name)?;
+        if is_dir {
+            let child_node = read_directory(&entry_path, base_dir, &entry_id, &entry_name, ignore_patterns)?;
             children.push(child_node);
         } else {
             children.push(FileNode::File {
