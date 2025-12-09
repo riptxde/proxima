@@ -8,6 +8,8 @@ import {
   type ApplicationSettings,
 } from "../types/settings";
 import { useLogger } from "@/composables/useLogger";
+import { getScriptsPath } from "@/utils/paths";
+import { join } from "@tauri-apps/api/path";
 
 let store: Store | null = null;
 let isInitialized = false;
@@ -27,7 +29,11 @@ async function initializeStore() {
   const { addLog } = useLogger();
 
   try {
-    store = await load("settings.json", { autoSave: 100, defaults: {} });
+    // Get the base directory (same as Scripts/AutoExec location)
+    const basePath = await getScriptsPath();
+    const storePath = await join(basePath, "settings.json");
+
+    store = await load(storePath, { autoSave: 100, defaults: {} });
 
     // Load existing settings or use defaults
     const savedSettings = await store.get<Settings>("settings");

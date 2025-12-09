@@ -386,9 +386,22 @@ pub async fn get_attached_clients(clients: ClientRegistry) -> Vec<Client> {
 
 /// Read the autoExecute setting from the Tauri store
 async fn get_auto_execute_setting(app: &AppHandle) -> bool {
+    use crate::utils::paths;
     use tauri_plugin_store::StoreExt;
 
-    match app.store("settings.json") {
+    // Get the base directory (same as scripts/autoexec location)
+    let base_dir = match paths::get_base_directory(app) {
+        Ok(dir) => dir,
+        Err(e) => {
+            log::error!("Failed to get base directory: {}", e);
+            return true; // Default to true on error
+        }
+    };
+
+    let settings_path = base_dir.join("settings.json");
+    let settings_path_str = settings_path.to_string_lossy().to_string();
+
+    match app.store(&settings_path_str) {
         Ok(store) => match store.get("settings") {
             Some(Value::Object(settings)) => {
                 if let Some(Value::Object(execution)) = settings.get("execution") {

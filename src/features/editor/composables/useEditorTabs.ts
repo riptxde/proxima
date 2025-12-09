@@ -2,6 +2,8 @@ import { ref, watch } from "vue";
 import { load, type Store } from "@tauri-apps/plugin-store";
 import type { Tab } from "../types/tab";
 import { useLogger } from "@/composables/useLogger";
+import { getScriptsPath } from "@/utils/paths";
+import { join } from "@tauri-apps/api/path";
 
 let store: Store | null = null;
 let isInitialized = false;
@@ -36,7 +38,11 @@ async function initializeStore() {
   const { addLog } = useLogger();
 
   try {
-    store = await load("tabs.json", { autoSave: 100, defaults: {} });
+    // Get the base directory (same as Scripts/AutoExec location)
+    const basePath = await getScriptsPath();
+    const storePath = await join(basePath, "tabs.json");
+
+    store = await load(storePath, { autoSave: 100, defaults: {} });
 
     // Load existing state or use defaults
     const savedState = await store.get<PersistedTabsState>("tabsState");
