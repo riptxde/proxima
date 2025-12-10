@@ -147,31 +147,54 @@ local function SendExplorerMessage(Data)
     end)
 end
 
+local function EscapeStringLiteral(Name)
+    -- Determine which quote style to use based on what's in the string
+    local HasSingleQuote = string.find(Name, "'", 1, true) ~= nil
+    local HasDoubleQuote = string.find(Name, '"', 1, true) ~= nil
+
+    if HasSingleQuote and HasDoubleQuote then
+        -- Has both quotes - use double quotes and escape them with backslash
+        local Escaped = string.gsub(Name, '\\', '\\\\')  -- Escape backslashes first
+        Escaped = string.gsub(Escaped, '"', '\\"')       -- Escape double quotes
+        return '"' .. Escaped .. '"'
+    elseif HasDoubleQuote then
+        -- Has double quotes only - use single quotes
+        return "'" .. Name .. "'"
+    else
+        -- Has no double quotes or only single quotes - use double quotes
+        return '"' .. Name .. '"'
+    end
+end
+
 local function EscapeInstanceName(Name)
-    -- Check if name is a valid Lua identifier (no spaces, special chars, doesn't start with number)
-    local IsValidIdentifier = string.match(Name, "^[A-Za-z_][A-Za-z0-9_]*$") ~= nil
+    -- Check if name is a valid Lua identifier
+    -- Must start with letter or underscore, followed only by letters, numbers, or underscores
+    -- Pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+    local IsValidIdentifier = true
+
+    -- Check first character (must be letter or underscore)
+    local FirstChar = string.sub(Name, 1, 1)
+    if not string.match(FirstChar, "[A-Za-z_]") then
+        IsValidIdentifier = false
+    end
+
+    -- Check remaining characters (must be letter, number, or underscore)
+    if IsValidIdentifier and #Name > 1 then
+        for i = 2, #Name do
+            local Char = string.sub(Name, i, i)
+            if not string.match(Char, "[A-Za-z0-9_]") then
+                IsValidIdentifier = false
+                break
+            end
+        end
+    end
 
     if IsValidIdentifier then
         -- Can use dot notation (e.g., Workspace.Part)
         return "." .. Name
     else
         -- Need bracket notation with escaped string
-        -- Determine which quote style to use based on what's in the string
-        local HasSingleQuote = string.find(Name, "'", 1, true) ~= nil
-        local HasDoubleQuote = string.find(Name, '"', 1, true) ~= nil
-
-        if HasSingleQuote and HasDoubleQuote then
-            -- Has both quotes - use double quotes and escape them with backslash
-            local Escaped = string.gsub(Name, '\\', '\\\\')  -- Escape backslashes first
-            Escaped = string.gsub(Escaped, '"', '\\"')       -- Escape double quotes
-            return '["' .. Escaped .. '"]'
-        elseif HasDoubleQuote then
-            -- Has double quotes only - use single quotes
-            return "['" .. Name .. "']"
-        else
-            -- Has no double quotes or only single quotes - use double quotes
-            return '["' .. Name .. '"]'
-        end
+        return "[" .. EscapeStringLiteral(Name) .. "]"
     end
 end
 
@@ -454,24 +477,15 @@ function HandleSearchExplorer(Query, SearchBy, Limit)
                 -- Create ID for this match
                 local MatchId = GetOrCreateId(Descendant)
 
-                -- Build path by creating IDs for ancestors going upwards, then add instance itself
+                -- Build full absolute path by creating IDs for all ancestors up to game
                 local PathParts = {}
                 local PathStringParts = {}
                 local Current = Descendant.Parent
 
                 while Current and Current ~= game do
-                    local ExistingId = GetId(Current)
-
-                    if ExistingId then
-                        -- Ancestor already has ID, stop here (for path array only)
-                        table.insert(PathParts, 1, ExistingId)
-                        break
-                    else
-                        -- Create new ID for this ancestor
-                        local NewId = GetOrCreateId(Current)
-                        table.insert(PathParts, 1, NewId)
-                    end
-
+                    -- Always create ID for ancestor to ensure full path
+                    local AncestorId = GetOrCreateId(Current)
+                    table.insert(PathParts, 1, AncestorId)
                     Current = Current.Parent
                 end
 
@@ -488,10 +502,24 @@ function HandleSearchExplorer(Query, SearchBy, Limit)
                     Current = Current.Parent
                 end
 
-                -- Check if the root is Workspace - use workspace global instead of game.Workspace
-                if RootInstance and RootInstance:IsA("Workspace") then
-                    PathRoot = "workspace"
-                    table.remove(PathStringParts, 1)  -- Remove the Workspace part since it's now the root
+                -- Check if the root is a direct child of game (service)
+                if RootInstance and RootInstance.Parent == game then
+                    -- Check if it's Workspace - use workspace global
+                    if RootInstance:IsA("Workspace") then
+                        PathRoot = "workspace"
+                        table.remove(PathStringParts, 1)  -- Remove the Workspace part since it's now the root
+                    else
+                        -- Check if it's a service using GetService
+                        local IsService = pcall(function()
+                            return game:GetService(RootInstance.ClassName)
+                        end)
+
+                        if IsService then
+                            -- Use GetService with proper string escaping
+                            PathRoot = "game:GetService(" .. EscapeStringLiteral(RootInstance.ClassName) .. ")"
+                            table.remove(PathStringParts, 1)  -- Remove the service name since GetService handles it
+                        end
+                    end
                 end
 
                 -- Add the instance itself to the path string
