@@ -5,6 +5,7 @@ import type {
   ExplorerItem,
   ExplorerClient,
   ExplorerProperty,
+  ExplorerSearchResult,
 } from "../types/explorer";
 
 // State
@@ -16,6 +17,9 @@ const selectedItemId = ref<string | null>(null);
 const selectedItemName = ref<string | null>(null);
 const selectedItemProperties = ref<ExplorerProperty[]>([]);
 const expandedIds = ref<Set<string>>(new Set());
+const searchResults = ref<ExplorerSearchResult[]>([]);
+const searchQuery = ref<string>("");
+const searchLimited = ref<boolean>(false);
 
 // Event listeners
 let unlistenTree: UnlistenFn | null = null;
@@ -74,13 +78,9 @@ export function useExplorer() {
     }
   };
 
-  const search = async (
-    query: string,
-    searchIn: string,
-    maxResults: number,
-  ) => {
+  const search = async (query: string, searchBy: string, limit: number) => {
     try {
-      await invoke("explorer_search", { query, searchIn, maxResults });
+      await invoke("explorer_search", { query, searchBy, limit });
     } catch (error) {
       console.error("Failed to search:", error);
       throw error;
@@ -131,7 +131,15 @@ export function useExplorer() {
       total: number;
       limited: boolean;
     }>("explorer-search-results", (event) => {
-      console.log("Search results:", event.payload);
+      searchQuery.value = event.payload.query;
+      searchLimited.value = event.payload.limited;
+      searchResults.value = event.payload.results.map((result: any) => ({
+        id: result.id.toString(),
+        name: result.n,
+        className: result.c,
+        path: Array.isArray(result.p) ? result.p : [],
+        pathString: result.s || "game",
+      }));
     });
 
     unlistenTreeChanged = await listen("explorer-tree-changed", () => {
@@ -174,6 +182,9 @@ export function useExplorer() {
     selectedItemName,
     selectedItemProperties,
     expandedIds: computed(() => expandedIds.value),
+    searchResults,
+    searchQuery,
+    searchLimited,
     // Commands
     startExplorer,
     stopExplorer,

@@ -119,7 +119,7 @@ local function HandleMessage(Message)
     elseif Data.type == 'get_explorer_properties' then
         HandleGetExplorerProperties(Data.id, Data.properties or {}, Data.specialProperties or {})
     elseif Data.type == 'search_explorer' then
-        HandleSearchExplorer(Data.query, Data.searchIn, Data.maxResults or 1000)
+        HandleSearchExplorer(Data.query, Data.searchBy or 'both', Data.limit or 1000)
     end
 end
 
@@ -390,7 +390,7 @@ function HandleGetExplorerProperties(Id, Properties, SpecialProperties)
     })
 end
 
-function HandleSearchExplorer(Query, SearchIn, MaxResults)
+function HandleSearchExplorer(Query, SearchBy, Limit)
     if not ExplorerActive then
         return
     end
@@ -401,17 +401,19 @@ function HandleSearchExplorer(Query, SearchIn, MaxResults)
     local Limited = false
     local QueryLower = string.lower(Query)
 
+    -- Search all descendants until limit is reached
     for I = 1, #Descendants do
         local Descendant = Descendants[I]
         local Matches = false
 
-        if SearchIn == 'name' or SearchIn == 'both' then
+        -- Check if instance matches search criteria
+        if SearchBy == 'name' or SearchBy == 'both' then
             if string.find(string.lower(Descendant.Name), QueryLower, 1, true) then
                 Matches = true
             end
         end
 
-        if (SearchIn == 'class' or SearchIn == 'both') and not Matches then
+        if (SearchBy == 'classname' or SearchBy == 'both') and not Matches then
             if string.find(string.lower(Descendant.ClassName), QueryLower, 1, true) then
                 Matches = true
             end
@@ -420,25 +422,58 @@ function HandleSearchExplorer(Query, SearchIn, MaxResults)
         if Matches then
             Count = Count + 1
 
-            if Count <= MaxResults then
+            if Count <= Limit then
+                -- Create ID for this match
+                local MatchId = GetOrCreateId(Descendant)
+
+                -- Build path by creating IDs for ancestors going upwards, then add instance itself
                 local PathParts = {}
+                local PathStringParts = {}
                 local Current = Descendant.Parent
 
                 while Current and Current ~= game do
-                    local Id = GetId(Current)
-                    if Id then
-                        table.insert(PathParts, 1, Id)
+                    local ExistingId = GetId(Current)
+
+                    if ExistingId then
+                        -- Ancestor already has ID, stop here (for path array only)
+                        table.insert(PathParts, 1, ExistingId)
+                        break
+                    else
+                        -- Create new ID for this ancestor
+                        local NewId = GetOrCreateId(Current)
+                        table.insert(PathParts, 1, NewId)
                     end
+
                     Current = Current.Parent
+                end
+
+                -- Add the instance itself to the path
+                table.insert(PathParts, MatchId)
+
+                -- Build absolute path string from game root, then add instance itself
+                Current = Descendant.Parent
+                while Current and Current ~= game do
+                    table.insert(PathStringParts, 1, Current.Name)
+                    Current = Current.Parent
+                end
+
+                -- Add the instance itself to the path string
+                table.insert(PathStringParts, Descendant.Name)
+
+                -- Build path string (e.g., "Workspace > Model > Part")
+                local PathString = table.concat(PathStringParts, " > ")
+                if PathString == "" then
+                    PathString = Descendant.Name
                 end
 
                 local Children = Descendant:GetChildren()
 
                 table.insert(Results, {
-                    id = GetOrCreateId(Descendant),
+                    id = MatchId,
                     n = Descendant.Name,
                     c = Descendant.ClassName,
-                    path = PathParts,
+                    p = PathParts,
+                    s = PathString,
                     h = #Children > 0
                 })
             else

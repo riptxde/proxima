@@ -636,11 +636,11 @@ pub async fn send_get_explorer_properties(
 pub async fn send_search_explorer(
     client_id: &str,
     query: String,
-    search_in: String,
-    max_results: u32,
+    search_by: String,
+    limit: u32,
     clients: &ClientRegistry,
 ) -> Result<(), String> {
-    let msg = SearchExplorerMessage::new(query, search_in, max_results);
+    let msg = SearchExplorerMessage::new(query, search_by, limit);
     let msg_text = serde_json::to_string(&msg)
         .map_err(|e| format!("Failed to serialize search_explorer message: {}", e))?;
 

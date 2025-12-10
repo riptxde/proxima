@@ -96,7 +96,7 @@ const disconnectExplorer = async () => {
           v-if="availableClients.length === 0"
           class="text-center py-12 text-muted-foreground"
         >
-          <p class="text-sm">No clients available</p>
+          <p class="text-sm">No clients attached</p>
         </div>
 
         <div

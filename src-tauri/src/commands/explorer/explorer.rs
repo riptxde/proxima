@@ -131,11 +131,11 @@ pub async fn explorer_get_properties(
 #[tauri::command]
 pub async fn explorer_search(
     query: String,
-    search_in: String,
-    max_results: u32,
+    search_by: String,
+    limit: u32,
     active_explorer: State<'_, ActiveExplorerClient>,
     clients: State<'_, ClientRegistry>,
 ) -> Result<(), String> {
     let client_id = get_active_client_id(&active_explorer).await?;
-    send_search_explorer(&client_id, query, search_in, max_results, &clients).await
+    send_search_explorer(&client_id, query, search_by, limit, &clients).await
 }

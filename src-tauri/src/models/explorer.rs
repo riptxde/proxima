@@ -29,7 +29,8 @@ pub struct SearchResult {
     pub id: u32,
     pub n: String,
     pub c: String,
-    pub path: Vec<u32>,
+    pub p: Vec<u32>,
+    pub s: String,
     pub h: bool,
 }
 
@@ -76,10 +77,9 @@ pub struct GetExplorerPropertiesMessage {
 pub struct SearchExplorerMessage {
     pub r#type: String,
     pub query: String,
-    #[serde(rename = "searchIn")]
-    pub search_in: String,
-    #[serde(rename = "maxResults")]
-    pub max_results: u32,
+    #[serde(rename = "searchBy")]
+    pub search_by: String,
+    pub limit: u32,
 }
 
 impl GetExplorerTreeMessage {
@@ -107,12 +107,12 @@ impl GetExplorerPropertiesMessage {
 }
 
 impl SearchExplorerMessage {
-    pub fn new(query: String, search_in: String, max_results: u32) -> Self {
+    pub fn new(query: String, search_by: String, limit: u32) -> Self {
         Self {
             r#type: "search_explorer".to_string(),
             query,
-            search_in,
-            max_results,
+            search_by,
+            limit,
         }
     }
 }

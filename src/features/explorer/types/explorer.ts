@@ -20,3 +20,11 @@ export interface ExplorerClient {
   id: string;
   username: string;
 }
+
+export interface ExplorerSearchResult {
+  id: string;
+  name: string;
+  className: string;
+  path: number[]; // Array of ancestor IDs forming path to instance
+  pathString: string; // Human-readable path string (e.g., "Workspace > Model > Part")
+}
