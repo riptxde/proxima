@@ -1,7 +1,8 @@
+use crate::models::explorer::*;
 use crate::models::Client;
 use crate::services::autoexec;
 use futures_util::{SinkExt, StreamExt};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -14,6 +15,23 @@ use tokio::sync::RwLock;
 use tokio::time::interval;
 use tokio_tungstenite::{accept_async, tungstenite::Message};
 use uuid::Uuid;
+
+// Custom deserializer for HashMap that handles empty arrays from Lua
+fn deserialize_props<'de, D>(deserializer: D) -> Result<HashMap<String, PropertyData>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Value::deserialize(deserializer)?;
+    match value {
+        Value::Object(map) => {
+            serde_json::from_value(Value::Object(map)).map_err(serde::de::Error::custom)
+        }
+        Value::Array(arr) if arr.is_empty() => Ok(HashMap::new()),
+        _ => Err(serde::de::Error::custom(
+            "expected object or empty array for props",
+        )),
+    }
+}
 
 // Heartbeat configuration
 const PING_INTERVAL: f64 = 5.0; // seconds
@@ -30,6 +48,25 @@ enum ClientMessage {
     Pong,
     #[serde(rename = "log")]
     Log { level: u8, message: String },
+    #[serde(rename = "tree")]
+    Tree { nodes: Vec<ExplorerNode> },
+    #[serde(rename = "properties")]
+    Properties {
+        id: u32,
+        #[serde(deserialize_with = "deserialize_props")]
+        props: HashMap<String, PropertyData>,
+        #[serde(rename = "specialProps", deserialize_with = "deserialize_props")]
+        special_props: HashMap<String, PropertyData>,
+    },
+    #[serde(rename = "search_results")]
+    SearchResults {
+        query: String,
+        results: Vec<SearchResult>,
+        total: u32,
+        limited: bool,
+    },
+    #[serde(rename = "tree_changed")]
+    TreeChanged,
 }
 
 #[derive(Serialize, Debug)]
@@ -48,9 +85,15 @@ pub(crate) struct ClientInfo {
 
 pub type ClientRegistry = Arc<RwLock<HashMap<String, ClientInfo>>>;
 
+// Explorer state
+pub type ActiveExplorerClient = Arc<RwLock<Option<String>>>;
+pub type ApiDumpCache = Arc<RwLock<super::api_dump::ApiDumpService>>;
+
 pub async fn start_websocket_server(
     app_handle: AppHandle,
     clients: ClientRegistry,
+    active_explorer: ActiveExplorerClient,
+    api_dump_cache: ApiDumpCache,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let listener = TcpListener::bind("127.0.0.1:13376").await?;
     log_ui!(
@@ -62,9 +105,20 @@ pub async fn start_websocket_server(
     while let Ok((stream, addr)) = listener.accept().await {
         let clients = Arc::clone(&clients);
         let app_handle = app_handle.clone();
+        let active_explorer = Arc::clone(&active_explorer);
+        let api_dump_cache = Arc::clone(&api_dump_cache);
 
         tauri::async_runtime::spawn(async move {
-            if let Err(e) = handle_client(stream, addr, clients, app_handle).await {
+            if let Err(e) = handle_client(
+                stream,
+                addr,
+                clients,
+                app_handle,
+                active_explorer,
+                api_dump_cache,
+            )
+            .await
+            {
                 log::error!("Error handling client {}: {}", addr, e);
             }
         });
@@ -78,6 +132,8 @@ async fn handle_client(
     addr: SocketAddr,
     clients: ClientRegistry,
     app_handle: AppHandle,
+    active_explorer: ActiveExplorerClient,
+    _api_dump_cache: ApiDumpCache,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let ws_stream = accept_async(stream).await?;
     log::info!("WebSocket connection established: {}", addr);
@@ -276,6 +332,60 @@ async fn handle_client(
                                         }
                                     }
                                 }
+                                ClientMessage::Tree { nodes } => {
+                                    if is_active_explorer(&client_id, &active_explorer).await {
+                                        emit_explorer_event(
+                                            &app_handle_clone,
+                                            "explorer-tree",
+                                            TreeEvent { nodes },
+                                        );
+                                    }
+                                }
+                                ClientMessage::Properties {
+                                    id,
+                                    props,
+                                    special_props,
+                                } => {
+                                    if is_active_explorer(&client_id, &active_explorer).await {
+                                        emit_explorer_event(
+                                            &app_handle_clone,
+                                            "explorer-properties",
+                                            PropertiesEvent {
+                                                id,
+                                                props,
+                                                special_props,
+                                            },
+                                        );
+                                    }
+                                }
+                                ClientMessage::SearchResults {
+                                    query,
+                                    results,
+                                    total,
+                                    limited,
+                                } => {
+                                    if is_active_explorer(&client_id, &active_explorer).await {
+                                        emit_explorer_event(
+                                            &app_handle_clone,
+                                            "explorer-search-results",
+                                            SearchResultsEvent {
+                                                query,
+                                                results,
+                                                total,
+                                                limited,
+                                            },
+                                        );
+                                    }
+                                }
+                                ClientMessage::TreeChanged => {
+                                    if is_active_explorer(&client_id, &active_explorer).await {
+                                        emit_explorer_event(
+                                            &app_handle_clone,
+                                            "explorer-tree-changed",
+                                            (),
+                                        );
+                                    }
+                                }
                             }
                         } else {
                             log::warn!("Failed to parse client message: {}", text);
@@ -300,6 +410,18 @@ async fn handle_client(
             .await
             .get(&id)
             .map(|info| info.username.clone());
+
+        // If this was the active explorer client, clean up explorer state
+        {
+            let mut active = active_explorer.write().await;
+            if active.as_ref() == Some(&id) {
+                *active = None;
+                if let Err(e) = app_handle_clone.emit("explorer-stopped", ()) {
+                    log::error!("Failed to emit explorer-stopped event: {}", e);
+                }
+                log::info!("Active explorer client disconnected, clearing explorer state");
+            }
+        }
 
         clients_clone.write().await.remove(&id);
 
@@ -329,6 +451,26 @@ async fn emit_clients_update(app_handle: &AppHandle, clients: &ClientRegistry) {
 
     if let Err(e) = app_handle.emit("clients-update", clients_list) {
         log::error!("Failed to emit clients-update event: {}", e);
+    }
+}
+
+/// Check if a client is the active explorer client
+async fn is_active_explorer(
+    client_id: &Option<String>,
+    active_explorer: &ActiveExplorerClient,
+) -> bool {
+    if let Some(id) = client_id {
+        let active = active_explorer.read().await;
+        active.as_ref() == Some(id)
+    } else {
+        false
+    }
+}
+
+/// Emit an explorer event to the frontend
+fn emit_explorer_event<T: Serialize + Clone>(app_handle: &AppHandle, event_name: &str, payload: T) {
+    if let Err(e) = app_handle.emit(event_name, payload) {
+        log::error!("Failed to emit {} event: {}", event_name, e);
     }
 }
 
@@ -419,4 +561,88 @@ async fn get_auto_execute_setting(app: &AppHandle) -> bool {
 
     // Default to true if setting not found
     true
+}
+
+/// Send a message to a specific client
+pub async fn send_to_client(
+    client_id: &str,
+    message: &str,
+    clients: &ClientRegistry,
+) -> Result<(), String> {
+    let clients_lock = clients.read().await;
+
+    if let Some(client_info) = clients_lock.get(client_id) {
+        client_info
+            .sender
+            .send(Message::Text(message.to_string()))
+            .map_err(|e| format!("Failed to send message to client: {}", e))?;
+        Ok(())
+    } else {
+        Err(format!("Client not found: {}", client_id))
+    }
+}
+
+/// Send start_explorer message to a client
+pub async fn send_start_explorer(client_id: &str, clients: &ClientRegistry) -> Result<(), String> {
+    let msg = serde_json::json!({
+        "type": "start_explorer"
+    });
+    let msg_text = serde_json::to_string(&msg)
+        .map_err(|e| format!("Failed to serialize start_explorer message: {}", e))?;
+
+    send_to_client(client_id, &msg_text, clients).await
+}
+
+/// Send stop_explorer message to a client
+pub async fn send_stop_explorer(client_id: &str, clients: &ClientRegistry) -> Result<(), String> {
+    let msg = serde_json::json!({
+        "type": "stop_explorer"
+    });
+    let msg_text = serde_json::to_string(&msg)
+        .map_err(|e| format!("Failed to serialize stop_explorer message: {}", e))?;
+
+    send_to_client(client_id, &msg_text, clients).await
+}
+
+/// Send get_explorer_tree message to a client
+pub async fn send_get_explorer_tree(
+    client_id: &str,
+    expanded_ids: Vec<u32>,
+    clients: &ClientRegistry,
+) -> Result<(), String> {
+    let msg = GetExplorerTreeMessage::new(expanded_ids);
+    let msg_text = serde_json::to_string(&msg)
+        .map_err(|e| format!("Failed to serialize get_explorer_tree message: {}", e))?;
+
+    send_to_client(client_id, &msg_text, clients).await
+}
+
+/// Send get_explorer_properties message to a client
+pub async fn send_get_explorer_properties(
+    client_id: &str,
+    id: u32,
+    properties: Vec<String>,
+    special_properties: Vec<String>,
+    clients: &ClientRegistry,
+) -> Result<(), String> {
+    let msg = GetExplorerPropertiesMessage::new(id, properties, special_properties);
+    let msg_text = serde_json::to_string(&msg)
+        .map_err(|e| format!("Failed to serialize get_explorer_properties message: {}", e))?;
+
+    send_to_client(client_id, &msg_text, clients).await
+}
+
+/// Send search_explorer message to a client
+pub async fn send_search_explorer(
+    client_id: &str,
+    query: String,
+    search_in: String,
+    max_results: u32,
+    clients: &ClientRegistry,
+) -> Result<(), String> {
+    let msg = SearchExplorerMessage::new(query, search_in, max_results);
+    let msg_text = serde_json::to_string(&msg)
+        .map_err(|e| format!("Failed to serialize search_explorer message: {}", e))?;
+
+    send_to_client(client_id, &msg_text, clients).await
 }

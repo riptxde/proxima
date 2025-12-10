@@ -4,6 +4,7 @@ import { computed, onMounted } from "vue";
 import AppShell from "@/components/layout/AppShell.vue";
 import EditorPage from "@/features/editor/components/EditorPage.vue";
 import ScriptHubPage from "@/features/script-hub/components/ScriptHubPage.vue";
+import ExplorerPage from "@/features/explorer/components/ExplorerPage.vue";
 import LogsPage from "@/features/logs/components/LogsPage.vue";
 import SettingsPage from "@/features/settings/components/SettingsPage.vue";
 import { Toaster } from "@/components/ui/sonner";
@@ -31,6 +32,8 @@ const currentPageComponent = computed(() => {
       return EditorPage;
     case "script-hub":
       return ScriptHubPage;
+    case "explorer":
+      return ExplorerPage;
     case "logs":
       return LogsPage;
     case "settings":

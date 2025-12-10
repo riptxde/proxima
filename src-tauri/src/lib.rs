@@ -10,6 +10,9 @@ use commands::editor::{
     read_file_tree, rename_file, save_file,
 };
 use commands::executor::{execute_script, get_attached_clients};
+use commands::explorer::{
+    explorer_get_properties, explorer_get_tree, explorer_search, start_explorer, stop_explorer,
+};
 use commands::logs::add_log;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -35,11 +38,36 @@ pub fn run() {
                 Arc::new(RwLock::new(HashMap::new()));
             app.manage(clients.clone());
 
+            // Initialize explorer state
+            let active_explorer: services::websocket::ActiveExplorerClient =
+                Arc::new(RwLock::new(None));
+            app.manage(active_explorer.clone());
+
+            let api_dump_cache: services::websocket::ApiDumpCache =
+                Arc::new(RwLock::new(services::api_dump::ApiDumpService::new()));
+            app.manage(api_dump_cache.clone());
+
+            // Load API dump in background
+            let api_dump_clone = api_dump_cache.clone();
+            tauri::async_runtime::spawn(async move {
+                let mut service = api_dump_clone.write().await;
+                if let Err(e) = service.load().await {
+                    log::error!("Failed to load API dump: {}", e);
+                } else {
+                    log::info!("API dump loaded successfully");
+                }
+            });
+
             // Start the WebSocket server
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                if let Err(e) =
-                    services::websocket::start_websocket_server(app_handle.clone(), clients).await
+                if let Err(e) = services::websocket::start_websocket_server(
+                    app_handle.clone(),
+                    clients,
+                    active_explorer,
+                    api_dump_cache,
+                )
+                .await
                 {
                     log::error!("Failed to start WebSocket server: {}", e);
                     log_ui!(
@@ -89,6 +117,12 @@ pub fn run() {
             // Executor commands
             execute_script,
             get_attached_clients,
+            // Explorer commands
+            start_explorer,
+            stop_explorer,
+            explorer_get_tree,
+            explorer_get_properties,
+            explorer_search,
             // Logs commands
             add_log,
             // Script Hub commands (future)
