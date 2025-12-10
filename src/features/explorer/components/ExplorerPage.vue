@@ -24,11 +24,20 @@ const {
 
 const selectedProperty = ref<ExplorerProperty | null>(null);
 
-// Separate normal and special properties
+// Separate normal and special properties with Name and ClassName prioritized
 const normalProperties = computed(() => {
-  return selectedItemProperties.value
-    .filter((p) => !p.hidden && !p.notScriptable)
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const filtered = selectedItemProperties.value.filter(
+    (p) => !p.hidden && !p.notScriptable,
+  );
+
+  // Sort with Name first, ClassName second, then alphabetically
+  return filtered.sort((a, b) => {
+    if (a.name === "Name") return -1;
+    if (b.name === "Name") return 1;
+    if (a.name === "ClassName") return -1;
+    if (b.name === "ClassName") return 1;
+    return a.name.localeCompare(b.name);
+  });
 });
 
 const specialProperties = computed(() => {
@@ -69,24 +78,29 @@ const handleSelectProperty = (property: ExplorerProperty) => {
   >
     <div class="flex-1 overflow-hidden pt-4 px-4">
       <div class="h-full">
-        <ResizablePanelGroup direction="horizontal" class="h-full gap-4">
+        <!-- No Client Selected State -->
+        <div
+          v-if="!selectedClient"
+          class="h-full flex items-center justify-center bg-card rounded-lg border border-border"
+        >
+          <p class="text-muted-foreground text-sm font-mono">
+            Select a client to use the explorer
+          </p>
+        </div>
+
+        <!-- Explorer with Client Selected -->
+        <ResizablePanelGroup v-else direction="horizontal" class="h-full gap-4">
           <!-- Explorer Tree -->
           <ResizablePanel :default-size="40" :min-size="25">
             <div
-              class="h-full flex flex-col bg-card/50 rounded-lg border border-border/50"
+              class="h-full flex flex-col bg-card rounded-lg border border-border"
             >
-              <div v-if="selectedClient" class="flex-1 overflow-y-auto p-2">
+              <div class="flex-1 overflow-y-auto p-2">
                 <ExplorerItem
                   v-for="item in explorerItems"
                   :key="item.id"
                   :item="item"
                 />
-              </div>
-              <div
-                v-else
-                class="flex-1 flex items-center justify-center text-muted-foreground text-sm"
-              >
-                Select a client to view explorer
               </div>
             </div>
           </ResizablePanel>
@@ -96,9 +110,9 @@ const handleSelectProperty = (property: ExplorerProperty) => {
           <!-- Properties Panel -->
           <ResizablePanel :default-size="60" :min-size="25">
             <div
-              class="h-full flex flex-col bg-card/50 rounded-lg border border-border/50"
+              class="h-full flex flex-col bg-card rounded-lg border border-border"
             >
-              <div v-if="selectedClient" class="flex-1 overflow-y-auto">
+              <div class="flex-1 overflow-y-auto">
                 <div v-if="selectedItemId" class="p-4 space-y-4">
                   <!-- Normal Properties Section -->
                   <div
@@ -116,7 +130,7 @@ const handleSelectProperty = (property: ExplorerProperty) => {
                       <div
                         v-for="property in normalProperties"
                         :key="property.name"
-                        class="p-3 rounded-lg border border-border/50 hover:bg-accent/10 cursor-pointer transition-colors"
+                        class="p-3 rounded-lg border border-border hover:bg-accent/10 cursor-pointer transition-colors"
                         :class="{
                           'bg-accent/20 border-accent/50':
                             selectedProperty?.name === property.name,
@@ -187,7 +201,7 @@ const handleSelectProperty = (property: ExplorerProperty) => {
                       <div
                         v-for="property in specialProperties"
                         :key="property.name"
-                        class="p-3 rounded-lg border border-border/50 hover:bg-accent/10 cursor-pointer transition-colors"
+                        class="p-3 rounded-lg border border-border hover:bg-accent/10 cursor-pointer transition-colors"
                         :class="{
                           'bg-accent/20 border-accent/50':
                             selectedProperty?.name === property.name,
@@ -256,16 +270,10 @@ const handleSelectProperty = (property: ExplorerProperty) => {
                 </div>
                 <div
                   v-else
-                  class="flex-1 flex items-center justify-center text-muted-foreground text-sm h-full"
+                  class="flex-1 flex items-center justify-center text-muted-foreground text-xs font-mono h-full"
                 >
                   Select an item to view its properties
                 </div>
-              </div>
-              <div
-                v-else
-                class="flex-1 flex items-center justify-center text-muted-foreground text-sm"
-              >
-                Select a client to view properties
               </div>
             </div>
           </ResizablePanel>

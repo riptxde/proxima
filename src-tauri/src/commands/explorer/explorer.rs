@@ -60,7 +60,7 @@ pub async fn start_explorer(
     // Send start_explorer message to client
     send_start_explorer(&client_id, &clients).await?;
 
-    log_ui!(&app, Info, "Explorer started for client: {}", client_id);
+    log_ui!(&app, Info, "Starting explorer for client: {}", client_id);
 
     // Emit event to frontend
     app.emit("explorer-started", client_id.clone())

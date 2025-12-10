@@ -117,13 +117,10 @@ const disconnectExplorer = async () => {
               }"
               @click="selectClient(client)"
             >
-              <div class="flex items-center gap-3">
-                <div class="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-                <div class="flex-1 min-w-0">
-                  <div class="text-sm">{{ client.username }}</div>
-                  <div class="text-xs text-muted-foreground font-mono">
-                    {{ client.id }}
-                  </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm">{{ client.username }}</div>
+                <div class="text-xs text-muted-foreground font-mono">
+                  {{ client.id }}
                 </div>
               </div>
             </div>

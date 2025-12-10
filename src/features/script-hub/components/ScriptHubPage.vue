@@ -59,7 +59,7 @@ const handleNextPage = () => {
     class="h-full overflow-hidden flex flex-col rounded-lg border border-border shadow-sm"
   >
     <div class="h-full flex flex-col">
-      <div class="shrink-0 p-6 space-y-4 border-b border-border bg-card/80">
+      <div class="shrink-0 p-5 space-y-4 border-b border-border bg-card/80">
         <div class="select-none">
           <h1 class="text-2xl font-semibold text-foreground">Script Hub</h1>
           <p class="text-sm text-muted-foreground mt-1">
@@ -76,7 +76,7 @@ const handleNextPage = () => {
         />
       </div>
 
-      <div class="flex-1 overflow-y-auto p-6">
+      <div class="flex-1 overflow-y-auto p-4">
         <div v-if="isLoading" class="flex items-center justify-center h-64">
           <div class="flex flex-col items-center gap-3 select-none">
             <Loader2 class="w-8 h-8 animate-spin text-sidebar-primary" />

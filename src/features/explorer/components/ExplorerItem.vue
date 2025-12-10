@@ -71,9 +71,6 @@ const handleIconError = () => {
           @error="handleIconError"
         />
         <span class="text-sm truncate">{{ item.name }}</span>
-        <span class="text-xs text-muted-foreground truncate">{{
-          item.className
-        }}</span>
       </div>
     </div>
 

@@ -121,7 +121,7 @@ const isLevelActive = (level: LogLevel) => {
       </Card>
 
       <!-- Terminal Output -->
-      <Card class="flex-1 overflow-auto flex flex-col min-h-0 p-3">
+      <Card class="flex-1 overflow-auto flex flex-col min-h-0 p-3 bg-card">
         <div
           v-if="logs.length === 0"
           class="text-muted-foreground text-center font-mono text-sm select-none flex-1 flex items-center justify-center"
