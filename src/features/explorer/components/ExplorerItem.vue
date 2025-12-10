@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { ChevronRight, ChevronDown } from "lucide-vue-next";
 import { useExplorer } from "../composables/useExplorer";
+import { useExplorerIcons } from "../composables/useExplorerIcons";
 import type { ExplorerItem as ExplorerItemType } from "../types/explorer";
 
 defineOptions({
@@ -19,9 +20,11 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { expandedIds, selectedItemId, getProperties, toggleExpand } =
   useExplorer();
+const { getIconUrl, getFallbackUrl, markIconFailed } = useExplorerIcons();
 
 const isExpanded = computed(() => expandedIds.value.has(props.item.id));
 const isSelected = computed(() => selectedItemId.value === props.item.id);
+const iconUrl = ref(getIconUrl(props.item.className));
 
 const handleToggleExpand = () => {
   if (props.item.hasChildren) {
@@ -31,6 +34,11 @@ const handleToggleExpand = () => {
 
 const handleSelectItem = () => {
   getProperties(props.item.id, props.item.className, props.item.name);
+};
+
+const handleIconError = () => {
+  markIconFailed(props.item.className);
+  iconUrl.value = getFallbackUrl();
 };
 </script>
 
@@ -56,6 +64,12 @@ const handleSelectItem = () => {
         />
       </div>
       <div class="flex items-center gap-2 min-w-0 flex-1">
+        <img
+          :src="iconUrl"
+          :alt="item.className"
+          class="w-4 h-4 shrink-0 object-contain"
+          @error="handleIconError"
+        />
         <span class="text-sm truncate">{{ item.name }}</span>
         <span class="text-xs text-muted-foreground truncate">{{
           item.className
