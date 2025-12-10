@@ -2,6 +2,14 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PropertyMetadata {
+    pub name: String,
+    pub deprecated: bool,
+    pub hidden: bool,
+    pub not_scriptable: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiDump {
     #[serde(rename = "Classes")]
     pub classes: Vec<ApiClass>,
@@ -106,7 +114,10 @@ impl ApiDumpService {
             .collect()
     }
 
-    pub fn get_class_properties(&self, class_name: &str) -> (Vec<String>, Vec<String>) {
+    pub fn get_class_properties(
+        &self,
+        class_name: &str,
+    ) -> (Vec<PropertyMetadata>, Vec<PropertyMetadata>) {
         let mut properties = Vec::new();
         let mut special_properties = Vec::new();
         let mut current_class_name = Some(class_name.to_string());
@@ -126,8 +137,8 @@ impl ApiDumpService {
     fn collect_class_properties(
         &self,
         class: &ApiClass,
-        properties: &mut Vec<String>,
-        special_properties: &mut Vec<String>,
+        properties: &mut Vec<PropertyMetadata>,
+        special_properties: &mut Vec<PropertyMetadata>,
     ) {
         for member in &class.members {
             if let ApiMember::Property { name, tags, .. } = member {
@@ -135,12 +146,24 @@ impl ApiDumpService {
                     continue;
                 }
 
+                let metadata = self.create_property_metadata(name, tags);
+
                 if self.is_special_property(tags) {
-                    special_properties.push(name.clone());
+                    special_properties.push(metadata);
                 } else {
-                    properties.push(name.clone());
+                    properties.push(metadata);
                 }
             }
+        }
+    }
+
+    fn create_property_metadata(&self, name: &str, tags: &Option<Vec<String>>) -> PropertyMetadata {
+        let tags_vec = tags.as_ref();
+        PropertyMetadata {
+            name: name.to_string(),
+            deprecated: tags_vec.map_or(false, |t| t.contains(&"Deprecated".to_string())),
+            hidden: tags_vec.map_or(false, |t| t.contains(&"Hidden".to_string())),
+            not_scriptable: tags_vec.map_or(false, |t| t.contains(&"NotScriptable".to_string())),
         }
     }
 

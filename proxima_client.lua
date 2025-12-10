@@ -343,7 +343,8 @@ function HandleGetExplorerProperties(Id, Properties, SpecialProperties)
     local HasGetHiddenProperty = type(gethiddenproperty) == 'function'
 
     -- Get regular properties
-    for _, PropName in ipairs(Properties) do
+    for _, PropMetadata in ipairs(Properties) do
+        local PropName = PropMetadata.name
         local Success, Value = pcall(function()
             return Instance[PropName]
         end)
@@ -353,16 +354,17 @@ function HandleGetExplorerProperties(Id, Properties, SpecialProperties)
                 value = tostring(Value),
                 type = typeof(Value),
                 class = Instance.ClassName,
-                deprecated = false,
-                hidden = false,
-                notScriptable = false
+                deprecated = PropMetadata.deprecated,
+                hidden = PropMetadata.hidden,
+                notScriptable = PropMetadata.not_scriptable
             }
         end
     end
 
     -- Get special properties (hidden/not scriptable) if executor supports it
     if HasGetHiddenProperty then
-        for _, PropName in ipairs(SpecialProperties) do
+        for _, PropMetadata in ipairs(SpecialProperties) do
+            local PropName = PropMetadata.name
             local Success, Value = pcall(function()
                 return gethiddenproperty(Instance, PropName)
             end)
@@ -372,9 +374,9 @@ function HandleGetExplorerProperties(Id, Properties, SpecialProperties)
                     value = tostring(Value),
                     type = typeof(Value),
                     class = Instance.ClassName,
-                    deprecated = false,
-                    hidden = true,
-                    notScriptable = true
+                    deprecated = PropMetadata.deprecated,
+                    hidden = PropMetadata.hidden,
+                    notScriptable = PropMetadata.not_scriptable
                 }
             end
         end

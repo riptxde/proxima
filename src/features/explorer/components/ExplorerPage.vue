@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import {
   ResizableHandle,
@@ -23,6 +23,19 @@ const {
 } = useExplorer();
 
 const selectedProperty = ref<ExplorerProperty | null>(null);
+
+// Separate normal and special properties
+const normalProperties = computed(() => {
+  return selectedItemProperties.value
+    .filter((p) => !p.hidden && !p.notScriptable)
+    .sort((a, b) => a.name.localeCompare(b.name));
+});
+
+const specialProperties = computed(() => {
+  return selectedItemProperties.value
+    .filter((p) => p.hidden || p.notScriptable)
+    .sort((a, b) => a.name.localeCompare(b.name));
+});
 
 onMounted(async () => {
   await initializeListeners();
@@ -86,38 +99,127 @@ const handleSelectProperty = (property: ExplorerProperty) => {
               class="h-full flex flex-col bg-card/50 rounded-lg border border-border/50"
             >
               <div v-if="selectedClient" class="flex-1 overflow-y-auto">
-                <div v-if="selectedItemId" class="divide-y divide-border/30">
+                <div v-if="selectedItemId" class="p-4 space-y-4">
+                  <!-- Normal Properties Section -->
                   <div
-                    v-for="property in selectedItemProperties"
-                    :key="property.name"
-                    class="px-4 py-2 hover:bg-accent/20 cursor-pointer transition-colors"
-                    :class="{
-                      'bg-accent/30': selectedProperty?.name === property.name,
-                    }"
-                    @click="handleSelectProperty(property)"
+                    v-if="
+                      normalProperties.length > 0 ||
+                      specialProperties.length === 0
+                    "
                   >
-                    <div class="flex items-start justify-between gap-2">
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                          <span class="text-sm font-medium truncate">{{
-                            property.name
-                          }}</span>
-                          <span
-                            class="text-xs px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground"
-                            >{{ property.type }}</span
-                          >
+                    <h3
+                      class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3"
+                    >
+                      Properties
+                    </h3>
+                    <div class="space-y-2">
+                      <div
+                        v-for="property in normalProperties"
+                        :key="property.name"
+                        class="p-3 rounded-lg border border-border/50 hover:bg-accent/10 cursor-pointer transition-colors"
+                        :class="{
+                          'bg-accent/20 border-accent/50':
+                            selectedProperty?.name === property.name,
+                        }"
+                        @click="handleSelectProperty(property)"
+                      >
+                        <div
+                          class="flex items-start justify-between gap-2 mb-2"
+                        >
+                          <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-sm font-medium">{{
+                              property.name
+                            }}</span>
+                            <span
+                              class="text-xs px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground font-mono"
+                              >{{
+                                property.type === "className"
+                                  ? "ClassName"
+                                  : property.type
+                              }}</span
+                            >
+                          </div>
+                          <div class="flex items-center gap-1.5 shrink-0">
+                            <span
+                              v-if="property.deprecated"
+                              class="text-xs px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 font-medium"
+                              >Deprecated</span
+                            >
+                            <span
+                              v-if="property.readOnly"
+                              class="text-xs px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-400 font-medium"
+                              >Readonly</span
+                            >
+                          </div>
                         </div>
                         <div
-                          class="text-sm text-muted-foreground mt-1 truncate"
+                          class="text-sm px-2 py-1.5 rounded bg-muted/30 font-mono break-all"
                         >
                           {{ property.value }}
                         </div>
                       </div>
-                      <div v-if="property.readOnly" class="shrink-0">
-                        <span
-                          class="text-xs px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-500"
-                          >readonly</span
+                    </div>
+                  </div>
+
+                  <!-- Hidden & Unscriptable Properties Section -->
+                  <div v-if="specialProperties.length > 0">
+                    <h3
+                      class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3"
+                    >
+                      Hidden & Unscriptable Properties
+                    </h3>
+                    <div class="space-y-2">
+                      <div
+                        v-for="property in specialProperties"
+                        :key="property.name"
+                        class="p-3 rounded-lg border border-border/50 hover:bg-accent/10 cursor-pointer transition-colors"
+                        :class="{
+                          'bg-accent/20 border-accent/50':
+                            selectedProperty?.name === property.name,
+                        }"
+                        @click="handleSelectProperty(property)"
+                      >
+                        <div
+                          class="flex items-start justify-between gap-2 mb-2"
                         >
+                          <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-sm font-medium">{{
+                              property.name
+                            }}</span>
+                            <span
+                              class="text-xs px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground font-mono"
+                              >{{
+                                property.type === "className"
+                                  ? "ClassName"
+                                  : property.type
+                              }}</span
+                            >
+                          </div>
+                          <div
+                            class="flex items-center gap-1.5 shrink-0 flex-wrap"
+                          >
+                            <span
+                              v-if="property.hidden"
+                              class="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 font-medium"
+                              >Hidden</span
+                            >
+                            <span
+                              v-if="property.notScriptable"
+                              class="text-xs px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 font-medium"
+                              >Unscriptable</span
+                            >
+                            <span
+                              v-if="property.deprecated"
+                              class="text-xs px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 font-medium"
+                              >Deprecated</span
+                            >
+                          </div>
+                        </div>
+                        <div
+                          class="text-sm px-2 py-1.5 rounded bg-muted/30 font-mono break-all"
+                        >
+                          {{ property.value }}
+                        </div>
                       </div>
                     </div>
                   </div>

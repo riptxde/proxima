@@ -11,6 +11,9 @@ export interface ExplorerProperty {
   type: string;
   value: string;
   readOnly: boolean;
+  deprecated: boolean;
+  hidden: boolean;
+  notScriptable: boolean;
 }
 
 export interface ExplorerClient {

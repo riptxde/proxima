@@ -621,8 +621,8 @@ pub async fn send_get_explorer_tree(
 pub async fn send_get_explorer_properties(
     client_id: &str,
     id: u32,
-    properties: Vec<String>,
-    special_properties: Vec<String>,
+    properties: Vec<crate::services::api_dump::PropertyMetadata>,
+    special_properties: Vec<crate::services::api_dump::PropertyMetadata>,
     clients: &ClientRegistry,
 ) -> Result<(), String> {
     let msg = GetExplorerPropertiesMessage::new(id, properties, special_properties);

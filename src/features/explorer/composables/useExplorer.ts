@@ -210,15 +210,21 @@ function convertPropertiesToArray(
       type: data.type || "unknown",
       value: data.value || "",
       readOnly: data.hidden || data.notScriptable || false,
+      deprecated: data.deprecated || false,
+      hidden: data.hidden || false,
+      notScriptable: data.notScriptable || false,
     });
   }
 
   for (const [name, data] of Object.entries(specialProps)) {
     properties.push({
-      name: `[HIDDEN] ${name}`,
+      name,
       type: data.type || "unknown",
       value: data.value || "",
       readOnly: true,
+      deprecated: data.deprecated || false,
+      hidden: data.hidden || false,
+      notScriptable: data.notScriptable || false,
     });
   }
 

@@ -67,9 +67,9 @@ pub struct GetExplorerTreeMessage {
 pub struct GetExplorerPropertiesMessage {
     pub r#type: String,
     pub id: u32,
-    pub properties: Vec<String>,
+    pub properties: Vec<crate::services::api_dump::PropertyMetadata>,
     #[serde(rename = "specialProperties")]
-    pub special_properties: Vec<String>,
+    pub special_properties: Vec<crate::services::api_dump::PropertyMetadata>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -92,7 +92,11 @@ impl GetExplorerTreeMessage {
 }
 
 impl GetExplorerPropertiesMessage {
-    pub fn new(id: u32, properties: Vec<String>, special_properties: Vec<String>) -> Self {
+    pub fn new(
+        id: u32,
+        properties: Vec<crate::services::api_dump::PropertyMetadata>,
+        special_properties: Vec<crate::services::api_dump::PropertyMetadata>,
+    ) -> Self {
         Self {
             r#type: "get_explorer_properties".to_string(),
             id,
