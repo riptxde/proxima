@@ -158,6 +158,17 @@ export function useExplorer() {
       "clients-update",
       (event) => {
         availableClients.value = event.payload;
+
+        // If the selected client is no longer available, reset explorer state
+        if (selectedClient.value) {
+          const clientExists = event.payload.some(
+            (client) => client.id === selectedClient.value?.id,
+          );
+
+          if (!clientExists && isExplorerActive.value) {
+            resetExplorerState();
+          }
+        }
       },
     );
   };

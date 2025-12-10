@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-vue-next";
-import { Button } from "@/components/ui/button";
 import { toast } from "vue-sonner";
 import { useExplorer } from "../composables/useExplorer";
 import type { ExplorerClient } from "../types/explorer";
@@ -22,13 +21,8 @@ const emit = defineEmits<{
   "update:open": [value: boolean];
 }>();
 
-const {
-  selectedClient,
-  availableClients,
-  startExplorer,
-  stopExplorer,
-  getTree,
-} = useExplorer();
+const { selectedClient, availableClients, startExplorer, getTree } =
+  useExplorer();
 const searchQuery = ref("");
 
 const filteredClients = computed(() => {
@@ -52,16 +46,6 @@ const selectClient = async (client: ExplorerClient) => {
     toast.error(`Failed to start explorer: ${error}`);
   }
 };
-
-const disconnectExplorer = async () => {
-  try {
-    await stopExplorer();
-    toast.info("Explorer disconnected");
-    emit("update:open", false);
-  } catch (error) {
-    toast.error(`Failed to disconnect: ${error}`);
-  }
-};
 </script>
 
 <template>
@@ -75,21 +59,11 @@ const disconnectExplorer = async () => {
       </DialogHeader>
 
       <div class="space-y-4">
-        <div class="space-y-2">
-          <div class="relative">
-            <Search
-              class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"
-            />
-            <Input v-model="searchQuery" placeholder="Search" class="pl-9" />
-          </div>
-          <Button
-            variant="outline"
-            class="w-full mt-1"
-            :disabled="!selectedClient"
-            @click="disconnectExplorer"
-          >
-            Disconnect Explorer
-          </Button>
+        <div class="relative">
+          <Search
+            class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground"
+          />
+          <Input v-model="searchQuery" placeholder="Search" class="pl-9" />
         </div>
 
         <div
