@@ -147,6 +147,34 @@ local function SendExplorerMessage(Data)
     end)
 end
 
+local function EscapeInstanceName(Name)
+    -- Check if name is a valid Lua identifier (no spaces, special chars, doesn't start with number)
+    local IsValidIdentifier = string.match(Name, "^[A-Za-z_][A-Za-z0-9_]*$") ~= nil
+
+    if IsValidIdentifier then
+        -- Can use dot notation (e.g., Workspace.Part)
+        return "." .. Name
+    else
+        -- Need bracket notation with escaped string
+        -- Determine which quote style to use based on what's in the string
+        local HasSingleQuote = string.find(Name, "'", 1, true) ~= nil
+        local HasDoubleQuote = string.find(Name, '"', 1, true) ~= nil
+
+        if HasSingleQuote and HasDoubleQuote then
+            -- Has both quotes - use double quotes and escape them with backslash
+            local Escaped = string.gsub(Name, '\\', '\\\\')  -- Escape backslashes first
+            Escaped = string.gsub(Escaped, '"', '\\"')       -- Escape double quotes
+            return '["' .. Escaped .. '"]'
+        elseif HasDoubleQuote then
+            -- Has double quotes only - use single quotes
+            return "['" .. Name .. "']"
+        else
+            -- Has no double quotes or only single quotes - use double quotes
+            return '["' .. Name .. '"]'
+        end
+    end
+end
+
 local function GetOrCreateId(Instance)
     if Instances[Instance] then
         return Instances[Instance]
@@ -450,20 +478,29 @@ function HandleSearchExplorer(Query, SearchBy, Limit)
                 -- Add the instance itself to the path
                 table.insert(PathParts, MatchId)
 
-                -- Build absolute path string from game root, then add instance itself
+                -- Build proper Lua indexing path from game root
+                local PathRoot = "game"
+                local RootInstance = nil
                 Current = Descendant.Parent
                 while Current and Current ~= game do
-                    table.insert(PathStringParts, 1, Current.Name)
+                    table.insert(PathStringParts, 1, EscapeInstanceName(Current.Name))
+                    RootInstance = Current
                     Current = Current.Parent
                 end
 
-                -- Add the instance itself to the path string
-                table.insert(PathStringParts, Descendant.Name)
+                -- Check if the root is Workspace - use workspace global instead of game.Workspace
+                if RootInstance and RootInstance:IsA("Workspace") then
+                    PathRoot = "workspace"
+                    table.remove(PathStringParts, 1)  -- Remove the Workspace part since it's now the root
+                end
 
-                -- Build path string (e.g., "Workspace > Model > Part")
-                local PathString = table.concat(PathStringParts, " > ")
-                if PathString == "" then
-                    PathString = Descendant.Name
+                -- Add the instance itself to the path string
+                table.insert(PathStringParts, EscapeInstanceName(Descendant.Name))
+
+                -- Build path string (e.g., 'workspace.Model["Part with spaces"]')
+                local PathString = PathRoot .. table.concat(PathStringParts, "")
+                if PathString == PathRoot then
+                    PathString = PathRoot .. EscapeInstanceName(Descendant.Name)
                 end
 
                 local Children = Descendant:GetChildren()
