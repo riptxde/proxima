@@ -87,7 +87,7 @@ watch(
               </DockIcon>
             </TooltipTrigger>
             <TooltipContent :side-offset="-15">
-              <p>Select Client</p>
+              <p>Select Explorer Client</p>
             </TooltipContent>
           </Tooltip>
 

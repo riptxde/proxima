@@ -54,9 +54,9 @@ const selectClient = async (client: ExplorerClient) => {
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="sm:max-w-[500px]">
       <DialogHeader>
-        <DialogTitle>Select Client</DialogTitle>
+        <DialogTitle>Select Explorer Client</DialogTitle>
         <DialogDescription>
-          Choose a client to view its explorer tree.
+          Choose an explorer client to view its explorer tree.
         </DialogDescription>
       </DialogHeader>
 

@@ -89,7 +89,7 @@ const handleSelectProperty = (property: ExplorerProperty) => {
           class="h-full flex items-center justify-center bg-card rounded-lg border border-border"
         >
           <p class="text-muted-foreground text-sm font-mono">
-            Select a client to use the explorer
+            Select an explorer client to use the explorer
           </p>
         </div>
 
