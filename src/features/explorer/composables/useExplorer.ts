@@ -116,8 +116,14 @@ export function useExplorer() {
       expandedIds.value.add(id.toString());
     });
 
-    // Fetch the tree with all expanded nodes
-    await getTree(Array.from(expandedIds.value));
+    // Fetch the tree with all expanded nodes and wait for the tree event
+    await new Promise<void>((resolve) => {
+      const unlisten = listen<{ nodes: any[] }>("explorer-tree", () => {
+        unlisten.then((fn) => fn());
+        resolve();
+      });
+      getTree(Array.from(expandedIds.value));
+    });
 
     // Select the target instance
     // Extract className from the result
