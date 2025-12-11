@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import "vue-sonner/style.css";
-import { computed, onMounted, onUnmounted } from "vue";
+import { computed, onMounted } from "vue";
 import AppShell from "@/components/layout/AppShell.vue";
 import EditorPage from "@/features/editor/components/EditorPage.vue";
 import ScriptHubPage from "@/features/script-hub/components/ScriptHubPage.vue";
@@ -20,17 +20,13 @@ const { activePage } = useNavigation();
 const { initialize } = useClients();
 const { initializeLogListener } = useLogs();
 const { initialize: initHttpExecutor } = useHttpExecutor();
-const { initializeGlobalListeners, cleanupGlobalListeners } = useExplorer();
+const { initializeExplorerClientListeners } = useExplorer();
 
 onMounted(() => {
   initialize();
   initializeLogListener();
   initHttpExecutor();
-  initializeGlobalListeners();
-});
-
-onUnmounted(() => {
-  cleanupGlobalListeners();
+  initializeExplorerClientListeners();
 });
 
 const currentPageComponent = computed(() => {

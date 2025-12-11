@@ -28,8 +28,6 @@ let unlistenProperties: UnlistenFn | null = null;
 let unlistenSearchResults: UnlistenFn | null = null;
 let unlistenTreeChanged: UnlistenFn | null = null;
 let unlistenExplorerStarted: UnlistenFn | null = null;
-let unlistenExplorerStopped: UnlistenFn | null = null;
-let unlistenClientsUpdate: UnlistenFn | null = null;
 
 export function useExplorer() {
   const { addLog } = useLogger();
@@ -199,29 +197,26 @@ export function useExplorer() {
     });
   };
 
-  // Initialize global listeners that should always be active
-  const initializeGlobalListeners = async () => {
-    unlistenExplorerStopped = await listen("explorer-stopped", () => {
+  // Initialize explorer-specific client listeners
+  const initializeExplorerClientListeners = async () => {
+    await listen("explorer-stopped", () => {
       resetExplorerState();
     });
 
-    unlistenClientsUpdate = await listen<ExplorerClient[]>(
-      "clients-update",
-      (event) => {
-        availableClients.value = event.payload;
+    await listen<ExplorerClient[]>("clients-update", (event) => {
+      availableClients.value = event.payload;
 
-        // If the selected client is no longer available, reset explorer state
-        if (selectedClient.value) {
-          const clientExists = event.payload.some(
-            (client) => client.id === selectedClient.value?.id,
-          );
+      // If the selected client is no longer available, reset explorer state
+      if (selectedClient.value) {
+        const clientExists = event.payload.some(
+          (client) => client.id === selectedClient.value?.id,
+        );
 
-          if (!clientExists && isExplorerActive.value) {
-            resetExplorerState();
-          }
+        if (!clientExists && isExplorerActive.value) {
+          resetExplorerState();
         }
-      },
-    );
+      }
+    });
   };
 
   const cleanupListeners = () => {
@@ -230,11 +225,6 @@ export function useExplorer() {
     unlistenSearchResults?.();
     unlistenTreeChanged?.();
     unlistenExplorerStarted?.();
-  };
-
-  const cleanupGlobalListeners = () => {
-    unlistenExplorerStopped?.();
-    unlistenClientsUpdate?.();
   };
 
   return {
@@ -261,8 +251,7 @@ export function useExplorer() {
     // Listeners
     initializeListeners,
     cleanupListeners,
-    initializeGlobalListeners,
-    cleanupGlobalListeners,
+    initializeExplorerClientListeners,
   };
 }
 
