@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-vue-next";
 import { useExplorer } from "../composables/useExplorer";
+import type { ExplorerSearchResult } from "../types/explorer";
 
 defineProps<{
   open: boolean;
@@ -23,8 +24,14 @@ const {
   searchResults,
   searchQuery: originalQuery,
   searchLimited,
+  navigateToSearchResult,
 } = useExplorer();
 const filterQuery = ref("");
+
+const handleResultClick = async (result: ExplorerSearchResult) => {
+  await navigateToSearchResult(result);
+  emit("update:open", false);
+};
 
 const filteredResults = computed(() => {
   if (!filterQuery.value.trim()) {
@@ -86,7 +93,8 @@ const filteredResults = computed(() => {
             <div
               v-for="result in filteredResults"
               :key="result.id"
-              class="px-4 py-3 hover:bg-accent/50 transition-colors border-b last:border-b-0"
+              class="px-4 py-3 hover:bg-accent/50 transition-colors border-b last:border-b-0 cursor-pointer"
+              @click="handleResultClick(result)"
             >
               <div class="min-w-0 space-y-1.5">
                 <div class="flex items-center gap-2 flex-wrap">

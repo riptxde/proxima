@@ -45,6 +45,7 @@ const handleIconError = () => {
 <template>
   <div class="select-none">
     <div
+      :data-explorer-item-id="item.id"
       class="flex items-center gap-1 px-2 py-1 hover:bg-accent/30 cursor-pointer rounded transition-colors"
       :class="{ 'bg-accent/50': isSelected }"
       :style="{ paddingLeft: `${depth * 16 + 8}px` }"

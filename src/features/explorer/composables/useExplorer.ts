@@ -1,4 +1,4 @@
-import { ref, computed } from "vue";
+import { ref, computed, nextTick } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type {
@@ -94,6 +94,38 @@ export function useExplorer() {
       expandedIds.value.add(itemId);
     }
     getTree(Array.from(expandedIds.value));
+  };
+
+  const navigateToSearchResult = async (result: ExplorerSearchResult) => {
+    // Expand all parent nodes in the path
+    // The path includes all IDs from root to the target, excluding the target itself
+    const parentIds = result.path.slice(0, -1); // Exclude the target instance ID
+
+    // Add all parent IDs to expanded set
+    parentIds.forEach((id) => {
+      expandedIds.value.add(id.toString());
+    });
+
+    // Fetch the tree with all expanded nodes
+    await getTree(Array.from(expandedIds.value));
+
+    // Select the target instance
+    // Extract className from the result
+    await getProperties(result.id, result.className, result.name);
+
+    // Wait for DOM to update, then scroll to the selected item
+    await nextTick();
+
+    // Find the element and scroll it into view
+    const element = document.querySelector(
+      `[data-explorer-item-id="${result.id}"]`,
+    );
+    if (element) {
+      element.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
   };
 
   const resetExplorerState = () => {
@@ -203,6 +235,7 @@ export function useExplorer() {
     getProperties,
     search,
     toggleExpand,
+    navigateToSearchResult,
     // Listeners
     initializeListeners,
     cleanupListeners,
