@@ -40,7 +40,9 @@ const selectClient = async (client: ExplorerClient) => {
   try {
     await startExplorer(client);
     await getTree([]);
-    toast.success(`Explorer connected to ${client.username}`);
+    toast.success("Explorer connected", {
+      description: `User: ${client.username}`,
+    });
     emit("update:open", false);
   } catch (error) {
     toast.error(`Failed to start explorer: ${error}`);
