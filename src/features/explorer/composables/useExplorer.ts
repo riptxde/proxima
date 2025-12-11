@@ -37,6 +37,13 @@ export function useExplorer() {
       await invoke("start_explorer", { clientId: client.id });
       selectedClient.value = client;
       isExplorerActive.value = true;
+
+      // Clear expanded state when switching to a new client
+      expandedIds.value.clear();
+      explorerItems.value = [];
+      selectedItemId.value = null;
+      selectedItemName.value = null;
+      selectedItemProperties.value = [];
     } catch (error) {
       console.error("Failed to start explorer:", error);
       throw error;

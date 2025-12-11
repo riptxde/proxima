@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tag, Box, Grid3x3 } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import { useExplorer } from "../composables/useExplorer";
 
@@ -91,9 +92,24 @@ const handleSearch = async () => {
               <SelectValue placeholder="Select search type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="name">Name</SelectItem>
-              <SelectItem value="classname">ClassName</SelectItem>
-              <SelectItem value="both">Both</SelectItem>
+              <SelectItem value="name">
+                <div class="flex items-center gap-2">
+                  <Tag class="w-4 h-4" />
+                  <span>Name</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="classname">
+                <div class="flex items-center gap-2">
+                  <Box class="w-4 h-4" />
+                  <span>ClassName</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="both">
+                <div class="flex items-center gap-2">
+                  <Grid3x3 class="w-4 h-4" />
+                  <span>Both</span>
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
