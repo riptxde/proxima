@@ -191,7 +191,10 @@ export function useExplorer() {
     unlistenExplorerStarted = await listen("explorer-started", () => {
       isExplorerActive.value = true;
     });
+  };
 
+  // Initialize global listeners that should always be active
+  const initializeGlobalListeners = async () => {
     unlistenExplorerStopped = await listen("explorer-stopped", () => {
       resetExplorerState();
     });
@@ -221,6 +224,9 @@ export function useExplorer() {
     unlistenSearchResults?.();
     unlistenTreeChanged?.();
     unlistenExplorerStarted?.();
+  };
+
+  const cleanupGlobalListeners = () => {
     unlistenExplorerStopped?.();
     unlistenClientsUpdate?.();
   };
@@ -249,6 +255,8 @@ export function useExplorer() {
     // Listeners
     initializeListeners,
     cleanupListeners,
+    initializeGlobalListeners,
+    cleanupGlobalListeners,
   };
 }
 
