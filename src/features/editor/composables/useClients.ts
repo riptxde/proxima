@@ -2,6 +2,7 @@ import { ref, computed } from "vue";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "vue-sonner";
+import { useLogger } from "@/composables/useLogger";
 import type { Client } from "../types/executor";
 
 const clients = ref<Client[]>([]);
@@ -11,6 +12,8 @@ const isInitialized = ref(false);
 let unlistenFn: UnlistenFn | null = null;
 
 export function useClients() {
+  const { addLog } = useLogger();
+
   const initialize = async () => {
     if (isInitialized.value) return;
 
@@ -66,7 +69,7 @@ export function useClients() {
 
       isInitialized.value = true;
     } catch (error) {
-      console.error(error);
+      addLog("error", `Failed to initialize clients: ${error}`);
     }
   };
 

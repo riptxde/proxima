@@ -13,7 +13,10 @@ import SearchQueryDialog from "./SearchQueryDialog.vue";
 import SearchResultsDialog from "./SearchResultsDialog.vue";
 import LiquidGlass from "@/components/shared/LiquidGlass.vue";
 import { useExplorer } from "../composables/useExplorer";
+import { useLogger } from "@/composables/useLogger";
 import { toast } from "vue-sonner";
+
+const { addLog } = useLogger();
 
 const { selectedClient, stopExplorer } = useExplorer();
 
@@ -48,7 +51,7 @@ const handleDisconnectClick = async () => {
   try {
     await stopExplorer();
   } catch (error) {
-    console.error("Failed to disconnect explorer:", error);
+    addLog("error", `Failed to disconnect explorer: ${error}`);
   }
 };
 

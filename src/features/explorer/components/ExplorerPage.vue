@@ -9,7 +9,10 @@ import {
 import ExplorerItem from "./ExplorerItem.vue";
 import ExplorerDock from "./ExplorerDock.vue";
 import { useExplorer } from "../composables/useExplorer";
+import { useLogger } from "@/composables/useLogger";
 import type { ExplorerProperty } from "../types/explorer";
+
+const { addLog } = useLogger();
 
 const {
   selectedClient,
@@ -55,7 +58,7 @@ onMounted(async () => {
     const clients = await invoke("get_attached_clients");
     availableClients.value = clients as any[];
   } catch (error) {
-    console.error("Failed to get clients:", error);
+    addLog("error", `Failed to get clients: ${error}`);
   }
 
   // Request initial tree if explorer is active

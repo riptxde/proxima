@@ -1,6 +1,7 @@
 import { ref, computed, nextTick } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { useLogger } from "@/composables/useLogger";
 import type {
   ExplorerItem,
   ExplorerClient,
@@ -31,6 +32,8 @@ let unlistenExplorerStopped: UnlistenFn | null = null;
 let unlistenClientsUpdate: UnlistenFn | null = null;
 
 export function useExplorer() {
+  const { addLog } = useLogger();
+
   // Commands
   const startExplorer = async (client: ExplorerClient) => {
     try {
@@ -45,7 +48,7 @@ export function useExplorer() {
       selectedItemName.value = null;
       selectedItemProperties.value = [];
     } catch (error) {
-      console.error("Failed to start explorer:", error);
+      addLog("error", `Failed to start explorer: ${error}`);
       throw error;
     }
   };
@@ -55,7 +58,7 @@ export function useExplorer() {
       await invoke("stop_explorer");
       resetExplorerState();
     } catch (error) {
-      console.error("Failed to stop explorer:", error);
+      addLog("error", `Failed to stop explorer: ${error}`);
       throw error;
     }
   };
@@ -65,7 +68,7 @@ export function useExplorer() {
       const numericIds = ids.map((id) => parseInt(id, 10));
       await invoke("explorer_get_tree", { expandedIds: numericIds });
     } catch (error) {
-      console.error("Failed to get tree:", error);
+      addLog("error", `Failed to get tree: ${error}`);
       throw error;
     }
   };
@@ -80,7 +83,7 @@ export function useExplorer() {
         className,
       });
     } catch (error) {
-      console.error("Failed to get properties:", error);
+      addLog("error", `Failed to get properties: ${error}`);
       throw error;
     }
   };
@@ -89,7 +92,7 @@ export function useExplorer() {
     try {
       await invoke("explorer_search", { query, searchBy, limit });
     } catch (error) {
-      console.error("Failed to search:", error);
+      addLog("error", `Failed to search: ${error}`);
       throw error;
     }
   };
