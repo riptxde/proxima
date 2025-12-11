@@ -495,11 +495,18 @@ function HandleSearchExplorer(Query, SearchBy, Limit)
                 -- Build proper Lua indexing path from game root
                 local PathRoot = "game"
                 local RootInstance = nil
-                Current = Descendant.Parent
-                while Current and Current ~= game do
-                    table.insert(PathStringParts, 1, EscapeInstanceName(Current.Name))
-                    RootInstance = Current
-                    Current = Current.Parent
+
+                -- Special case: if the descendant itself is a direct child of game
+                if Descendant.Parent == game then
+                    RootInstance = Descendant
+                else
+                    -- Build path for ancestors
+                    Current = Descendant.Parent
+                    while Current and Current ~= game do
+                        table.insert(PathStringParts, 1, EscapeInstanceName(Current.Name))
+                        RootInstance = Current
+                        Current = Current.Parent
+                    end
                 end
 
                 -- Check if the root is a direct child of game (service)
@@ -507,28 +514,36 @@ function HandleSearchExplorer(Query, SearchBy, Limit)
                     -- Check if it's Workspace - use workspace global
                     if RootInstance:IsA("Workspace") then
                         PathRoot = "workspace"
-                        table.remove(PathStringParts, 1)  -- Remove the Workspace part since it's now the root
+                        -- Only remove from parts if we added it (i.e., not the descendant itself)
+                        if RootInstance ~= Descendant then
+                            table.remove(PathStringParts, 1)  -- Remove the Workspace part since it's now the root
+                        end
                     else
-                        -- Check if it's a service using GetService
-                        local IsService = pcall(function()
+                        -- Check if it's a service by verifying GetService returns the same instance
+                        local Success, Service = pcall(function()
                             return game:GetService(RootInstance.ClassName)
                         end)
 
-                        if IsService then
+                        if Success and Service == RootInstance then
                             -- Use GetService with proper string escaping
                             PathRoot = "game:GetService(" .. EscapeStringLiteral(RootInstance.ClassName) .. ")"
-                            table.remove(PathStringParts, 1)  -- Remove the service name since GetService handles it
+                            -- Only remove from parts if we added it (i.e., not the descendant itself)
+                            if RootInstance ~= Descendant then
+                                table.remove(PathStringParts, 1)  -- Remove the service name since GetService handles it
+                            end
                         end
                     end
                 end
 
-                -- Add the instance itself to the path string
-                table.insert(PathStringParts, EscapeInstanceName(Descendant.Name))
+                -- Add the instance itself to the path string (if not already handled as root)
+                if RootInstance ~= Descendant then
+                    table.insert(PathStringParts, EscapeInstanceName(Descendant.Name))
+                end
 
                 -- Build path string (e.g., 'workspace.Model["Part with spaces"]')
-                local PathString = PathRoot .. table.concat(PathStringParts, "")
-                if PathString == PathRoot then
-                    PathString = PathRoot .. EscapeInstanceName(Descendant.Name)
+                local PathString = PathRoot
+                if #PathStringParts > 0 then
+                    PathString = PathRoot .. table.concat(PathStringParts, "")
                 end
 
                 local Children = Descendant:GetChildren()
