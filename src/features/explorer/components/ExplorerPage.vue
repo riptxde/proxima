@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-vue-next";
 import ExplorerItem from "./ExplorerItem.vue";
 import ExplorerDock from "./ExplorerDock.vue";
 import { useExplorer } from "../composables/useExplorer";
@@ -27,14 +29,24 @@ const {
   selectProperty,
 } = useExplorer();
 
+// Property search filter
+const propertySearchQuery = ref("");
+
 // Separate normal and special properties with Name and ClassName prioritized
 const normalProperties = computed(() => {
   const filtered = selectedItemProperties.value.filter(
     (p) => !p.hidden && !p.notScriptable,
   );
 
+  // Apply search filter
+  const searched = propertySearchQuery.value.trim()
+    ? filtered.filter((p) =>
+        p.name.toLowerCase().includes(propertySearchQuery.value.toLowerCase()),
+      )
+    : filtered;
+
   // Sort with Name first, ClassName second, then alphabetically
-  return filtered.sort((a, b) => {
+  return searched.sort((a, b) => {
     if (a.name === "Name") return -1;
     if (b.name === "Name") return 1;
     if (a.name === "ClassName") return -1;
@@ -44,9 +56,18 @@ const normalProperties = computed(() => {
 });
 
 const specialProperties = computed(() => {
-  return selectedItemProperties.value
-    .filter((p) => p.hidden || p.notScriptable)
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const filtered = selectedItemProperties.value.filter(
+    (p) => p.hidden || p.notScriptable,
+  );
+
+  // Apply search filter
+  const searched = propertySearchQuery.value.trim()
+    ? filtered.filter((p) =>
+        p.name.toLowerCase().includes(propertySearchQuery.value.toLowerCase()),
+      )
+    : filtered;
+
+  return searched.sort((a, b) => a.name.localeCompare(b.name));
 });
 
 onMounted(async () => {
@@ -112,6 +133,23 @@ onUnmounted(() => {
             <div
               class="h-full flex flex-col bg-card rounded-lg border border-border"
             >
+              <!-- Property Search Bar -->
+              <div
+                v-if="selectedItemId"
+                class="px-4 pt-4 pb-4 border-b border-border"
+              >
+                <div class="relative">
+                  <Search
+                    class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none"
+                  />
+                  <Input
+                    v-model="propertySearchQuery"
+                    placeholder="Search"
+                    class="pl-9 h-10 bg-muted/50 border-border focus-visible:ring-sidebar-primary"
+                  />
+                </div>
+              </div>
+
               <div class="flex-1 overflow-y-auto">
                 <div v-if="selectedItemId" class="p-4 space-y-4">
                   <!-- Normal Properties Section -->
