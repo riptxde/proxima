@@ -17,6 +17,7 @@ const isExplorerActive = ref(false);
 const selectedItemId = ref<string | null>(null);
 const selectedItemName = ref<string | null>(null);
 const selectedItemProperties = ref<ExplorerProperty[]>([]);
+const selectedProperty = ref<ExplorerProperty | null>(null);
 const expandedIds = ref<Set<string>>(new Set());
 const searchResults = ref<ExplorerSearchResult[]>([]);
 const searchQuery = ref<string>("");
@@ -45,6 +46,7 @@ export function useExplorer() {
       selectedItemId.value = null;
       selectedItemName.value = null;
       selectedItemProperties.value = [];
+      selectedProperty.value = null;
     } catch (error) {
       addLog("error", `Failed to start explorer: ${error}`);
       throw error;
@@ -75,6 +77,7 @@ export function useExplorer() {
     try {
       selectedItemId.value = id;
       selectedItemName.value = name;
+      selectedProperty.value = null; // Clear property selection when selecting an instance
 
       await invoke("explorer_get_properties", {
         id: parseInt(id, 10),
@@ -84,6 +87,10 @@ export function useExplorer() {
       addLog("error", `Failed to get properties: ${error}`);
       throw error;
     }
+  };
+
+  const selectProperty = (property: ExplorerProperty) => {
+    selectedProperty.value = property;
   };
 
   const search = async (query: string, searchBy: string, limit: number) => {
@@ -149,6 +156,7 @@ export function useExplorer() {
     selectedItemId.value = null;
     selectedItemName.value = null;
     selectedItemProperties.value = [];
+    selectedProperty.value = null;
     expandedIds.value.clear();
   };
 
@@ -236,6 +244,7 @@ export function useExplorer() {
     selectedItemId,
     selectedItemName,
     selectedItemProperties,
+    selectedProperty,
     expandedIds: computed(() => expandedIds.value),
     searchResults,
     searchQuery,
@@ -245,6 +254,7 @@ export function useExplorer() {
     stopExplorer,
     getTree,
     getProperties,
+    selectProperty,
     search,
     toggleExpand,
     navigateToSearchResult,

@@ -18,12 +18,19 @@ const props = withDefaults(defineProps<Props>(), {
   depth: 0,
 });
 
-const { expandedIds, selectedItemId, getProperties, toggleExpand } =
-  useExplorer();
+const {
+  expandedIds,
+  selectedItemId,
+  selectedProperty,
+  getProperties,
+  toggleExpand,
+} = useExplorer();
 const { getIconUrl, getFallbackUrl, markIconFailed } = useExplorerIcons();
 
 const isExpanded = computed(() => expandedIds.value.has(props.item.id));
-const isSelected = computed(() => selectedItemId.value === props.item.id);
+const isSelected = computed(
+  () => selectedItemId.value === props.item.id && !selectedProperty.value,
+);
 const iconUrl = ref(getIconUrl(props.item.className));
 
 const handleToggleExpand = () => {
@@ -46,8 +53,12 @@ const handleIconError = () => {
   <div class="select-none">
     <div
       :data-explorer-item-id="item.id"
-      class="flex items-center gap-1 px-2 py-1 hover:bg-accent/30 cursor-pointer rounded transition-colors"
-      :class="{ 'bg-accent/50': isSelected }"
+      class="flex items-center gap-1 px-2 py-1 cursor-pointer rounded transition-all"
+      :class="
+        isSelected
+          ? 'bg-blue-500/30 shadow-[0_0_0_1px_rgb(70_150_250/0.5)] hover:bg-blue-500/40'
+          : 'hover:bg-accent/30'
+      "
       :style="{ paddingLeft: `${depth * 16 + 8}px` }"
       @click="handleSelectItem"
     >

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { computed, onMounted, onUnmounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import {
   ResizableHandle,
@@ -10,7 +10,6 @@ import ExplorerItem from "./ExplorerItem.vue";
 import ExplorerDock from "./ExplorerDock.vue";
 import { useExplorer } from "../composables/useExplorer";
 import { useLogger } from "@/composables/useLogger";
-import type { ExplorerProperty } from "../types/explorer";
 
 const { addLog } = useLogger();
 
@@ -20,13 +19,13 @@ const {
   availableClients,
   selectedItemId,
   selectedItemProperties,
+  selectedProperty,
   expandedIds,
   initializeListeners,
   cleanupListeners,
   getTree,
+  selectProperty,
 } = useExplorer();
-
-const selectedProperty = ref<ExplorerProperty | null>(null);
 
 // Separate normal and special properties with Name and ClassName prioritized
 const normalProperties = computed(() => {
@@ -71,10 +70,6 @@ onMounted(async () => {
 onUnmounted(() => {
   cleanupListeners();
 });
-
-const handleSelectProperty = (property: ExplorerProperty) => {
-  selectedProperty.value = property;
-};
 </script>
 
 <template>
@@ -135,12 +130,13 @@ const handleSelectProperty = (property: ExplorerProperty) => {
                       <div
                         v-for="property in normalProperties"
                         :key="property.name"
-                        class="p-3 rounded-lg border border-border hover:bg-accent/10 cursor-pointer transition-colors"
-                        :class="{
-                          'bg-accent/20 border-accent/50':
-                            selectedProperty?.name === property.name,
-                        }"
-                        @click="handleSelectProperty(property)"
+                        class="p-2 rounded-lg border cursor-pointer transition-all"
+                        :class="
+                          selectedProperty?.name === property.name
+                            ? 'bg-blue-500/30 border-blue-500/50 hover:bg-blue-500/40'
+                            : 'border-border hover:bg-accent/10'
+                        "
+                        @click="selectProperty(property)"
                       >
                         <div
                           class="flex items-start justify-between gap-2 mb-2"
@@ -187,7 +183,7 @@ const handleSelectProperty = (property: ExplorerProperty) => {
                           </div>
                         </div>
                         <div
-                          class="text-sm px-2 py-1.5 rounded bg-muted/30 font-mono break-all"
+                          class="text-xs px-2 py-1.5 rounded bg-muted/30 font-mono break-all"
                         >
                           {{ property.value }}
                         </div>
@@ -206,12 +202,13 @@ const handleSelectProperty = (property: ExplorerProperty) => {
                       <div
                         v-for="property in specialProperties"
                         :key="property.name"
-                        class="p-3 rounded-lg border border-border hover:bg-accent/10 cursor-pointer transition-colors"
-                        :class="{
-                          'bg-accent/20 border-accent/50':
-                            selectedProperty?.name === property.name,
-                        }"
-                        @click="handleSelectProperty(property)"
+                        class="p-2 rounded-lg border cursor-pointer transition-all"
+                        :class="
+                          selectedProperty?.name === property.name
+                            ? 'bg-blue-500/30 border-blue-500/50 hover:bg-blue-500/40'
+                            : 'border-border hover:bg-accent/10'
+                        "
+                        @click="selectProperty(property)"
                       >
                         <div
                           class="flex items-start justify-between gap-2 mb-2"
@@ -265,7 +262,7 @@ const handleSelectProperty = (property: ExplorerProperty) => {
                           </div>
                         </div>
                         <div
-                          class="text-sm px-2 py-1.5 rounded bg-muted/30 font-mono break-all"
+                          class="text-xs px-2 py-1.5 rounded bg-muted/30 font-mono break-all"
                         >
                           {{ property.value }}
                         </div>
