@@ -16,6 +16,7 @@ const availableClients = ref<ExplorerClient[]>([]);
 const isExplorerActive = ref(false);
 const selectedItemId = ref<string | null>(null);
 const selectedItemName = ref<string | null>(null);
+const selectedItemPathString = ref<string | null>(null);
 const selectedItemProperties = ref<ExplorerProperty[]>([]);
 const selectedProperty = ref<ExplorerProperty | null>(null);
 const expandedIds = ref<Set<string>>(new Set());
@@ -73,10 +74,16 @@ export function useExplorer() {
     }
   };
 
-  const getProperties = async (id: string, className: string, name: string) => {
+  const getProperties = async (
+    id: string,
+    className: string,
+    name: string,
+    pathString?: string,
+  ) => {
     try {
       selectedItemId.value = id;
       selectedItemName.value = name;
+      selectedItemPathString.value = pathString || null;
       selectedProperty.value = null; // Clear property selection when selecting an instance
 
       await invoke("explorer_get_properties", {
@@ -130,9 +137,13 @@ export function useExplorer() {
       getTree(Array.from(expandedIds.value));
     });
 
-    // Select the target instance
-    // Extract className from the result
-    await getProperties(result.id, result.className, result.name);
+    // Select the target instance with path string from search result
+    await getProperties(
+      result.id,
+      result.className,
+      result.name,
+      result.pathString,
+    );
 
     // Wait for DOM to update, then scroll to the selected item
     await nextTick();
@@ -155,6 +166,7 @@ export function useExplorer() {
     isExplorerActive.value = false;
     selectedItemId.value = null;
     selectedItemName.value = null;
+    selectedItemPathString.value = null;
     selectedItemProperties.value = [];
     selectedProperty.value = null;
     expandedIds.value.clear();
@@ -243,6 +255,7 @@ export function useExplorer() {
     isExplorerActive,
     selectedItemId,
     selectedItemName,
+    selectedItemPathString,
     selectedItemProperties,
     selectedProperty,
     expandedIds: computed(() => expandedIds.value),
@@ -291,6 +304,7 @@ function convertPropertiesToArray(
       deprecated: data.deprecated || false,
       hidden: data.hidden || false,
       notScriptable: data.notScriptable || false,
+      example: data.example,
     });
   }
 
@@ -303,6 +317,7 @@ function convertPropertiesToArray(
       deprecated: data.deprecated || false,
       hidden: data.hidden || false,
       notScriptable: data.notScriptable || false,
+      example: data.example,
     });
   }
 

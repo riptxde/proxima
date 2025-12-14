@@ -12,10 +12,12 @@ defineOptions({
 interface Props {
   item: ExplorerItemType;
   depth?: number;
+  parentPath?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   depth: 0,
+  parentPath: "",
 });
 
 const {
@@ -33,6 +35,41 @@ const isSelected = computed(
 );
 const iconUrl = ref(getIconUrl(props.item.className));
 
+// Compute the path string for this item
+const pathString = computed(() => {
+  if (!props.parentPath) {
+    // Root level - check if it's Workspace
+    if (props.item.className === "Workspace") {
+      return "workspace";
+    }
+    // Otherwise use game:GetService
+    return `game:GetService("${props.item.className}")`;
+  }
+
+  // Check if name needs bracket notation
+  const needsBrackets = !/^[A-Za-z_][A-Za-z0-9_]*$/.test(props.item.name);
+
+  if (needsBrackets) {
+    // Escape the string literal
+    const hasSingleQuote = props.item.name.includes("'");
+    const hasDoubleQuote = props.item.name.includes('"');
+
+    let escapedName: string;
+    if (hasSingleQuote && hasDoubleQuote) {
+      escapedName =
+        '"' + props.item.name.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
+    } else if (hasDoubleQuote) {
+      escapedName = "'" + props.item.name + "'";
+    } else {
+      escapedName = '"' + props.item.name + '"';
+    }
+
+    return `${props.parentPath}[${escapedName}]`;
+  } else {
+    return `${props.parentPath}.${props.item.name}`;
+  }
+});
+
 const handleToggleExpand = () => {
   if (props.item.hasChildren) {
     toggleExpand(props.item.id);
@@ -40,7 +77,12 @@ const handleToggleExpand = () => {
 };
 
 const handleSelectItem = () => {
-  getProperties(props.item.id, props.item.className, props.item.name);
+  getProperties(
+    props.item.id,
+    props.item.className,
+    props.item.name,
+    pathString.value,
+  );
 };
 
 const handleIconError = () => {
@@ -92,6 +134,7 @@ const handleIconError = () => {
         :key="child.id"
         :item="child"
         :depth="depth + 1"
+        :parent-path="pathString"
       />
     </div>
   </div>

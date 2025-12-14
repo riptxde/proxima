@@ -407,7 +407,11 @@ function HandleGetExplorerProperties(Id, Properties, SpecialProperties)
                 class = Instance.ClassName,
                 deprecated = PropMetadata.deprecated,
                 hidden = PropMetadata.hidden,
-                notScriptable = PropMetadata.not_scriptable
+                notScriptable = PropMetadata.not_scriptable,
+                example = {
+                    get = "local value = instance." .. PropName,
+                    set = "instance." .. PropName .. " = value"
+                }
             }
         end
     end
@@ -427,7 +431,11 @@ function HandleGetExplorerProperties(Id, Properties, SpecialProperties)
                     class = Instance.ClassName,
                     deprecated = PropMetadata.deprecated,
                     hidden = PropMetadata.hidden,
-                    notScriptable = PropMetadata.not_scriptable
+                    notScriptable = PropMetadata.not_scriptable,
+                    example = {
+                        get = "local value = gethiddenproperty(instance, '" .. PropName .. "')",
+                        set = "sethiddenproperty(instance, '" .. PropName .. "', value)"
+                    }
                 }
             end
         end
