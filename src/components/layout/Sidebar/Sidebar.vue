@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { CodeXml, Library, Settings, Logs, FolderTree } from "lucide-vue-next";
+import {
+  CodeXml,
+  Library,
+  Settings,
+  Logs,
+  PackageSearch,
+} from "lucide-vue-next";
 import SidebarButton from "./SidebarButton.vue";
 import { useNavigation } from "@/composables/useNavigation";
 import type { SidebarButton as SidebarButtonType } from "./types";
@@ -9,7 +15,7 @@ const { navigate, isActive } = useNavigation();
 const buttons: SidebarButtonType[] = [
   { id: "editor", label: "Editor", icon: CodeXml },
   { id: "script-hub", label: "Script Hub", icon: Library },
-  { id: "explorer", label: "Explorer", icon: FolderTree },
+  { id: "explorer", label: "Explorer", icon: PackageSearch },
   { id: "logs", label: "Logs", icon: Logs },
   { id: "settings", label: "Settings", icon: Settings },
 ];
