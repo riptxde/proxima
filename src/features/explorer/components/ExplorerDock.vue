@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
 import { Dock, DockIcon } from "@/components/ui/dock";
-import { User, Search, Unplug, Send } from "lucide-vue-next";
+import { User, Search, Unplug, Box, Type } from "lucide-vue-next";
 import {
   Tooltip,
   TooltipContent,
@@ -24,6 +24,7 @@ const {
   selectedClient,
   selectedProperty,
   selectedItemPathString,
+  selectedItemName,
   stopExplorer,
 } = useExplorer();
 
@@ -36,6 +37,10 @@ const searchResultsDialogOpen = ref(false);
 const dockTooltipKey = ref(0);
 
 const isClientSelected = computed(() => selectedClient.value !== null);
+const isInstanceSelected = computed(
+  () =>
+    selectedItemName.value !== null && selectedItemPathString.value !== null,
+);
 const isPropertySelected = computed(
   () =>
     selectedProperty.value !== null && selectedItemPathString.value !== null,
@@ -66,6 +71,27 @@ const handleDisconnectClick = async () => {
     await stopExplorer();
   } catch (error) {
     addLog("error", `Failed to disconnect explorer: ${error}`);
+  }
+};
+
+const handleSendInstanceNameToEditorClick = () => {
+  if (!isInstanceSelected.value) {
+    toast.error("Cannot send instance path", {
+      description: "No instance selected",
+    });
+    return;
+  }
+
+  const pathString = selectedItemPathString.value!;
+  const code = `local instance = ${pathString}`;
+
+  try {
+    openFileAsTab("Instance Path", code);
+    navigate("editor");
+    toast.success("Instance path sent to editor");
+  } catch (error) {
+    addLog("error", `Failed to send instance path to editor: ${error}`);
+    toast.error("Failed to send instance path to editor");
   }
 };
 
@@ -168,12 +194,34 @@ watch(
           <Tooltip>
             <TooltipTrigger as-child>
               <DockIcon
+                @click="handleSendInstanceNameToEditorClick"
+                :class="{
+                  'opacity-30 cursor-not-allowed': !isInstanceSelected,
+                }"
+              >
+                <Type
+                  class="size-5 text-app-shell-foreground transition-opacity"
+                  :class="{
+                    'opacity-60 group-hover:opacity-100': isInstanceSelected,
+                    'opacity-30': !isInstanceSelected,
+                  }"
+                />
+              </DockIcon>
+            </TooltipTrigger>
+            <TooltipContent :side-offset="-15">
+              <p>Send Instance Path to Editor</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <DockIcon
                 @click="handleSendCodeToEditorClick"
                 :class="{
                   'opacity-30 cursor-not-allowed': !isPropertySelected,
                 }"
               >
-                <Send
+                <Box
                   class="size-5 text-app-shell-foreground transition-opacity"
                   :class="{
                     'opacity-60 group-hover:opacity-100': isPropertySelected,
