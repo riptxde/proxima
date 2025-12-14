@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from "vue";
 import { Dock, DockIcon } from "@/components/ui/dock";
-import { User, Search, Unplug, Box, Type } from "lucide-vue-next";
+import { User, Search, Unplug, Box, Route } from "lucide-vue-next";
 import {
   Tooltip,
   TooltipContent,
@@ -199,7 +199,7 @@ watch(
                   'opacity-30 cursor-not-allowed': !isInstanceSelected,
                 }"
               >
-                <Type
+                <Route
                   class="size-5 text-app-shell-foreground transition-opacity"
                   :class="{
                     'opacity-60 group-hover:opacity-100': isInstanceSelected,
