@@ -16,6 +16,7 @@ const availableClients = ref<ExplorerClient[]>([]);
 const isExplorerActive = ref(false);
 const selectedItemId = ref<string | null>(null);
 const selectedItemName = ref<string | null>(null);
+const selectedItemClassName = ref<string | null>(null);
 const selectedItemPathString = ref<string | null>(null);
 const selectedItemProperties = ref<ExplorerProperty[]>([]);
 const selectedProperty = ref<ExplorerProperty | null>(null);
@@ -46,6 +47,7 @@ export function useExplorer() {
       explorerItems.value = [];
       selectedItemId.value = null;
       selectedItemName.value = null;
+      selectedItemClassName.value = null;
       selectedItemProperties.value = [];
       selectedProperty.value = null;
     } catch (error) {
@@ -83,6 +85,7 @@ export function useExplorer() {
     try {
       selectedItemId.value = id;
       selectedItemName.value = name;
+      selectedItemClassName.value = className;
       selectedItemPathString.value = pathString || null;
       selectedProperty.value = null; // Clear property selection when selecting an instance
 
@@ -105,6 +108,15 @@ export function useExplorer() {
       await invoke("explorer_search", { query, searchBy, limit });
     } catch (error) {
       addLog("error", `Failed to search: ${error}`);
+      throw error;
+    }
+  };
+
+  const decompile = async (id: string) => {
+    try {
+      await invoke("explorer_decompile_script", { id: parseInt(id, 10) });
+    } catch (error) {
+      addLog("error", `Failed to decompile script: ${error}`);
       throw error;
     }
   };
@@ -166,6 +178,7 @@ export function useExplorer() {
     isExplorerActive.value = false;
     selectedItemId.value = null;
     selectedItemName.value = null;
+    selectedItemClassName.value = null;
     selectedItemPathString.value = null;
     selectedItemProperties.value = [];
     selectedProperty.value = null;
@@ -255,6 +268,7 @@ export function useExplorer() {
     isExplorerActive,
     selectedItemId,
     selectedItemName,
+    selectedItemClassName,
     selectedItemPathString,
     selectedItemProperties,
     selectedProperty,
@@ -269,6 +283,7 @@ export function useExplorer() {
     getProperties,
     selectProperty,
     search,
+    decompile,
     toggleExpand,
     navigateToSearchResult,
     // Listeners

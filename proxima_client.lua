@@ -120,6 +120,8 @@ local function HandleMessage(Message)
         HandleGetExplorerProperties(Data.id, Data.properties or {}, Data.specialProperties or {})
     elseif Data.type == 'search_explorer' then
         HandleSearchExplorer(Data.query, Data.searchBy or 'both', Data.limit or 1000)
+    elseif Data.type == 'decompile_script' then
+        HandleDecompileScript(Data.id)
     end
 end
 
@@ -576,6 +578,55 @@ function HandleSearchExplorer(Query, SearchBy, Limit)
         results = Results,
         total = Count,
         limited = Limited
+    })
+end
+
+function HandleDecompileScript(Id)
+    if not ExplorerActive then
+        return
+    end
+
+    -- Get the instance by ID
+    local Instance = IdToInstance[Id]
+    if not Instance then
+        SendExplorerMessage({
+            type = 'decompiled_script',
+            id = Id,
+            source = '-- Instance not found'
+        })
+        return
+    end
+
+    -- Check if instance is a script type
+    if not (Instance:IsA('LocalScript') or Instance:IsA('ModuleScript')) then
+        SendExplorerMessage({
+            type = 'decompiled_script',
+            id = Id,
+            source = '-- Not a script instance'
+        })
+        return
+    end
+
+    -- Try to decompile using the decompile function if available
+    local DecompiledSource
+    if decompile then
+        local Success, Result = pcall(function()
+            return decompile(Instance)
+        end)
+
+        if Success then
+            DecompiledSource = Result
+        else
+            DecompiledSource = '-- Decompile failed: ' .. tostring(Result)
+        end
+    else
+        DecompiledSource = '-- Your executor does not support script decompilation'
+    end
+
+    SendExplorerMessage({
+        type = 'decompiled_script',
+        id = Id,
+        source = DecompiledSource
     })
 end
 

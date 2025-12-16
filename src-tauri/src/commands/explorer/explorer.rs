@@ -1,6 +1,7 @@
 use crate::services::websocket::{
-    send_get_explorer_properties, send_get_explorer_tree, send_search_explorer,
-    send_start_explorer, send_stop_explorer, ActiveExplorerClient, ApiDumpCache, ClientRegistry,
+    send_decompile_script, send_get_explorer_properties, send_get_explorer_tree,
+    send_search_explorer, send_start_explorer, send_stop_explorer, ActiveExplorerClient,
+    ApiDumpCache, ClientRegistry,
 };
 use tauri::{Emitter, State};
 
@@ -138,4 +139,14 @@ pub async fn explorer_search(
 ) -> Result<(), String> {
     let client_id = get_active_client_id(&active_explorer).await?;
     send_search_explorer(&client_id, query, search_by, limit, &clients).await
+}
+
+#[tauri::command]
+pub async fn explorer_decompile_script(
+    id: u32,
+    active_explorer: State<'_, ActiveExplorerClient>,
+    clients: State<'_, ClientRegistry>,
+) -> Result<(), String> {
+    let client_id = get_active_client_id(&active_explorer).await?;
+    send_decompile_script(&client_id, id, &clients).await
 }

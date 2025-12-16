@@ -65,6 +65,12 @@ pub struct SearchResultsEvent {
     pub limited: bool,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct DecompiledScriptEvent {
+    pub id: u32,
+    pub source: String,
+}
+
 /// Messages sent to client
 #[derive(Debug, Serialize, Deserialize)]
 pub struct GetExplorerTreeMessage {

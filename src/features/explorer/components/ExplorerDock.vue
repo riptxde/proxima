@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
+import { ref, watch, computed, onMounted, onUnmounted } from "vue";
 import { Dock, DockIcon } from "@/components/ui/dock";
-import { User, Search, Unplug, Box, Route } from "lucide-vue-next";
+import { User, Search, Unplug, Box, Route, Scroll } from "lucide-vue-next";
 import {
   Tooltip,
   TooltipContent,
@@ -17,6 +17,7 @@ import { useEditorTabs } from "@/features/editor/composables/useEditorTabs";
 import { useNavigation } from "@/composables/useNavigation";
 import { useLogger } from "@/composables/useLogger";
 import { toast } from "vue-sonner";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
 const { addLog } = useLogger();
 
@@ -25,7 +26,10 @@ const {
   selectedProperty,
   selectedItemPathString,
   selectedItemName,
+  selectedItemId,
+  selectedItemClassName,
   stopExplorer,
+  decompile,
 } = useExplorer();
 
 const { openFileAsTab } = useEditorTabs();
@@ -45,6 +49,13 @@ const isPropertySelected = computed(
   () =>
     selectedProperty.value !== null && selectedItemPathString.value !== null,
 );
+const isScriptSelected = computed(() => {
+  if (!selectedItemClassName.value || !selectedItemId.value) return false;
+  return (
+    selectedItemClassName.value === "LocalScript" ||
+    selectedItemClassName.value === "ModuleScript"
+  );
+});
 
 const handleClientsClick = () => {
   clientsDialogOpen.value = true;
@@ -52,7 +63,7 @@ const handleClientsClick = () => {
 
 const handleSearchClick = () => {
   if (!isClientSelected.value) {
-    toast.error("Cannot search", {
+    toast.error("Could not search", {
       description: "No client connected to explorer",
     });
     return;
@@ -62,7 +73,7 @@ const handleSearchClick = () => {
 
 const handleDisconnectClick = async () => {
   if (!isClientSelected.value) {
-    toast.error("Cannot disconnect", {
+    toast.error("Could not disconnect", {
       description: "No client connected to explorer",
     });
     return;
@@ -76,7 +87,7 @@ const handleDisconnectClick = async () => {
 
 const handleSendInstanceNameToEditorClick = () => {
   if (!isInstanceSelected.value) {
-    toast.error("Cannot send instance path", {
+    toast.error("Could not send instance path", {
       description: "No instance selected",
     });
     return;
@@ -97,7 +108,7 @@ const handleSendInstanceNameToEditorClick = () => {
 
 const handleSendCodeToEditorClick = () => {
   if (!isPropertySelected.value) {
-    toast.error("Cannot send code", {
+    toast.error("Could not send code", {
       description: "No property selected",
     });
     return;
@@ -107,7 +118,7 @@ const handleSendCodeToEditorClick = () => {
   const pathString = selectedItemPathString.value!;
 
   if (!property.example) {
-    toast.error("Cannot send code", {
+    toast.error("Could not send code", {
       description: "No example code available for this property",
     });
     return;
@@ -133,9 +144,49 @@ ${property.example.set}`;
   }
 };
 
+const handleDecompileClick = async () => {
+  if (!isScriptSelected.value) {
+    toast.error("Could not decompile", {
+      description: "Select a LocalScript or ModuleScript",
+    });
+    return;
+  }
+
+  try {
+    await decompile(selectedItemId.value!);
+  } catch (error) {
+    addLog("error", `Failed to decompile script: ${error}`);
+    toast.error("Failed to decompile script");
+  }
+};
+
 const handleSearchResultsReady = () => {
   searchResultsDialogOpen.value = true;
 };
+
+// Listen for decompiled script event
+let unlistenDecompiledScript: UnlistenFn | null = null;
+
+onMounted(async () => {
+  unlistenDecompiledScript = await listen<{
+    id: number;
+    source: string;
+  }>("explorer-decompiled-script", (event) => {
+    const scriptName = selectedItemName.value || "Decompiled Script";
+    try {
+      openFileAsTab(scriptName, event.payload.source);
+      navigate("editor");
+      toast.success("Script decompiled and sent to editor");
+    } catch (error) {
+      addLog("error", `Failed to send decompiled script to editor: ${error}`);
+      toast.error("Failed to send decompiled script to editor");
+    }
+  });
+});
+
+onUnmounted(() => {
+  unlistenDecompiledScript?.();
+});
 
 // Remount dock tooltips when dialog closes
 // This is absolutely necessary otherwise, tooltips stop working after a dialog opens
@@ -187,7 +238,7 @@ watch(
               </DockIcon>
             </TooltipTrigger>
             <TooltipContent :side-offset="-15">
-              <p>Search</p>
+              <p>Search for Instances</p>
             </TooltipContent>
           </Tooltip>
 
@@ -232,6 +283,28 @@ watch(
             </TooltipTrigger>
             <TooltipContent :side-offset="-15">
               <p>Send Property Code to Editor</p>
+            </TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger as-child>
+              <DockIcon
+                @click="handleDecompileClick"
+                :class="{
+                  'opacity-30 cursor-not-allowed': !isScriptSelected,
+                }"
+              >
+                <Scroll
+                  class="size-5 text-app-shell-foreground transition-opacity"
+                  :class="{
+                    'opacity-60 group-hover:opacity-100': isScriptSelected,
+                    'opacity-30': !isScriptSelected,
+                  }"
+                />
+              </DockIcon>
+            </TooltipTrigger>
+            <TooltipContent :side-offset="-15">
+              <p>Decompile Script</p>
             </TooltipContent>
           </Tooltip>
 

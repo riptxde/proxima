@@ -67,6 +67,8 @@ enum ClientMessage {
     },
     #[serde(rename = "tree_changed")]
     TreeChanged,
+    #[serde(rename = "decompiled_script")]
+    DecompiledScript { id: u32, source: String },
 }
 
 #[derive(Serialize, Debug)]
@@ -386,6 +388,15 @@ async fn handle_client(
                                         );
                                     }
                                 }
+                                ClientMessage::DecompiledScript { id, source } => {
+                                    if is_active_explorer(&client_id, &active_explorer).await {
+                                        emit_explorer_event(
+                                            &app_handle_clone,
+                                            "explorer-decompiled-script",
+                                            DecompiledScriptEvent { id, source },
+                                        );
+                                    }
+                                }
                             }
                         } else {
                             log::warn!("Failed to parse client message: {}", text);
@@ -643,6 +654,22 @@ pub async fn send_search_explorer(
     let msg = SearchExplorerMessage::new(query, search_by, limit);
     let msg_text = serde_json::to_string(&msg)
         .map_err(|e| format!("Failed to serialize search_explorer message: {}", e))?;
+
+    send_to_client(client_id, &msg_text, clients).await
+}
+
+/// Send decompile_script message to a client
+pub async fn send_decompile_script(
+    client_id: &str,
+    id: u32,
+    clients: &ClientRegistry,
+) -> Result<(), String> {
+    let msg = serde_json::json!({
+        "type": "decompile_script",
+        "id": id
+    });
+    let msg_text = serde_json::to_string(&msg)
+        .map_err(|e| format!("Failed to serialize decompile_script message: {}", e))?;
 
     send_to_client(client_id, &msg_text, clients).await
 }

@@ -11,7 +11,8 @@ use commands::editor::{
 };
 use commands::executor::{execute_script, get_attached_clients};
 use commands::explorer::{
-    explorer_get_properties, explorer_get_tree, explorer_search, start_explorer, stop_explorer,
+    explorer_decompile_script, explorer_get_properties, explorer_get_tree, explorer_search,
+    start_explorer, stop_explorer,
 };
 use commands::logs::add_log;
 use std::collections::HashMap;
@@ -123,6 +124,7 @@ pub fn run() {
             explorer_get_tree,
             explorer_get_properties,
             explorer_search,
+            explorer_decompile_script,
             // Logs commands
             add_log,
             // Script Hub commands (future)
