@@ -24,7 +24,7 @@ const {
   expandedIds,
   selectedItemId,
   selectedProperty,
-  getProperties,
+  expGetProperties,
   toggleExpand,
 } = useExplorer();
 const { getIconUrl, getFallbackUrl, markIconFailed } = useExplorerIcons();
@@ -77,7 +77,7 @@ const handleToggleExpand = () => {
 };
 
 const handleSelectItem = () => {
-  getProperties(
+  expGetProperties(
     props.item.id,
     props.item.className,
     props.item.name,

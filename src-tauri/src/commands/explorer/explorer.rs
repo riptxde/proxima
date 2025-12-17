@@ -26,7 +26,7 @@ async fn verify_client_exists(client_id: &str, clients: &ClientRegistry) -> Resu
 }
 
 #[tauri::command]
-pub async fn start_explorer(
+pub async fn exp_start(
     client_id: String,
     clients: State<'_, ClientRegistry>,
     active_explorer: State<'_, ActiveExplorerClient>,
@@ -71,7 +71,7 @@ pub async fn start_explorer(
 }
 
 #[tauri::command]
-pub async fn stop_explorer(
+pub async fn exp_stop(
     active_explorer: State<'_, ActiveExplorerClient>,
     clients: State<'_, ClientRegistry>,
     app: tauri::AppHandle,
@@ -96,7 +96,7 @@ pub async fn stop_explorer(
 }
 
 #[tauri::command]
-pub async fn explorer_get_tree(
+pub async fn exp_get_tree(
     expanded_ids: Vec<u32>,
     active_explorer: State<'_, ActiveExplorerClient>,
     clients: State<'_, ClientRegistry>,
@@ -106,7 +106,7 @@ pub async fn explorer_get_tree(
 }
 
 #[tauri::command]
-pub async fn explorer_get_properties(
+pub async fn exp_get_properties(
     id: u32,
     class_name: String,
     active_explorer: State<'_, ActiveExplorerClient>,
@@ -130,7 +130,7 @@ pub async fn explorer_get_properties(
 }
 
 #[tauri::command]
-pub async fn explorer_search(
+pub async fn exp_search(
     query: String,
     search_by: String,
     limit: u32,
@@ -142,7 +142,7 @@ pub async fn explorer_search(
 }
 
 #[tauri::command]
-pub async fn explorer_decompile_script(
+pub async fn exp_decompile(
     id: u32,
     active_explorer: State<'_, ActiveExplorerClient>,
     clients: State<'_, ClientRegistry>,

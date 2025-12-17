@@ -1,6 +1,5 @@
 mod explorer;
 
 pub use explorer::{
-    explorer_decompile_script, explorer_get_properties, explorer_get_tree, explorer_search,
-    start_explorer, stop_explorer,
+    exp_decompile, exp_get_properties, exp_get_tree, exp_search, exp_start, exp_stop,
 };

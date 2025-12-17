@@ -33,7 +33,7 @@ export function useExecutor() {
         script: script,
       };
 
-      await invoke("execute_script", { request });
+      await invoke("exec", { request });
 
       const clientText = `${clientIds.length} client${clientIds.length !== 1 ? "s" : ""}`;
       toast.success("Script executed", {

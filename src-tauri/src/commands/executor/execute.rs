@@ -4,7 +4,7 @@ use crate::services::websocket::ClientRegistry;
 use tauri::{AppHandle, State};
 
 #[tauri::command]
-pub async fn execute_script(
+pub async fn exec(
     app: AppHandle,
     request: ExecuteRequest,
     clients: State<'_, ClientRegistry>,

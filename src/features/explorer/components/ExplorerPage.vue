@@ -25,7 +25,7 @@ const {
   expandedIds,
   initializeListeners,
   cleanupListeners,
-  getTree,
+  expGetTree,
   selectProperty,
 } = useExplorer();
 
@@ -84,7 +84,7 @@ onMounted(async () => {
   // Request initial tree if explorer is active
   if (selectedClient.value) {
     // Use existing expanded IDs to preserve expansion state on remount
-    getTree(Array.from(expandedIds.value));
+    expGetTree(Array.from(expandedIds.value));
   }
 });
 

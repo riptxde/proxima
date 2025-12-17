@@ -48,34 +48,34 @@ enum ClientMessage {
     Pong,
     #[serde(rename = "log")]
     Log { level: u8, message: String },
-    #[serde(rename = "tree")]
-    Tree { nodes: Vec<ExplorerNode> },
-    #[serde(rename = "properties")]
-    Properties {
+    #[serde(rename = "exp_tree")]
+    ExpTree { nodes: Vec<ExplorerNode> },
+    #[serde(rename = "exp_properties")]
+    ExpProperties {
         id: u32,
         #[serde(deserialize_with = "deserialize_props")]
         props: HashMap<String, PropertyData>,
         #[serde(rename = "specialProps", deserialize_with = "deserialize_props")]
         special_props: HashMap<String, PropertyData>,
     },
-    #[serde(rename = "search_results")]
-    SearchResults {
+    #[serde(rename = "exp_search_results")]
+    ExpSearchResults {
         query: String,
         results: Vec<SearchResult>,
         total: u32,
         limited: bool,
     },
-    #[serde(rename = "tree_changed")]
-    TreeChanged,
-    #[serde(rename = "decompiled_script")]
-    DecompiledScript { id: u32, source: String },
+    #[serde(rename = "exp_tree_changed")]
+    ExpTreeChanged,
+    #[serde(rename = "exp_decompiled")]
+    ExpDecompiled { id: u32, source: String },
 }
 
 #[derive(Serialize, Debug)]
 #[serde(tag = "type")]
 enum ServerMessage {
-    #[serde(rename = "execute")]
-    Execute { script: String },
+    #[serde(rename = "exec")]
+    Exec { script: String },
     #[serde(rename = "ping")]
     Ping,
 }
@@ -261,7 +261,7 @@ async fn handle_client(
 
                                             // Execute each script on this client
                                             for script in scripts {
-                                                let execute_msg = ServerMessage::Execute { script };
+                                                let execute_msg = ServerMessage::Exec { script };
                                                 if let Ok(msg_text) =
                                                     serde_json::to_string(&execute_msg)
                                                 {
@@ -334,7 +334,7 @@ async fn handle_client(
                                         }
                                     }
                                 }
-                                ClientMessage::Tree { nodes } => {
+                                ClientMessage::ExpTree { nodes } => {
                                     if is_active_explorer(&client_id, &active_explorer).await {
                                         emit_explorer_event(
                                             &app_handle_clone,
@@ -343,7 +343,7 @@ async fn handle_client(
                                         );
                                     }
                                 }
-                                ClientMessage::Properties {
+                                ClientMessage::ExpProperties {
                                     id,
                                     props,
                                     special_props,
@@ -360,7 +360,7 @@ async fn handle_client(
                                         );
                                     }
                                 }
-                                ClientMessage::SearchResults {
+                                ClientMessage::ExpSearchResults {
                                     query,
                                     results,
                                     total,
@@ -379,7 +379,7 @@ async fn handle_client(
                                         );
                                     }
                                 }
-                                ClientMessage::TreeChanged => {
+                                ClientMessage::ExpTreeChanged => {
                                     if is_active_explorer(&client_id, &active_explorer).await {
                                         emit_explorer_event(
                                             &app_handle_clone,
@@ -388,7 +388,7 @@ async fn handle_client(
                                         );
                                     }
                                 }
-                                ClientMessage::DecompiledScript { id, source } => {
+                                ClientMessage::ExpDecompiled { id, source } => {
                                     if is_active_explorer(&client_id, &active_explorer).await {
                                         emit_explorer_event(
                                             &app_handle_clone,
@@ -492,9 +492,9 @@ pub async fn broadcast_to_clients(
 ) -> Result<(), String> {
     log::info!("Broadcasting script to {} client(s)", client_ids.len());
 
-    let execute_msg = ServerMessage::Execute { script };
+    let execute_msg = ServerMessage::Exec { script };
     let message_text = serde_json::to_string(&execute_msg)
-        .map_err(|e| format!("Failed to serialize execute message: {}", e))?;
+        .map_err(|e| format!("Failed to serialize exec message: {}", e))?;
 
     let clients_lock = clients.read().await;
     let mut executed_count = 0;
@@ -593,29 +593,29 @@ pub async fn send_to_client(
     }
 }
 
-/// Send start_explorer message to a client
+/// Send exp_start message to a client
 pub async fn send_start_explorer(client_id: &str, clients: &ClientRegistry) -> Result<(), String> {
     let msg = serde_json::json!({
-        "type": "start_explorer"
+        "type": "exp_start"
     });
     let msg_text = serde_json::to_string(&msg)
-        .map_err(|e| format!("Failed to serialize start_explorer message: {}", e))?;
+        .map_err(|e| format!("Failed to serialize exp_start message: {}", e))?;
 
     send_to_client(client_id, &msg_text, clients).await
 }
 
-/// Send stop_explorer message to a client
+/// Send exp_stop message to a client
 pub async fn send_stop_explorer(client_id: &str, clients: &ClientRegistry) -> Result<(), String> {
     let msg = serde_json::json!({
-        "type": "stop_explorer"
+        "type": "exp_stop"
     });
     let msg_text = serde_json::to_string(&msg)
-        .map_err(|e| format!("Failed to serialize stop_explorer message: {}", e))?;
+        .map_err(|e| format!("Failed to serialize exp_stop message: {}", e))?;
 
     send_to_client(client_id, &msg_text, clients).await
 }
 
-/// Send get_explorer_tree message to a client
+/// Send exp_get_tree message to a client
 pub async fn send_get_explorer_tree(
     client_id: &str,
     expanded_ids: Vec<u32>,
@@ -623,12 +623,12 @@ pub async fn send_get_explorer_tree(
 ) -> Result<(), String> {
     let msg = GetExplorerTreeMessage::new(expanded_ids);
     let msg_text = serde_json::to_string(&msg)
-        .map_err(|e| format!("Failed to serialize get_explorer_tree message: {}", e))?;
+        .map_err(|e| format!("Failed to serialize exp_get_tree message: {}", e))?;
 
     send_to_client(client_id, &msg_text, clients).await
 }
 
-/// Send get_explorer_properties message to a client
+/// Send exp_get_properties message to a client
 pub async fn send_get_explorer_properties(
     client_id: &str,
     id: u32,
@@ -638,12 +638,12 @@ pub async fn send_get_explorer_properties(
 ) -> Result<(), String> {
     let msg = GetExplorerPropertiesMessage::new(id, properties, special_properties);
     let msg_text = serde_json::to_string(&msg)
-        .map_err(|e| format!("Failed to serialize get_explorer_properties message: {}", e))?;
+        .map_err(|e| format!("Failed to serialize exp_get_properties message: {}", e))?;
 
     send_to_client(client_id, &msg_text, clients).await
 }
 
-/// Send search_explorer message to a client
+/// Send exp_search message to a client
 pub async fn send_search_explorer(
     client_id: &str,
     query: String,
@@ -653,23 +653,23 @@ pub async fn send_search_explorer(
 ) -> Result<(), String> {
     let msg = SearchExplorerMessage::new(query, search_by, limit);
     let msg_text = serde_json::to_string(&msg)
-        .map_err(|e| format!("Failed to serialize search_explorer message: {}", e))?;
+        .map_err(|e| format!("Failed to serialize exp_search message: {}", e))?;
 
     send_to_client(client_id, &msg_text, clients).await
 }
 
-/// Send decompile_script message to a client
+/// Send exp_decompile message to a client
 pub async fn send_decompile_script(
     client_id: &str,
     id: u32,
     clients: &ClientRegistry,
 ) -> Result<(), String> {
     let msg = serde_json::json!({
-        "type": "decompile_script",
+        "type": "exp_decompile",
         "id": id
     });
     let msg_text = serde_json::to_string(&msg)
-        .map_err(|e| format!("Failed to serialize decompile_script message: {}", e))?;
+        .map_err(|e| format!("Failed to serialize exp_decompile message: {}", e))?;
 
     send_to_client(client_id, &msg_text, clients).await
 }

@@ -36,9 +36,9 @@ export function useExplorer() {
   const { addLog } = useLogger();
 
   // Commands
-  const startExplorer = async (client: ExplorerClient) => {
+  const expStart = async (client: ExplorerClient) => {
     try {
-      await invoke("start_explorer", { clientId: client.id });
+      await invoke("exp_start", { clientId: client.id });
       selectedClient.value = client;
       isExplorerActive.value = true;
 
@@ -56,9 +56,9 @@ export function useExplorer() {
     }
   };
 
-  const stopExplorer = async () => {
+  const expStop = async () => {
     try {
-      await invoke("stop_explorer");
+      await invoke("exp_stop");
       resetExplorerState();
     } catch (error) {
       addLog("error", `Failed to stop explorer: ${error}`);
@@ -66,17 +66,17 @@ export function useExplorer() {
     }
   };
 
-  const getTree = async (ids: string[]) => {
+  const expGetTree = async (ids: string[]) => {
     try {
       const numericIds = ids.map((id) => parseInt(id, 10));
-      await invoke("explorer_get_tree", { expandedIds: numericIds });
+      await invoke("exp_get_tree", { expandedIds: numericIds });
     } catch (error) {
       addLog("error", `Failed to get tree: ${error}`);
       throw error;
     }
   };
 
-  const getProperties = async (
+  const expGetProperties = async (
     id: string,
     className: string,
     name: string,
@@ -89,7 +89,7 @@ export function useExplorer() {
       selectedItemPathString.value = pathString || null;
       selectedProperty.value = null; // Clear property selection when selecting an instance
 
-      await invoke("explorer_get_properties", {
+      await invoke("exp_get_properties", {
         id: parseInt(id, 10),
         className,
       });
@@ -103,18 +103,18 @@ export function useExplorer() {
     selectedProperty.value = property;
   };
 
-  const search = async (query: string, searchBy: string, limit: number) => {
+  const expSearch = async (query: string, searchBy: string, limit: number) => {
     try {
-      await invoke("explorer_search", { query, searchBy, limit });
+      await invoke("exp_search", { query, searchBy, limit });
     } catch (error) {
       addLog("error", `Failed to search: ${error}`);
       throw error;
     }
   };
 
-  const decompile = async (id: string) => {
+  const expDecompile = async (id: string) => {
     try {
-      await invoke("explorer_decompile_script", { id: parseInt(id, 10) });
+      await invoke("exp_decompile", { id: parseInt(id, 10) });
     } catch (error) {
       addLog("error", `Failed to decompile script: ${error}`);
       throw error;
@@ -127,7 +127,7 @@ export function useExplorer() {
     } else {
       expandedIds.value.add(itemId);
     }
-    getTree(Array.from(expandedIds.value));
+    expGetTree(Array.from(expandedIds.value));
   };
 
   const navigateToSearchResult = async (result: ExplorerSearchResult) => {
@@ -146,11 +146,11 @@ export function useExplorer() {
         unlisten.then((fn) => fn());
         resolve();
       });
-      getTree(Array.from(expandedIds.value));
+      expGetTree(Array.from(expandedIds.value));
     });
 
     // Select the target instance with path string from search result
-    await getProperties(
+    await expGetProperties(
       result.id,
       result.className,
       result.name,
@@ -222,7 +222,7 @@ export function useExplorer() {
     });
 
     unlistenTreeChanged = await listen("explorer-tree-changed", () => {
-      getTree(Array.from(expandedIds.value));
+      expGetTree(Array.from(expandedIds.value));
     });
 
     unlistenExplorerStarted = await listen("explorer-started", () => {
@@ -277,13 +277,13 @@ export function useExplorer() {
     searchQuery,
     searchLimited,
     // Commands
-    startExplorer,
-    stopExplorer,
-    getTree,
-    getProperties,
+    expStart,
+    expStop,
+    expGetTree,
+    expGetProperties,
     selectProperty,
-    search,
-    decompile,
+    expSearch,
+    expDecompile,
     toggleExpand,
     navigateToSearchResult,
     // Listeners

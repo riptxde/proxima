@@ -29,7 +29,7 @@ const emit = defineEmits<{
   "results-ready": [];
 }>();
 
-const { search, selectedClient } = useExplorer();
+const { expSearch, selectedClient } = useExplorer();
 const searchQuery = ref("");
 const searchBy = ref("name");
 const limit = ref(100);
@@ -56,7 +56,7 @@ const handleSearch = async () => {
   }
 
   try {
-    await search(searchQuery.value, searchBy.value, limit.value);
+    await expSearch(searchQuery.value, searchBy.value, limit.value);
     emit("update:open", false);
     emit("results-ready");
   } catch (error) {

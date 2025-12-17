@@ -79,7 +79,16 @@ local function Register()
     end)
 end
 
-local function Execute(Script)
+local function Pong()
+    pcall(function()
+        local Message = HttpService:JSONEncode({
+            type = 'pong'
+        })
+        Socket:Send(Message)
+    end)
+end
+
+local function Exec(Script)
     local Func, Err = loadstring(Script)
 
     if not Func then
@@ -102,26 +111,21 @@ local function HandleMessage(Message)
     end
 
     if Data.type == 'ping' then
-        pcall(function()
-            local Message = HttpService:JSONEncode({
-                type = 'pong'
-            })
-            Socket:Send(Message)
-        end)
-    elseif Data.type == 'execute' then
-        Execute(Data.script)
-    elseif Data.type == 'start_explorer' then
-        HandleStartExplorer()
-    elseif Data.type == 'stop_explorer' then
-        HandleStopExplorer()
-    elseif Data.type == 'get_explorer_tree' then
-        HandleGetExplorerTree(Data.expandedIds or {})
-    elseif Data.type == 'get_explorer_properties' then
-        HandleGetExplorerProperties(Data.id, Data.properties or {}, Data.specialProperties or {})
-    elseif Data.type == 'search_explorer' then
-        HandleSearchExplorer(Data.query, Data.searchBy or 'both', Data.limit or 1000)
-    elseif Data.type == 'decompile_script' then
-        HandleDecompileScript(Data.id)
+        Pong()
+    elseif Data.type == 'exec' then
+        Exec(Data.script)
+    elseif Data.type == 'exp_start' then
+        ExpStart()
+    elseif Data.type == 'exp_stop' then
+        ExpStop()
+    elseif Data.type == 'exp_get_tree' then
+        ExpGetTree(Data.expandedIds or {})
+    elseif Data.type == 'exp_get_properties' then
+        ExpGetProperties(Data.id, Data.properties or {}, Data.specialProperties or {})
+    elseif Data.type == 'exp_search' then
+        ExpSearch(Data.query, Data.searchBy or 'both', Data.limit or 1000)
+    elseif Data.type == 'exp_decompile' then
+        ExpDecompile(Data.id)
     end
 end
 
@@ -275,7 +279,7 @@ local function CheckForVisibleChanges()
     if CurrentHash ~= LastVisibleTreeHash then
         LastVisibleTreeHash = CurrentHash
         SendExplorerMessage({
-            type = 'tree_changed'
+            type = 'exp_tree_changed'
         })
     end
 
@@ -296,7 +300,7 @@ local function OnDescendantChanged()
     end
 end
 
-function HandleStartExplorer()
+function ExpStart()
     if ExplorerActive then
         return
     end
@@ -319,7 +323,7 @@ function HandleStartExplorer()
     Log(LOG_SUCCESS, 'Explorer started successfully')
 end
 
-function HandleStopExplorer()
+function ExpStop()
     if not ExplorerActive then
         return
     end
@@ -352,7 +356,7 @@ function HandleStopExplorer()
     Log(LOG_INFO, 'Explorer disconnected successfully')
 end
 
-function HandleGetExplorerTree(ExpandedIds)
+function ExpGetTree(ExpandedIds)
     if not ExplorerActive then
         return
     end
@@ -368,12 +372,12 @@ function HandleGetExplorerTree(ExpandedIds)
     LastVisibleTreeHash = HashTree(Tree)
 
     SendExplorerMessage({
-        type = 'tree',
+        type = 'exp_tree',
         nodes = Tree
     })
 end
 
-function HandleGetExplorerProperties(Id, Properties, SpecialProperties)
+function ExpGetProperties(Id, Properties, SpecialProperties)
     if not ExplorerActive then
         return
     end
@@ -444,14 +448,14 @@ function HandleGetExplorerProperties(Id, Properties, SpecialProperties)
     end
 
     SendExplorerMessage({
-        type = 'properties',
+        type = 'exp_properties',
         id = Id,
         props = Props,
         specialProps = SpecialProps
     })
 end
 
-function HandleSearchExplorer(Query, SearchBy, Limit)
+function ExpSearch(Query, SearchBy, Limit)
     if not ExplorerActive then
         return
     end
@@ -573,7 +577,7 @@ function HandleSearchExplorer(Query, SearchBy, Limit)
     end
 
     SendExplorerMessage({
-        type = 'search_results',
+        type = 'exp_search_results',
         query = Query,
         results = Results,
         total = Count,
@@ -581,7 +585,7 @@ function HandleSearchExplorer(Query, SearchBy, Limit)
     })
 end
 
-function HandleDecompileScript(Id)
+function ExpDecompile(Id)
     if not ExplorerActive then
         return
     end
@@ -590,7 +594,7 @@ function HandleDecompileScript(Id)
     local Instance = IdToInstance[Id]
     if not Instance then
         SendExplorerMessage({
-            type = 'decompiled_script',
+            type = 'exp_decompiled',
             id = Id,
             source = '-- Instance not found'
         })
@@ -600,7 +604,7 @@ function HandleDecompileScript(Id)
     -- Check if instance is a script type
     if not (Instance:IsA('LocalScript') or Instance:IsA('ModuleScript')) then
         SendExplorerMessage({
-            type = 'decompiled_script',
+            type = 'exp_decompiled',
             id = Id,
             source = '-- Not a script instance'
         })
@@ -624,7 +628,7 @@ function HandleDecompileScript(Id)
     end
 
     SendExplorerMessage({
-        type = 'decompiled_script',
+        type = 'exp_decompiled',
         id = Id,
         source = DecompiledSource
     })

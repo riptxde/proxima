@@ -100,7 +100,7 @@ pub struct SearchExplorerMessage {
 impl GetExplorerTreeMessage {
     pub fn new(expanded_ids: Vec<u32>) -> Self {
         Self {
-            r#type: "get_explorer_tree".to_string(),
+            r#type: "exp_get_tree".to_string(),
             expanded_ids,
         }
     }
@@ -113,7 +113,7 @@ impl GetExplorerPropertiesMessage {
         special_properties: Vec<crate::services::api_dump::PropertyMetadata>,
     ) -> Self {
         Self {
-            r#type: "get_explorer_properties".to_string(),
+            r#type: "exp_get_properties".to_string(),
             id,
             properties,
             special_properties,
@@ -124,7 +124,7 @@ impl GetExplorerPropertiesMessage {
 impl SearchExplorerMessage {
     pub fn new(query: String, search_by: String, limit: u32) -> Self {
         Self {
-            r#type: "search_explorer".to_string(),
+            r#type: "exp_search".to_string(),
             query,
             search_by,
             limit,

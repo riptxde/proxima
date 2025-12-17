@@ -9,10 +9,9 @@ use commands::editor::{
     delete_file, get_scripts_path, initialize_directories, open_file_location, read_file_content,
     read_file_tree, rename_file, save_file,
 };
-use commands::executor::{execute_script, get_attached_clients};
+use commands::executor::{exec, get_attached_clients};
 use commands::explorer::{
-    explorer_decompile_script, explorer_get_properties, explorer_get_tree, explorer_search,
-    start_explorer, stop_explorer,
+    exp_decompile, exp_get_properties, exp_get_tree, exp_search, exp_start, exp_stop,
 };
 use commands::logs::add_log;
 use std::collections::HashMap;
@@ -116,15 +115,15 @@ pub fn run() {
             delete_file,
             open_file_location,
             // Executor commands
-            execute_script,
+            exec,
             get_attached_clients,
             // Explorer commands
-            start_explorer,
-            stop_explorer,
-            explorer_get_tree,
-            explorer_get_properties,
-            explorer_search,
-            explorer_decompile_script,
+            exp_start,
+            exp_stop,
+            exp_get_tree,
+            exp_get_properties,
+            exp_search,
+            exp_decompile,
             // Logs commands
             add_log,
             // Script Hub commands (future)

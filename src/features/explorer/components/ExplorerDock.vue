@@ -28,8 +28,8 @@ const {
   selectedItemName,
   selectedItemId,
   selectedItemClassName,
-  stopExplorer,
-  decompile,
+  expStop,
+  expDecompile,
 } = useExplorer();
 
 const { openFileAsTab } = useEditorTabs();
@@ -79,7 +79,7 @@ const handleDisconnectClick = async () => {
     return;
   }
   try {
-    await stopExplorer();
+    await expStop();
   } catch (error) {
     addLog("error", `Failed to disconnect explorer: ${error}`);
   }
@@ -153,7 +153,7 @@ const handleDecompileClick = async () => {
   }
 
   try {
-    await decompile(selectedItemId.value!);
+    await expDecompile(selectedItemId.value!);
   } catch (error) {
     addLog("error", `Failed to decompile script: ${error}`);
     toast.error("Failed to decompile script");

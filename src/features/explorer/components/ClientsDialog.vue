@@ -21,7 +21,7 @@ const emit = defineEmits<{
   "update:open": [value: boolean];
 }>();
 
-const { selectedClient, availableClients, startExplorer, getTree } =
+const { selectedClient, availableClients, expStart, expGetTree } =
   useExplorer();
 const searchQuery = ref("");
 
@@ -38,8 +38,8 @@ const filteredClients = computed(() => {
 
 const selectClient = async (client: ExplorerClient) => {
   try {
-    await startExplorer(client);
-    await getTree([]);
+    await expStart(client);
+    await expGetTree([]);
     toast.success("Explorer connected", {
       description: `User: ${client.username}`,
     });
