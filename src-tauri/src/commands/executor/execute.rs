@@ -1,11 +1,9 @@
-use crate::log_ui;
 use crate::models::ExecuteRequest;
 use crate::services::websocket::ClientRegistry;
-use tauri::{AppHandle, State};
+use tauri::State;
 
 #[tauri::command]
 pub async fn exec(
-    app: AppHandle,
     request: ExecuteRequest,
     clients: State<'_, ClientRegistry>,
 ) -> Result<(), String> {
@@ -19,8 +17,6 @@ pub async fn exec(
         return Err("No clients selected for execution".to_string());
     }
 
-    let client_count = request.client_ids.len();
-
     // Broadcast to selected clients
     crate::services::websocket::broadcast_to_clients(
         request.client_ids,
@@ -28,15 +24,6 @@ pub async fn exec(
         clients.inner().clone(),
     )
     .await?;
-
-    // Log successful execution
-    let client_text = if client_count == 1 {
-        "1 client".to_string()
-    } else {
-        format!("{} clients", client_count)
-    };
-
-    log_ui!(&app, Success, "Script ran on {}", client_text);
 
     Ok(())
 }

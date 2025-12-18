@@ -39,7 +39,6 @@ export function useExecutor() {
       toast.success("Script executed", {
         description: `Script ran on ${clientText}`,
       });
-      // Backend logs this automatically
       return true;
     } catch (error) {
       const errorMessage =
