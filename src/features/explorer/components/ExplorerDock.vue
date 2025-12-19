@@ -304,7 +304,7 @@ watch(
               </DockIcon>
             </TooltipTrigger>
             <TooltipContent :side-offset="-15">
-              <p>Decompile Script</p>
+              <p>Decompile Selected Script</p>
             </TooltipContent>
           </Tooltip>
 
