@@ -5,6 +5,7 @@ import AppShell from "@/components/layout/AppShell.vue";
 import EditorPage from "@/features/editor/components/EditorPage.vue";
 import ScriptHubPage from "@/features/script-hub/components/ScriptHubPage.vue";
 import ExplorerPage from "@/features/explorer/components/ExplorerPage.vue";
+import RemoteSpyPage from "@/features/remote-spy/components/RemoteSpyPage.vue";
 import LogsPage from "@/features/logs/components/LogsPage.vue";
 import SettingsPage from "@/features/settings/components/SettingsPage.vue";
 import { Toaster } from "@/components/ui/sonner";
@@ -37,6 +38,8 @@ const currentPageComponent = computed(() => {
       return ScriptHubPage;
     case "explorer":
       return ExplorerPage;
+    case "remote-spy":
+      return RemoteSpyPage;
     case "logs":
       return LogsPage;
     case "settings":

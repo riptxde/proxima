@@ -5,6 +5,7 @@ import {
   Settings,
   Logs,
   PackageSearch,
+  Radio,
 } from "lucide-vue-next";
 import SidebarButton from "./SidebarButton.vue";
 import { useNavigation } from "@/composables/useNavigation";
@@ -16,6 +17,7 @@ const buttons: SidebarButtonType[] = [
   { id: "editor", label: "Editor", icon: CodeXml },
   { id: "script-hub", label: "Script Hub", icon: Library },
   { id: "explorer", label: "Explorer", icon: PackageSearch },
+  { id: "remote-spy", label: "Remote Spy", icon: Radio },
   { id: "logs", label: "Logs", icon: Logs },
   { id: "settings", label: "Settings", icon: Settings },
 ];
