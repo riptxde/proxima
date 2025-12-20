@@ -39,7 +39,7 @@ function handleMouseMove(e: MouseEvent) {
 
       <!-- Page Content -->
       <div
-        class="flex-1 overflow-hidden bg-app-shell pr-2 pt-2 pb-2 relative -ml-2"
+        class="flex-1 overflow-hidden bg-app-shell pr-2 pt-2 pb-2 relative -ml-2 -mt-2"
         @mousemove="handleMouseMove"
       >
         <!-- Rounded container for both stars and content -->
