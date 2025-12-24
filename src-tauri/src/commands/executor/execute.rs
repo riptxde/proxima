@@ -1,5 +1,5 @@
 use crate::models::ExecuteRequest;
-use crate::services::websocket::ClientRegistry;
+use crate::state::ClientRegistry;
 use tauri::State;
 
 #[tauri::command]

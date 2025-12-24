@@ -1,8 +1,9 @@
 use crate::log_ui;
 use crate::services::filesystem;
+use crate::utils::events::emit_or_log;
 use crate::utils::paths;
 use std::fs;
-use tauri::{AppHandle, Emitter};
+use tauri::AppHandle;
 
 /// Get the base scripts path
 #[tauri::command]
@@ -103,7 +104,7 @@ pub fn rename_file(
         .replace('\\', "/");
 
     // Emit file tree changed event
-    let _ = app.emit("file-tree-changed", ());
+    emit_or_log(&app, "file-tree-changed", ());
 
     // Log the rename operation
     log_ui!(
@@ -136,7 +137,7 @@ pub fn delete_file(app: AppHandle, relative_path: String, is_folder: bool) -> Re
     }
 
     // Emit file tree changed event
-    let _ = app.emit("file-tree-changed", ());
+    emit_or_log(&app, "file-tree-changed", ());
 
     // Log the delete operation
     let item_type = if is_folder { "folder" } else { "file" };

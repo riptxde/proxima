@@ -4,6 +4,7 @@ mod utils;
 mod commands;
 mod models;
 mod services;
+mod state;
 
 use commands::editor::{
     delete_file, get_scripts_path, initialize_directories, open_file_location, read_file_content,
@@ -35,21 +36,18 @@ pub fn run() {
             )?;
 
             // Initialize client registry
-            let clients: services::websocket::ClientRegistry =
-                Arc::new(RwLock::new(HashMap::new()));
+            let clients: state::ClientRegistry = Arc::new(RwLock::new(HashMap::new()));
             app.manage(clients.clone());
 
             // Initialize explorer state
-            let active_explorer: services::websocket::ActiveExplorerClient =
-                Arc::new(RwLock::new(None));
+            let active_explorer: state::ActiveExplorerClient = Arc::new(RwLock::new(None));
             app.manage(active_explorer.clone());
 
             // Initialize remote spy state
-            let active_remote_spy: services::websocket::ActiveRemoteSpyClient =
-                Arc::new(RwLock::new(None));
+            let active_remote_spy: state::ActiveRemoteSpyClient = Arc::new(RwLock::new(None));
             app.manage(active_remote_spy.clone());
 
-            let api_dump_cache: services::websocket::ApiDumpCache =
+            let api_dump_cache: state::ApiDumpCache =
                 Arc::new(RwLock::new(services::api_dump::ApiDumpService::new()));
             app.manage(api_dump_cache.clone());
 

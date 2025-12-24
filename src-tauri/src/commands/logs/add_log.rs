@@ -1,11 +1,6 @@
-use serde::Serialize;
-use tauri::{AppHandle, Emitter};
-
-#[derive(Serialize, Clone)]
-struct LogMessage {
-    level: u8,
-    message: String,
-}
+use crate::models::LogMessage;
+use crate::utils::events::emit_or_error;
+use tauri::AppHandle;
 
 #[tauri::command]
 pub fn add_log(app: AppHandle, level: u8, message: String) -> Result<(), String> {
@@ -17,8 +12,7 @@ pub fn add_log(app: AppHandle, level: u8, message: String) -> Result<(), String>
     // Emit log-message event to frontend
     let log_msg = LogMessage { level, message };
 
-    app.emit("log-message", log_msg)
-        .map_err(|e| format!("Failed to emit log event: {}", e))?;
+    emit_or_error(&app, "log-message", log_msg)?;
 
     Ok(())
 }

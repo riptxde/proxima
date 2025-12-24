@@ -1,11 +1,5 @@
-use serde::Serialize;
+use crate::models::LogMessage;
 use tauri::{AppHandle, Emitter};
-
-#[derive(Serialize, Clone)]
-struct LogMessage {
-    level: u8,
-    message: String,
-}
 
 /// Log levels that match the frontend
 #[derive(Debug, Clone, Copy)]
