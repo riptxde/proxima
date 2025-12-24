@@ -38,7 +38,7 @@ const filteredClients = computed(() => {
 const selectClient = async (client: RemoteSpyClient) => {
     try {
         await startSpy(client);
-        toast.success("Remote spy connected", {
+        toast.success("Remote spy started", {
             description: `User: ${client.username}`,
         });
         emit("update:open", false);
@@ -53,9 +53,9 @@ const selectClient = async (client: RemoteSpyClient) => {
     <Dialog :open="open" @update:open="$emit('update:open', $event)">
         <DialogContent class="sm:max-w-[500px]">
             <DialogHeader>
-                <DialogTitle>Select Remote Spy Client</DialogTitle>
+                <DialogTitle>Start Remote Spy</DialogTitle>
                 <DialogDescription>
-                    Choose a client to spy on remote calls.
+                    Select a client for the remote spy.
                 </DialogDescription>
             </DialogHeader>
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { User, Unplug, Trash2, Code2, Scroll } from "lucide-vue-next";
+import { Play, Square, Trash2, Code2, Scroll } from "lucide-vue-next";
 import { Dock, DockIcon } from "@/components/ui/dock";
 import LiquidGlass from "@/components/shared/LiquidGlass.vue";
 import {
@@ -36,13 +36,17 @@ const hasCallingScript = computed(
 );
 const hasCalls = computed(() => remotes.value.length > 0);
 
-const handleDisconnect = async () => {
-    if (!isSpyActive.value) {
-        toast.error("Could not disconnect", {
-            description: "No client connected to remote spy",
-        });
-        return;
+const handleToggleSpy = () => {
+    if (isSpyActive.value) {
+        // Stop spy
+        handleStopSpy();
+    } else {
+        // Start spy - show client selection dialog
+        showClientDialog.value = true;
     }
+};
+
+const handleStopSpy = async () => {
     try {
         await stopSpy();
     } catch (error) {
@@ -109,14 +113,25 @@ watch(showClientDialog, (newValue, oldValue) => {
                 <Dock class="m-0!">
                     <Tooltip>
                         <TooltipTrigger as-child>
-                            <DockIcon @click="showClientDialog = true">
-                                <User
+                            <DockIcon @click="handleToggleSpy">
+                                <Play
+                                    v-if="!isSpyActive"
+                                    class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+                                />
+                                <Square
+                                    v-else
                                     class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
                                 />
                             </DockIcon>
                         </TooltipTrigger>
                         <TooltipContent :side-offset="-15">
-                            <p>Select Remote Spy Client</p>
+                            <p>
+                                {{
+                                    isSpyActive
+                                        ? "Stop Remote Spy"
+                                        : "Start Remote Spy"
+                                }}
+                            </p>
                         </TooltipContent>
                     </Tooltip>
 
@@ -140,7 +155,7 @@ watch(showClientDialog, (newValue, oldValue) => {
                             </DockIcon>
                         </TooltipTrigger>
                         <TooltipContent :side-offset="-15">
-                            <p>Send Calling Code to Editor</p>
+                            <p>Generate Calling Code</p>
                         </TooltipContent>
                     </Tooltip>
 
@@ -188,30 +203,6 @@ watch(showClientDialog, (newValue, oldValue) => {
                         </TooltipTrigger>
                         <TooltipContent :side-offset="-15">
                             <p>Clear All Calls</p>
-                        </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                        <TooltipTrigger as-child>
-                            <DockIcon
-                                @click="handleDisconnect"
-                                :class="{
-                                    'opacity-30 cursor-not-allowed':
-                                        !isSpyActive,
-                                }"
-                            >
-                                <Unplug
-                                    class="size-5 text-app-shell-foreground transition-opacity"
-                                    :class="{
-                                        'opacity-60 group-hover:opacity-100':
-                                            isSpyActive,
-                                        'opacity-30': !isSpyActive,
-                                    }"
-                                />
-                            </DockIcon>
-                        </TooltipTrigger>
-                        <TooltipContent :side-offset="-15">
-                            <p>Disconnect Remote Spy</p>
                         </TooltipContent>
                     </Tooltip>
                 </Dock>

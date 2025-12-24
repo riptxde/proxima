@@ -43,7 +43,7 @@ export interface RemoteSpyFilters {
 }
 
 /**
- * Represents a connected client for remote spy
+ * Represents an attached client for remote spy
  */
 export interface RemoteSpyClient {
   id: string;
