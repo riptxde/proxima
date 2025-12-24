@@ -13,12 +13,16 @@ export function useFileTreeActions() {
       await invoke("open_file_location", {
         relativePath,
       });
-      toast.success("Opened file/folder location");
+      toast.success("Opened file/folder location", {
+        description: relativePath,
+      });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       addLog("error", `Failed to open file/folder location: ${errorMessage}`);
-      toast.error("Failed to open file/folder location");
+      toast.error("Failed to open file/folder location", {
+        description: errorMessage,
+      });
     }
   }
 
@@ -35,13 +39,17 @@ export function useFileTreeActions() {
         relativePath,
         newName,
       });
-      toast.success("Renamed successfully");
+      toast.success("Renamed successfully", {
+        description: `${relativePath} -> ${newName}`,
+      });
       return newPath;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       addLog("error", `Failed to rename: ${errorMessage}`);
-      toast.error(errorMessage);
+      toast.error("Failed to rename", {
+        description: errorMessage,
+      });
       return null;
     }
   }
@@ -58,13 +66,17 @@ export function useFileTreeActions() {
         relativePath,
         isFolder,
       });
-      toast.success("Deleted successfully");
+      toast.success("Deleted successfully", {
+        description: relativePath,
+      });
       return true;
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       addLog("error", `Failed to delete: ${errorMessage}`);
-      toast.error("Failed to delete");
+      toast.error("Failed to delete", {
+        description: errorMessage,
+      });
       return false;
     }
   }

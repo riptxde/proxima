@@ -19,6 +19,7 @@ const {
     isSpyActive,
     selectedRemote,
     selectedCall,
+    selectedClient,
     remotes,
     stopSpy,
     clearCalls,
@@ -47,10 +48,16 @@ const handleToggleSpy = () => {
 };
 
 const handleStopSpy = async () => {
+    const username = selectedClient.value?.username;
     try {
         await stopSpy();
+        toast.success("Remote spy stopped", {
+            description: `User: ${username}`,
+        });
     } catch (error) {
-        toast.error(`Failed to stop remote spy: ${error}`);
+        toast.error("Failed to stop remote spy", {
+            description: String(error),
+        });
     }
 };
 
@@ -69,9 +76,13 @@ const handleSendCodeToEditor = () => {
     try {
         openFileAsTab(`${remote.name} Call`, code);
         navigate("editor");
-        toast.success("Code sent to editor");
+        toast.success("Code sent to editor", {
+            description: `${remote.name} calling code`,
+        });
     } catch (error) {
-        toast.error("Failed to send code to editor");
+        toast.error("Failed to send code to editor", {
+            description: String(error),
+        });
     }
 };
 
@@ -83,7 +94,9 @@ const handleDecompile = () => {
         return;
     }
 
-    toast.info("Decompile functionality will be implemented soon");
+    toast.info("Decompile functionality will be implemented soon", {
+        description: "Coming in a future update",
+    });
 };
 
 const handleClearCalls = () => {
@@ -93,8 +106,10 @@ const handleClearCalls = () => {
         });
         return;
     }
-    clearCalls();
-    toast.success("All calls cleared");
+    const count = clearCalls();
+    toast.success("All calls cleared", {
+        description: `${count} call${count !== 1 ? "s" : ""} removed`,
+    });
 };
 
 // Remount dock tooltips when dialog closes

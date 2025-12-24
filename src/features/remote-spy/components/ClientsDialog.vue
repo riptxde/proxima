@@ -44,7 +44,9 @@ const selectClient = async (client: RemoteSpyClient) => {
         emit("update:open", false);
         searchQuery.value = "";
     } catch (error) {
-        toast.error(`Failed to start remote spy: ${error}`);
+        toast.error("Failed to start remote spy", {
+            description: String(error),
+        });
     }
 };
 </script>

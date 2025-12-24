@@ -45,7 +45,9 @@ const selectClient = async (client: ExplorerClient) => {
         });
         emit("update:open", false);
     } catch (error) {
-        toast.error(`Failed to start explorer: ${error}`);
+        toast.error("Failed to start explorer", {
+            description: String(error),
+        });
     }
 };
 </script>

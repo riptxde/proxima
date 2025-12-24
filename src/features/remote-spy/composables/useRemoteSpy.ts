@@ -146,11 +146,17 @@ export function useRemoteSpy() {
 
   /**
    * Clear all calls
+   * @returns The number of calls cleared
    */
-  const clearCalls = () => {
+  const clearCalls = (): number => {
+    const totalCalls = remotes.value.reduce(
+      (sum, remote) => sum + remote.calls.length,
+      0,
+    );
     remotes.value = [];
     selectedRemoteId.value = null;
     selectedCallId.value = null;
+    return totalCalls;
   };
 
   /**

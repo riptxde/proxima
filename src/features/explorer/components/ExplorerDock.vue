@@ -70,12 +70,17 @@ const handleToggleExplorer = () => {
 };
 
 const handleStopExplorer = async () => {
+    const username = selectedClient.value?.username;
     try {
         await expStop();
-        toast.success("Explorer stopped");
+        toast.success("Explorer stopped", {
+            description: `User: ${username}`,
+        });
     } catch (error) {
         addLog("error", `Failed to stop explorer: ${error}`);
-        toast.error("Failed to stop explorer");
+        toast.error("Failed to stop explorer", {
+            description: String(error),
+        });
     }
 };
 
@@ -103,10 +108,14 @@ const handleSendInstanceNameToEditorClick = () => {
     try {
         openFileAsTab("Instance Path", code);
         navigate("editor");
-        toast.success("Instance path sent to editor");
+        toast.success("Instance path sent to editor", {
+            description: selectedItemPathString.value!,
+        });
     } catch (error) {
         addLog("error", `Failed to send instance path to editor: ${error}`);
-        toast.error("Failed to send instance path to editor");
+        toast.error("Failed to send instance path to editor", {
+            description: String(error),
+        });
     }
 };
 
@@ -141,10 +150,14 @@ ${property.example.set}`;
     try {
         openFileAsTab(`${property.name} Example`, code);
         navigate("editor");
-        toast.success("Code sent to editor");
+        toast.success("Code sent to editor", {
+            description: `${property.name} example code`,
+        });
     } catch (error) {
         addLog("error", `Failed to send code to editor: ${error}`);
-        toast.error("Failed to send code to editor");
+        toast.error("Failed to send code to editor", {
+            description: String(error),
+        });
     }
 };
 
@@ -160,7 +173,9 @@ const handleDecompileClick = async () => {
         await expDecompile(selectedItemId.value!);
     } catch (error) {
         addLog("error", `Failed to decompile script: ${error}`);
-        toast.error("Failed to decompile script");
+        toast.error("Failed to decompile script", {
+            description: String(error),
+        });
     }
 };
 
@@ -180,13 +195,17 @@ onMounted(async () => {
         try {
             openFileAsTab(scriptName, event.payload.source);
             navigate("editor");
-            toast.success("Script decompiled and sent to editor");
+            toast.success("Script decompiled and sent to editor", {
+                description: scriptName,
+            });
         } catch (error) {
             addLog(
                 "error",
                 `Failed to send decompiled script to editor: ${error}`,
             );
-            toast.error("Failed to send decompiled script to editor");
+            toast.error("Failed to send decompiled script to editor", {
+                description: String(error),
+            });
         }
     });
 });
