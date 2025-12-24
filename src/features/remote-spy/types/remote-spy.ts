@@ -23,10 +23,10 @@ export interface RemoteArgument {
 }
 
 /**
- * Represents a unique remote (identified by name + path + type)
+ * Represents a unique remote (identified by numeric instance ID)
  */
 export interface Remote {
-  id: string; // Unique identifier: `${name}|${path}|${type}`
+  id: number; // Unique numeric ID for the remote instance
   name: string;
   path: string;
   type: RemoteType;
@@ -40,4 +40,12 @@ export interface RemoteSpyFilters {
   directions: RemoteDirection[];
   types: RemoteType[];
   search: string;
+}
+
+/**
+ * Represents a connected client for remote spy
+ */
+export interface RemoteSpyClient {
+  id: string;
+  username: string;
 }

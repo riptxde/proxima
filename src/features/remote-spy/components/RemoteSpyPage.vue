@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { onMounted, onBeforeUnmount } from "vue";
+import { invoke } from "@tauri-apps/api/core";
 import {
     ResizableHandle,
     ResizablePanel,
@@ -11,6 +13,9 @@ import RemoteCallsList from "./RemoteCallsList.vue";
 import CallDetails from "./CallDetails.vue";
 import RemoteSpyDock from "./RemoteSpyDock.vue";
 import { useRemoteSpy } from "../composables/useRemoteSpy";
+import { useLogger } from "@/composables/useLogger";
+
+const { addLog } = useLogger();
 
 const {
     remotes,
@@ -18,13 +23,32 @@ const {
     selectedCall,
     selectedCallId,
     filters,
+    availableClients,
     selectRemote,
     deselectRemote,
     selectCall,
     toggleDirectionFilter,
     toggleTypeFilter,
     setSearchFilter,
+    initializeListeners,
+    cleanupListeners,
 } = useRemoteSpy();
+
+onMounted(async () => {
+    await initializeListeners();
+
+    // Fetch initial client list
+    try {
+        const clients = await invoke("get_attached_clients");
+        availableClients.value = clients as any[];
+    } catch (error) {
+        addLog("error", `Failed to get clients: ${error}`);
+    }
+});
+
+onBeforeUnmount(() => {
+    cleanupListeners();
+});
 </script>
 
 <template>

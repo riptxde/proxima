@@ -1,4 +1,5 @@
 use crate::models::explorer::*;
+use crate::models::remote_spy::*;
 use crate::models::Client;
 use crate::services::autoexec;
 use futures_util::{SinkExt, StreamExt};
@@ -69,6 +70,39 @@ enum ClientMessage {
     ExpTreeChanged,
     #[serde(rename = "exp_decompiled")]
     ExpDecompiled { id: u32, source: String },
+    #[serde(rename = "rspy_call")]
+    RspyCall {
+        #[serde(rename = "remoteId")]
+        remote_id: u32,
+        name: String,
+        path: String,
+        #[serde(rename = "remoteType")]
+        remote_type: String,
+        direction: String,
+        timestamp: String,
+        arguments: Vec<RemoteArgument>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "returnValue")]
+        return_value: Option<RemoteArgument>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "callingScript")]
+        calling_script: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "callingScriptPath")]
+        calling_script_path: Option<String>,
+    },
+    #[serde(rename = "rspy_decompiled")]
+    RspyDecompiled {
+        #[serde(rename = "scriptPath")]
+        script_path: String,
+        source: String,
+    },
+    #[serde(rename = "rspy_generated_code")]
+    RspyGeneratedCode {
+        #[serde(rename = "callId")]
+        call_id: String,
+        code: String,
+    },
 }
 
 #[derive(Serialize, Debug)]
@@ -78,6 +112,32 @@ enum ServerMessage {
     Exec { script: String },
     #[serde(rename = "ping")]
     Ping,
+    #[serde(rename = "exp_start")]
+    ExpStart,
+    #[serde(rename = "exp_stop")]
+    ExpStop,
+    #[serde(rename = "exp_decompile")]
+    ExpDecompile { id: u32 },
+    #[serde(rename = "rspy_start")]
+    RspyStart,
+    #[serde(rename = "rspy_stop")]
+    RspyStop,
+    #[serde(rename = "rspy_decompile")]
+    RspyDecompile {
+        #[serde(rename = "scriptPath")]
+        script_path: String,
+    },
+    #[serde(rename = "rspy_generate_code")]
+    RspyGenerateCode {
+        #[serde(rename = "callId")]
+        call_id: String,
+        name: String,
+        path: String,
+        #[serde(rename = "remoteType")]
+        remote_type: String,
+        direction: String,
+        arguments: Vec<RemoteArgument>,
+    },
 }
 
 pub(crate) struct ClientInfo {
@@ -91,10 +151,14 @@ pub type ClientRegistry = Arc<RwLock<HashMap<String, ClientInfo>>>;
 pub type ActiveExplorerClient = Arc<RwLock<Option<String>>>;
 pub type ApiDumpCache = Arc<RwLock<super::api_dump::ApiDumpService>>;
 
+// Remote Spy state
+pub type ActiveRemoteSpyClient = Arc<RwLock<Option<String>>>;
+
 pub async fn start_websocket_server(
     app_handle: AppHandle,
     clients: ClientRegistry,
     active_explorer: ActiveExplorerClient,
+    active_remote_spy: ActiveRemoteSpyClient,
     api_dump_cache: ApiDumpCache,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let listener = TcpListener::bind("127.0.0.1:13376").await?;
@@ -108,6 +172,7 @@ pub async fn start_websocket_server(
         let clients = Arc::clone(&clients);
         let app_handle = app_handle.clone();
         let active_explorer = Arc::clone(&active_explorer);
+        let active_remote_spy = Arc::clone(&active_remote_spy);
         let api_dump_cache = Arc::clone(&api_dump_cache);
 
         tauri::async_runtime::spawn(async move {
@@ -117,6 +182,7 @@ pub async fn start_websocket_server(
                 clients,
                 app_handle,
                 active_explorer,
+                active_remote_spy,
                 api_dump_cache,
             )
             .await
@@ -135,6 +201,7 @@ async fn handle_client(
     clients: ClientRegistry,
     app_handle: AppHandle,
     active_explorer: ActiveExplorerClient,
+    active_remote_spy: ActiveRemoteSpyClient,
     _api_dump_cache: ApiDumpCache,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let ws_stream = accept_async(stream).await?;
@@ -397,6 +464,55 @@ async fn handle_client(
                                         );
                                     }
                                 }
+                                ClientMessage::RspyCall {
+                                    remote_id,
+                                    name,
+                                    path,
+                                    remote_type,
+                                    direction,
+                                    timestamp,
+                                    arguments,
+                                    return_value,
+                                    calling_script,
+                                    calling_script_path,
+                                } => {
+                                    let _ = app_handle_clone.emit(
+                                        "remote-spy-call",
+                                        RemoteCallEvent {
+                                            remote_id,
+                                            name,
+                                            path,
+                                            remote_type,
+                                            direction,
+                                            timestamp,
+                                            arguments,
+                                            return_value,
+                                            calling_script,
+                                            calling_script_path,
+                                        },
+                                    );
+                                }
+                                ClientMessage::RspyDecompiled {
+                                    script_path,
+                                    source,
+                                } => {
+                                    let _ = app_handle_clone.emit(
+                                        "remote-spy-decompiled",
+                                        serde_json::json!({
+                                            "scriptPath": script_path,
+                                            "source": source,
+                                        }),
+                                    );
+                                }
+                                ClientMessage::RspyGeneratedCode { call_id, code } => {
+                                    let _ = app_handle_clone.emit(
+                                        "remote-spy-generated-code",
+                                        serde_json::json!({
+                                            "callId": call_id,
+                                            "code": code,
+                                        }),
+                                    );
+                                }
                             }
                         } else {
                             log::warn!("Failed to parse client message: {}", text);
@@ -431,6 +547,18 @@ async fn handle_client(
                     log::error!("Failed to emit explorer-stopped event: {}", e);
                 }
                 log::info!("Active explorer client disconnected, clearing explorer state");
+            }
+        }
+
+        // If this was the active remote spy client, clean up remote spy state
+        {
+            let mut active = active_remote_spy.write().await;
+            if active.as_ref() == Some(&id) {
+                *active = None;
+                if let Err(e) = app_handle_clone.emit("remote-spy-stopped", ()) {
+                    log::error!("Failed to emit remote-spy-stopped event: {}", e);
+                }
+                log::info!("Active remote spy client disconnected, clearing remote spy state");
             }
         }
 
@@ -595,9 +723,7 @@ pub async fn send_to_client(
 
 /// Send exp_start message to a client
 pub async fn send_start_explorer(client_id: &str, clients: &ClientRegistry) -> Result<(), String> {
-    let msg = serde_json::json!({
-        "type": "exp_start"
-    });
+    let msg = ServerMessage::ExpStart;
     let msg_text = serde_json::to_string(&msg)
         .map_err(|e| format!("Failed to serialize exp_start message: {}", e))?;
 
@@ -606,9 +732,7 @@ pub async fn send_start_explorer(client_id: &str, clients: &ClientRegistry) -> R
 
 /// Send exp_stop message to a client
 pub async fn send_stop_explorer(client_id: &str, clients: &ClientRegistry) -> Result<(), String> {
-    let msg = serde_json::json!({
-        "type": "exp_stop"
-    });
+    let msg = ServerMessage::ExpStop;
     let msg_text = serde_json::to_string(&msg)
         .map_err(|e| format!("Failed to serialize exp_stop message: {}", e))?;
 
@@ -664,12 +788,70 @@ pub async fn send_decompile_script(
     id: u32,
     clients: &ClientRegistry,
 ) -> Result<(), String> {
-    let msg = serde_json::json!({
-        "type": "exp_decompile",
-        "id": id
-    });
+    let msg = ServerMessage::ExpDecompile { id };
     let msg_text = serde_json::to_string(&msg)
         .map_err(|e| format!("Failed to serialize exp_decompile message: {}", e))?;
+
+    send_to_client(client_id, &msg_text, clients).await
+}
+
+// Remote Spy helper functions
+
+/// Send rspy_start message to a client
+pub async fn send_start_remote_spy(
+    client_id: &str,
+    clients: &ClientRegistry,
+) -> Result<(), String> {
+    let msg = ServerMessage::RspyStart;
+    let msg_text = serde_json::to_string(&msg)
+        .map_err(|e| format!("Failed to serialize rspy_start message: {}", e))?;
+
+    send_to_client(client_id, &msg_text, clients).await
+}
+
+/// Send rspy_stop message to a client
+pub async fn send_stop_remote_spy(client_id: &str, clients: &ClientRegistry) -> Result<(), String> {
+    let msg = ServerMessage::RspyStop;
+    let msg_text = serde_json::to_string(&msg)
+        .map_err(|e| format!("Failed to serialize rspy_stop message: {}", e))?;
+
+    send_to_client(client_id, &msg_text, clients).await
+}
+
+/// Send rspy_decompile message to a client
+pub async fn send_decompile_request(
+    client_id: &str,
+    script_path: String,
+    clients: &ClientRegistry,
+) -> Result<(), String> {
+    let msg = ServerMessage::RspyDecompile { script_path };
+    let msg_text = serde_json::to_string(&msg)
+        .map_err(|e| format!("Failed to serialize rspy_decompile message: {}", e))?;
+
+    send_to_client(client_id, &msg_text, clients).await
+}
+
+/// Send rspy_generate_code message to a client
+pub async fn send_generate_code_request(
+    client_id: &str,
+    call_id: String,
+    name: String,
+    path: String,
+    remote_type: String,
+    direction: String,
+    arguments: Vec<RemoteArgument>,
+    clients: &ClientRegistry,
+) -> Result<(), String> {
+    let msg = ServerMessage::RspyGenerateCode {
+        call_id,
+        name,
+        path,
+        remote_type,
+        direction,
+        arguments,
+    };
+    let msg_text = serde_json::to_string(&msg)
+        .map_err(|e| format!("Failed to serialize rspy_generate_code message: {}", e))?;
 
     send_to_client(client_id, &msg_text, clients).await
 }

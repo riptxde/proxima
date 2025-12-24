@@ -16,7 +16,7 @@ interface Props {
 }
 
 interface Emits {
-    (e: "select", id: string): void;
+    (e: "select", id: number): void;
     (e: "update:search-query", value: string): void;
 }
 

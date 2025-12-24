@@ -14,6 +14,7 @@ use commands::explorer::{
     exp_decompile, exp_get_properties, exp_get_tree, exp_search, exp_start, exp_stop,
 };
 use commands::logs::add_log;
+use commands::remote_spy::{rspy_decompile, rspy_generate_code, rspy_start, rspy_stop};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tauri::Manager;
@@ -43,6 +44,11 @@ pub fn run() {
                 Arc::new(RwLock::new(None));
             app.manage(active_explorer.clone());
 
+            // Initialize remote spy state
+            let active_remote_spy: services::websocket::ActiveRemoteSpyClient =
+                Arc::new(RwLock::new(None));
+            app.manage(active_remote_spy.clone());
+
             let api_dump_cache: services::websocket::ApiDumpCache =
                 Arc::new(RwLock::new(services::api_dump::ApiDumpService::new()));
             app.manage(api_dump_cache.clone());
@@ -65,6 +71,7 @@ pub fn run() {
                     app_handle.clone(),
                     clients,
                     active_explorer,
+                    active_remote_spy,
                     api_dump_cache,
                 )
                 .await
@@ -124,6 +131,11 @@ pub fn run() {
             exp_get_properties,
             exp_search,
             exp_decompile,
+            // Remote Spy commands
+            rspy_start,
+            rspy_stop,
+            rspy_decompile,
+            rspy_generate_code,
             // Logs commands
             add_log,
             // Script Hub commands (future)

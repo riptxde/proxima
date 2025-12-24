@@ -15,6 +15,7 @@ import { useClients } from "@/features/editor/composables/useClients";
 import { useLogs } from "@/features/logs/composables/useLogs";
 import { useHttpExecutor } from "@/features/editor/composables/useHttpExecutor";
 import { useExplorer } from "@/features/explorer/composables/useExplorer";
+import { useRemoteSpy } from "@/features/remote-spy/composables/useRemoteSpy";
 import StartupAnimation from "@/components/shared/StartupAnimation.vue";
 
 const { activePage } = useNavigation();
@@ -22,40 +23,42 @@ const { initialize } = useClients();
 const { initializeLogListener } = useLogs();
 const { initialize: initHttpExecutor } = useHttpExecutor();
 const { initializeExplorerClientListeners } = useExplorer();
+const { initializeRemoteSpyClientListeners } = useRemoteSpy();
 
 onMounted(() => {
-  initialize();
-  initializeLogListener();
-  initHttpExecutor();
-  initializeExplorerClientListeners();
+    initialize();
+    initializeLogListener();
+    initHttpExecutor();
+    initializeExplorerClientListeners();
+    initializeRemoteSpyClientListeners();
 });
 
 const currentPageComponent = computed(() => {
-  switch (activePage.value) {
-    case "editor":
-      return EditorPage;
-    case "script-hub":
-      return ScriptHubPage;
-    case "explorer":
-      return ExplorerPage;
-    case "remote-spy":
-      return RemoteSpyPage;
-    case "logs":
-      return LogsPage;
-    case "settings":
-      return SettingsPage;
-    default:
-      return EditorPage;
-  }
+    switch (activePage.value) {
+        case "editor":
+            return EditorPage;
+        case "script-hub":
+            return ScriptHubPage;
+        case "explorer":
+            return ExplorerPage;
+        case "remote-spy":
+            return RemoteSpyPage;
+        case "logs":
+            return LogsPage;
+        case "settings":
+            return SettingsPage;
+        default:
+            return EditorPage;
+    }
 });
 </script>
 
 <template>
-  <StartupAnimation />
-  <TooltipProvider>
-    <AppShell>
-      <component :is="currentPageComponent" />
-    </AppShell>
-    <Toaster position="top-center" :duration="2000" />
-  </TooltipProvider>
+    <StartupAnimation />
+    <TooltipProvider>
+        <AppShell>
+            <component :is="currentPageComponent" />
+        </AppShell>
+        <Toaster position="top-center" :duration="2000" />
+    </TooltipProvider>
 </template>

@@ -1,19 +1,24 @@
 import { ref, computed } from "vue";
+import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { useLogger } from "@/composables/useLogger";
 import type {
   Remote,
   RemoteCall,
   RemoteSpyFilters,
   RemoteDirection,
   RemoteType,
+  RemoteSpyClient,
+  RemoteArgument,
 } from "../types/remote-spy";
 
-// Raw storage of all remotes
+// State
 const remotes = ref<Remote[]>([]);
-
-// UI state
-const selectedRemoteId = ref<string | null>(null);
+const selectedRemoteId = ref<number | null>(null);
 const selectedCallId = ref<string | null>(null);
 const isSpyActive = ref(false);
+const selectedClient = ref<RemoteSpyClient | null>(null);
+const availableClients = ref<RemoteSpyClient[]>([]);
 
 // Filter state
 const filters = ref<RemoteSpyFilters>({
@@ -22,124 +27,16 @@ const filters = ref<RemoteSpyFilters>({
   search: "",
 });
 
-/**
- * Generate dummy data for testing
- * Each remote is uniquely identified by name+path+type
- */
-const generateDummyData = (): Remote[] => {
-  const remoteDefinitions = [
-    {
-      name: "PlayerDataRequest",
-      path: "ReplicatedStorage.Remotes.PlayerData",
-      type: "RemoteFunction" as RemoteType,
-    },
-    {
-      name: "UpdateInventory",
-      path: "ReplicatedStorage.Remotes.Inventory.Update",
-      type: "RemoteEvent" as RemoteType,
-    },
-    {
-      name: "FireWeapon",
-      path: "ReplicatedStorage.Combat.WeaponFire",
-      type: "RemoteEvent" as RemoteType,
-    },
-    {
-      name: "TeleportPlayer",
-      path: "ReplicatedStorage.Remotes.Teleport",
-      type: "RemoteFunction" as RemoteType,
-    },
-    {
-      name: "GetPlayerStats",
-      path: "ReplicatedStorage.Remotes.Stats.Get",
-      type: "RemoteFunction" as RemoteType,
-    },
-    {
-      name: "ChatMessage",
-      path: "ReplicatedStorage.Communication.Chat",
-      type: "RemoteEvent" as RemoteType,
-    },
-  ];
-
-  const scripts = [
-    {
-      name: "LocalScript",
-      path: "StarterPlayer.StarterPlayerScripts.LocalScript",
-    },
-    {
-      name: "PlayerController",
-      path: "StarterPlayer.StarterPlayerScripts.Controllers.PlayerController",
-    },
-    {
-      name: "WeaponHandler",
-      path: "StarterPlayer.StarterPlayerScripts.WeaponHandler",
-    },
-  ];
-
-  const dummyRemotes: Remote[] = [];
-
-  // Generate calls for each remote
-  for (const remoteDef of remoteDefinitions) {
-    const callCount = Math.floor(Math.random() * 8) + 2; // 2-10 calls per remote
-    const calls: RemoteCall[] = [];
-
-    for (let i = 0; i < callCount; i++) {
-      const direction: RemoteDirection =
-        Math.random() > 0.5 ? "outgoing" : "incoming";
-      const script = scripts[Math.floor(Math.random() * scripts.length)]!;
-
-      // Generate arguments
-      const argCount = Math.floor(Math.random() * 3) + 1;
-      const args = Array.from({ length: argCount }, (_, idx) => {
-        const types = ["string", "number", "boolean", "table"];
-        const type = types[Math.floor(Math.random() * types.length)]!;
-
-        let value = "";
-        if (type === "string") value = `"Example ${idx}"`;
-        else if (type === "number")
-          value = String(Math.floor(Math.random() * 100));
-        else if (type === "boolean")
-          value = Math.random() > 0.5 ? "true" : "false";
-        else value = "{ ... }";
-
-        return { type, value };
-      });
-
-      const call: RemoteCall = {
-        id: `${remoteDef.name}-call-${i}`,
-        timestamp: new Date(Date.now() - Math.random() * 300000), // Random time in last 5 minutes
-        direction,
-        arguments: args,
-        callingScript: script.name,
-        callingScriptPath: script.path,
-      };
-
-      // Add return value for RemoteFunctions with incoming direction
-      if (remoteDef.type === "RemoteFunction" && direction === "incoming") {
-        call.returnValue = {
-          type: Math.random() > 0.5 ? "boolean" : "table",
-          value: Math.random() > 0.5 ? "true" : "{ success = true }",
-        };
-      }
-
-      calls.push(call);
-    }
-
-    // Sort calls by timestamp (newest first)
-    calls.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-
-    dummyRemotes.push({
-      id: `${remoteDef.name}|${remoteDef.path}|${remoteDef.type}`,
-      name: remoteDef.name,
-      path: remoteDef.path,
-      type: remoteDef.type,
-      calls,
-    });
-  }
-
-  return dummyRemotes;
-};
+// Event listeners
+let unlistenRemoteSpyCall: UnlistenFn | null = null;
+let unlistenRemoteSpyStarted: UnlistenFn | null = null;
+let unlistenRemoteSpyStopped: UnlistenFn | null = null;
+let unlistenRemoteSpyDecompiled: UnlistenFn | null = null;
+let unlistenRemoteSpyGeneratedCode: UnlistenFn | null = null;
 
 export function useRemoteSpy() {
+  const { addLog } = useLogger();
+
   /**
    * Filtered remotes based on search and type filters
    */
@@ -227,7 +124,7 @@ export function useRemoteSpy() {
   /**
    * Select a remote
    */
-  const selectRemote = (id: string) => {
+  const selectRemote = (id: number) => {
     selectedRemoteId.value = id;
     selectedCallId.value = null; // Clear call selection
   };
@@ -287,23 +184,152 @@ export function useRemoteSpy() {
     filters.value.search = search;
   };
 
-  /**
-   * Start the spy (generates dummy data for now)
-   */
-  const startSpy = () => {
-    isSpyActive.value = true;
-    remotes.value = generateDummyData();
+  // Commands
+  const rspyStart = async (client: RemoteSpyClient) => {
+    try {
+      await invoke("rspy_start", { clientId: client.id });
+      selectedClient.value = client;
+      isSpyActive.value = true;
+    } catch (error) {
+      addLog("error", `Failed to start remote spy: ${error}`);
+      throw error;
+    }
   };
 
-  /**
-   * Stop the spy
-   */
-  const stopSpy = () => {
+  const rspyStop = async () => {
+    try {
+      await invoke("rspy_stop");
+      resetRemoteSpyState();
+    } catch (error) {
+      addLog("error", `Failed to stop remote spy: ${error}`);
+      throw error;
+    }
+  };
+
+  const rspyDecompile = async (scriptPath: string) => {
+    try {
+      await invoke("rspy_decompile", { scriptPath });
+    } catch (error) {
+      addLog("error", `Failed to decompile script: ${error}`);
+      throw error;
+    }
+  };
+
+  const rspyGenerateCode = async (
+    callId: string,
+    name: string,
+    path: string,
+    remoteType: string,
+    direction: string,
+    args: RemoteArgument[],
+  ) => {
+    try {
+      await invoke("rspy_generate_code", {
+        callId,
+        name,
+        path,
+        remoteType,
+        direction,
+        arguments: args,
+      });
+    } catch (error) {
+      addLog("error", `Failed to generate code: ${error}`);
+      throw error;
+    }
+  };
+
+  const resetRemoteSpyState = () => {
+    selectedClient.value = null;
     isSpyActive.value = false;
   };
 
+  // Event listeners
+  const initializeListeners = async () => {
+    unlistenRemoteSpyCall = await listen<any>("remote-spy-call", (event) => {
+      const callData = event.payload;
+
+      // Find or create remote
+      let remote = remotes.value.find((r) => r.id === callData.remoteId);
+
+      if (!remote) {
+        remote = {
+          id: callData.remoteId,
+          name: callData.name,
+          path: callData.path,
+          type: callData.remoteType as RemoteType,
+          calls: [],
+        };
+        remotes.value.push(remote);
+      }
+
+      // Create call object
+      const call: RemoteCall = {
+        id: `${callData.remoteId}-call-${Date.now()}-${Math.random()}`,
+        timestamp: new Date(callData.timestamp),
+        direction: callData.direction as RemoteDirection,
+        arguments: callData.arguments || [],
+        returnValue: callData.returnValue,
+        callingScript: callData.callingScript,
+        callingScriptPath: callData.callingScriptPath,
+      };
+
+      // Add call to remote (prepend for newest first)
+      remote.calls.unshift(call);
+    });
+
+    unlistenRemoteSpyStarted = await listen("remote-spy-started", () => {
+      isSpyActive.value = true;
+    });
+
+    unlistenRemoteSpyStopped = await listen("remote-spy-stopped", () => {
+      resetRemoteSpyState();
+    });
+
+    unlistenRemoteSpyDecompiled = await listen<{
+      scriptPath: string;
+      source: string;
+    }>("remote-spy-decompiled", (event) => {
+      // TODO: Handle decompiled code (open in editor?)
+      addLog("success", `Decompiled script: ${event.payload.scriptPath}`);
+    });
+
+    unlistenRemoteSpyGeneratedCode = await listen<{
+      callId: string;
+      code: string;
+    }>("remote-spy-generated-code", (event) => {
+      // TODO: Handle generated code (open in editor?)
+      addLog("success", `Generated code for call: ${event.payload.callId}`);
+    });
+  };
+
+  // Initialize remote spy client listeners
+  const initializeRemoteSpyClientListeners = async () => {
+    await listen<RemoteSpyClient[]>("clients-update", (event) => {
+      availableClients.value = event.payload;
+
+      // If the selected client is no longer available, reset remote spy state
+      if (selectedClient.value) {
+        const clientExists = event.payload.some(
+          (client) => client.id === selectedClient.value?.id,
+        );
+
+        if (!clientExists && isSpyActive.value) {
+          resetRemoteSpyState();
+        }
+      }
+    });
+  };
+
+  const cleanupListeners = () => {
+    unlistenRemoteSpyCall?.();
+    unlistenRemoteSpyStarted?.();
+    unlistenRemoteSpyStopped?.();
+    unlistenRemoteSpyDecompiled?.();
+    unlistenRemoteSpyGeneratedCode?.();
+  };
+
   /**
-   * Generate Lua code for a remote call
+   * Generate Lua code for a remote call (client-side fallback)
    */
   const generateCodeForCall = (remote: Remote, call: RemoteCall): string => {
     const args = call.arguments.map((arg) => arg.value).join(", ");
@@ -332,6 +358,8 @@ export function useRemoteSpy() {
     selectedRemoteId,
     selectedCallId,
     isSpyActive,
+    selectedClient,
+    availableClients,
     filters,
 
     // Actions
@@ -342,9 +370,16 @@ export function useRemoteSpy() {
     toggleDirectionFilter,
     toggleTypeFilter,
     setSearchFilter,
-    startSpy,
-    stopSpy,
+    startSpy: rspyStart,
+    stopSpy: rspyStop,
+    decompileScript: rspyDecompile,
+    generateCode: rspyGenerateCode,
     generateCodeForCall,
+
+    // Listeners
+    initializeListeners,
+    cleanupListeners,
+    initializeRemoteSpyClientListeners,
 
     // Helpers
     getDirectionCount,

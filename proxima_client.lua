@@ -126,11 +126,64 @@ local function HandleMessage(Message)
         ExpSearch(Data.query, Data.searchBy or 'both', Data.limit or 1000)
     elseif Data.type == 'exp_decompile' then
         ExpDecompile(Data.id)
+    elseif Data.type == 'rspy_start' then
+        RspyStart()
+    elseif Data.type == 'rspy_stop' then
+        RspyStop()
+    elseif Data.type == 'rspy_decompile' then
+        RspyDecompile(Data.scriptPath)
+    elseif Data.type == 'rspy_generate_code' then
+        RspyGenerateCode(Data.callId, Data.name, Data.path, Data.remoteType, Data.direction, Data.arguments or {})
     end
 end
 
+local function Connect()
+    if Reconnecting then
+        return
+    end
+
+    local Success, Result = pcall(function()
+        return WebSocket.connect(PROXIMA_URL)
+    end)
+
+    if not Success then
+        Reconnecting = true
+        wait(RECONNECT_DELAY)
+        Reconnecting = false
+        Connect()
+        return
+    end
+
+    Socket = Result
+
+    Socket.OnMessage:Connect(function(Message)
+        HandleMessage(Message)
+    end)
+
+    Socket.OnClose:Connect(function()
+        if ExplorerActive then
+            HandleStopExplorer()
+        end
+
+        if RemoteSpyActive then
+            RspyStop()
+        end
+
+        Socket = nil
+        Reconnecting = true
+        wait(RECONNECT_DELAY)
+        Reconnecting = false
+        Connect()
+    end)
+
+    -- Send ready message immediately after handlers are set up
+    Ready()
+
+    -- Register in a separate thread to avoid blocking auto-execute scripts
+    coroutine.wrap(Register)()
+end
+
 --/ Explorer /--
--- Explorer State
 local ExplorerActive = false
 local Instances = {}
 local IdToInstance = {}
@@ -634,52 +687,212 @@ function ExpDecompile(Id)
     })
 end
 
---/ END EXPLORER SECTION /--
+--/ Remote Spy /--
+local RemoteSpyActive = false
+local RemoteCallCounter = 0
+local RemoteInstances = {} -- Maps remote instance -> ID
+local NextRemoteId = 1
 
-local function Connect()
-    if Reconnecting then
+-- Remote Spy Functions
+local function SendRemoteSpyMessage(Data)
+    if not Socket then
         return
     end
 
-    local Success, Result = pcall(function()
-        return WebSocket.connect(PROXIMA_URL)
+    pcall(function()
+        local Json = HttpService:JSONEncode(Data)
+        Socket:Send(Json)
     end)
+end
 
-    if not Success then
-        Reconnecting = true
-        wait(RECONNECT_DELAY)
-        Reconnecting = false
-        Connect()
-        return
-    end
+function RspyStart()
+    RemoteSpyActive = true
+    Log(LOG_SUCCESS, 'Remote spy started')
 
-    Socket = Result
+    -- Start sending dummy remote calls
+    task.spawn(function()
+        while RemoteSpyActive do
+            task.wait(math.random(2, 5)) -- Random interval between 2-5 seconds
 
-    Socket.OnMessage:Connect(function(Message)
-        HandleMessage(Message)
+            if not RemoteSpyActive then
+                break
+            end
+
+            -- Generate a random dummy remote call
+            SendDummyRemoteCall()
+        end
     end)
+end
 
-    Socket.OnClose:Connect(function()
-        if ExplorerActive then
-            HandleStopExplorer()
+function RspyStop()
+    RemoteSpyActive = false
+    Log(LOG_SUCCESS, 'Remote spy stopped')
+end
+
+function SendDummyRemoteCall()
+    RemoteCallCounter = RemoteCallCounter + 1
+
+    -- Dummy remotes to cycle through (each represents a unique "instance")
+    local DummyRemotes = {
+        {
+            id = 1,
+            name = 'PlayerDataRequest',
+            path = 'ReplicatedStorage.Remotes.PlayerData',
+            type = 'RemoteFunction'
+        },
+        {
+            id = 2,
+            name = 'UpdateInventory',
+            path = 'ReplicatedStorage.Remotes.Inventory.Update',
+            type = 'RemoteEvent'
+        },
+        {
+            id = 3,
+            name = 'FireWeapon',
+            path = 'ReplicatedStorage.Combat.WeaponFire',
+            type = 'RemoteEvent'
+        },
+        {
+            id = 4,
+            name = 'TeleportPlayer',
+            path = 'ReplicatedStorage.Remotes.Teleport',
+            type = 'RemoteFunction'
+        },
+    }
+
+    -- Dummy calling scripts
+    local DummyScripts = {
+        {
+            name = 'LocalScript',
+            path = 'StarterPlayer.StarterPlayerScripts.LocalScript'
+        },
+        {
+            name = 'PlayerController',
+            path = 'StarterPlayer.StarterPlayerScripts.Controllers.PlayerController'
+        },
+        {
+            name = 'WeaponHandler',
+            path = 'StarterPlayer.StarterPlayerScripts.WeaponHandler'
+        },
+    }
+
+    -- Pick random remote and script
+    local Remote = DummyRemotes[math.random(1, #DummyRemotes)]
+    local Script = DummyScripts[math.random(1, #DummyScripts)]
+    local Direction = math.random() > 0.5 and 'outgoing' or 'incoming'
+
+    -- Generate dummy arguments
+    local DummyArgs = {}
+    local ArgCount = math.random(1, 3)
+    for I = 1, ArgCount do
+        local ArgTypes = {'string', 'number', 'boolean', 'table'}
+        local ArgType = ArgTypes[math.random(1, #ArgTypes)]
+
+        local Value
+        if ArgType == 'string' then
+            Value = '"Example ' .. I .. '"'
+        elseif ArgType == 'number' then
+            Value = tostring(math.random(1, 100))
+        elseif ArgType == 'boolean' then
+            Value = math.random() > 0.5 and 'true' or 'false'
+        else
+            Value = '{ ... }'
         end
 
-        Socket = nil
-        Reconnecting = true
-        wait(RECONNECT_DELAY)
-        Reconnecting = false
-        Connect()
-    end)
+        table.insert(DummyArgs, {
+            type = ArgType,
+            value = Value
+        })
+    end
 
-    -- Send ready message immediately after handlers are set up
-    Ready()
+    -- Build remote call event
+    local CallEvent = {
+        type = 'rspy_call',
+        remoteId = Remote.id,
+        name = Remote.name,
+        path = Remote.path,
+        remoteType = Remote.type,
+        direction = Direction,
+        timestamp = os.date('!%Y-%m-%dT%H:%M:%S') .. '.000Z',
+        arguments = DummyArgs,
+        callingScript = Script.name,
+        callingScriptPath = Script.path
+    }
 
-    -- Register in a separate thread to avoid blocking auto-execute scripts
-    coroutine.wrap(Register)()
+    -- Add return value for RemoteFunctions with incoming direction
+    if Remote.type == 'RemoteFunction' and Direction == 'incoming' then
+        CallEvent.returnValue = {
+            type = math.random() > 0.5 and 'boolean' or 'table',
+            value = math.random() > 0.5 and 'true' or '{ success = true }'
+        }
+    end
+
+    SendRemoteSpyMessage(CallEvent)
+end
+
+function RspyDecompile(ScriptPath)
+    -- Send dummy decompiled code
+    local DummyCode = string.format([[
+-- Decompiled from: %s
+-- This is dummy decompiled code
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+print("Hello from %s")
+
+-- More dummy code here
+while task.wait(1) do
+    print("Still running...")
+end
+]], ScriptPath, ScriptPath)
+
+    SendRemoteSpyMessage({
+        type = 'rspy_decompiled',
+        scriptPath = ScriptPath,
+        source = DummyCode
+    })
+
+    Log(LOG_SUCCESS, 'Sent dummy decompiled code for: ' .. ScriptPath)
+end
+
+function RspyGenerateCode(CallId, Name, Path, RemoteType, Direction, Arguments)
+    -- Generate dummy code
+    local Args = {}
+    for I = 1, #Arguments do
+        table.insert(Args, Arguments[I].value)
+    end
+    local ArgsStr = table.concat(Args, ', ')
+
+    local PathParts = {}
+    for Part in string.gmatch(Path, '[^.]+') do
+        table.insert(PathParts, Part)
+    end
+
+    local Service = PathParts[1]
+    local RestPath = table.concat(PathParts, '.', 2)
+
+    local Code
+    if RemoteType == 'RemoteEvent' then
+        local Method = Direction == 'outgoing' and 'FireServer' or 'FireClient'
+        local Target = Direction == 'outgoing' and '' or 'player, '
+        Code = string.format('game:GetService("%s").%s:%s(%s%s)', Service, RestPath, Method, Target, ArgsStr)
+    else
+        local Method = Direction == 'outgoing' and 'InvokeServer' or 'InvokeClient'
+        local Target = Direction == 'outgoing' and '' or 'player, '
+        Code = string.format('local result = game:GetService("%s").%s:%s(%s%s)', Service, RestPath, Method, Target, ArgsStr)
+    end
+
+    SendRemoteSpyMessage({
+        type = 'rspy_generated_code',
+        callId = CallId,
+        code = Code
+    })
+
+    Log(LOG_SUCCESS, 'Sent dummy generated code for call: ' .. CallId)
 end
 
 --/ Main /--
--- Setup console functions in getgenv()
 local Env = getgenv()
 
 Env.printconsole = function(...)
