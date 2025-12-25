@@ -122,10 +122,71 @@
     }
 }
 
+/* Custom properties for scrollbar transitions */
+@property --scrollbar-thumb-color {
+    syntax: "<color>";
+    inherits: true;
+    initial-value: transparent;
+}
+
+@property --scrollbar-width {
+    syntax: "<length>";
+    inherits: true;
+    initial-value: 0px;
+}
+
 /* Custom scrollbar styling */
 * {
-    scrollbar-width: thin;
-    scrollbar-color: #212121 #171717;
+    --scrollbar-thumb-color: transparent;
+    --scrollbar-width: 0px;
+}
+
+/* Apply transitions only to scrollable elements */
+[style*="overflow"],
+[class*="overflow-auto"],
+[class*="overflow-scroll"],
+[class*="overflow-y"],
+[class*="overflow-x"] {
+    transition:
+        --scrollbar-thumb-color 200ms ease,
+        --scrollbar-width 200ms ease;
+}
+
+*:hover {
+    --scrollbar-thumb-color: #212121;
+    --scrollbar-width: 8px;
+}
+
+::-webkit-scrollbar {
+    width: var(--scrollbar-width);
+    height: var(--scrollbar-width);
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb-color);
+    border-radius: 4px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* Tab bar specific scrollbar color */
+.bg-tab-bar:hover {
+    --scrollbar-thumb-color: #2a2a2a;
+}
+
+/* Settings and Script Hub - always visible scrollbars */
+[data-page="settings"] *,
+[data-page="script-hub"] * {
+    --scrollbar-thumb-color: #212121;
+    --scrollbar-width: 8px;
 }
 
 /* Sonner toast description styling */

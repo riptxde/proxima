@@ -53,6 +53,7 @@ onBeforeUnmount(() => {
 
 <template>
     <div
+        data-page="remote-spy"
         class="h-full overflow-hidden flex flex-col rounded-lg border border-border shadow-sm"
     >
         <div class="flex-1 overflow-hidden p-4 pb-0 flex flex-col gap-4">
