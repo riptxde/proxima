@@ -115,8 +115,6 @@ async fn handle_client(
                                 &tx,
                                 &clients_clone,
                                 &app_handle_clone,
-                                &active_explorer,
-                                &active_remote_spy,
                                 &missed_pings,
                             )
                             .await;
@@ -151,7 +149,6 @@ async fn handle_client(
 }
 
 /// Route incoming messages to appropriate handlers
-#[allow(clippy::too_many_arguments)]
 async fn handle_message(
     msg: ClientMessage,
     client_id: &mut Option<String>,
@@ -159,8 +156,6 @@ async fn handle_message(
     tx: &mpsc::UnboundedSender<Message>,
     clients: &ClientRegistry,
     app_handle: &AppHandle,
-    active_explorer: &ActiveExplorerClient,
-    active_remote_spy: &ActiveRemoteSpyClient,
     missed_pings: &Arc<RwLock<u32>>,
 ) {
     match msg {
@@ -200,18 +195,14 @@ async fn handle_message(
             }
         }
         ClientMessage::ExpTree { nodes } => {
-            if explorer::is_active_explorer(client_id, active_explorer).await {
-                explorer::handle_exp_tree(app_handle, nodes);
-            }
+            explorer::handle_exp_tree(app_handle, nodes);
         }
         ClientMessage::ExpProperties {
             id,
             props,
             special_props,
         } => {
-            if explorer::is_active_explorer(client_id, active_explorer).await {
-                explorer::handle_exp_properties(app_handle, id, props, special_props);
-            }
+            explorer::handle_exp_properties(app_handle, id, props, special_props);
         }
         ClientMessage::ExpSearchResults {
             query,
@@ -219,60 +210,50 @@ async fn handle_message(
             total,
             limited,
         } => {
-            if explorer::is_active_explorer(client_id, active_explorer).await {
-                explorer::handle_exp_search_results(app_handle, query, results, total, limited);
-            }
+            explorer::handle_exp_search_results(app_handle, query, results, total, limited);
         }
         ClientMessage::ExpTreeChanged => {
-            if explorer::is_active_explorer(client_id, active_explorer).await {
-                explorer::handle_exp_tree_changed(app_handle);
-            }
+            explorer::handle_exp_tree_changed(app_handle);
         }
         ClientMessage::ExpDecompiled { id, source } => {
-            if explorer::is_active_explorer(client_id, active_explorer).await {
-                explorer::handle_exp_decompiled(app_handle, id, source);
-            }
+            explorer::handle_exp_decompiled(app_handle, id, source);
         }
         ClientMessage::RspyCall {
+            call_id,
             remote_id,
             name,
             path,
-            remote_type,
+            class,
             direction,
             timestamp,
             arguments,
             return_value,
-            calling_script,
+            calling_script_name,
             calling_script_path,
         } => {
-            if remote_spy::is_active_remote_spy(client_id, active_remote_spy).await {
-                remote_spy::handle_rspy_call(
-                    app_handle,
-                    remote_id,
-                    name,
-                    path,
-                    remote_type,
-                    direction,
-                    timestamp,
-                    arguments,
-                    return_value,
-                    calling_script,
-                    calling_script_path,
-                );
-            }
+            remote_spy::handle_rspy_call(
+                app_handle,
+                call_id,
+                remote_id,
+                name,
+                path,
+                class,
+                direction,
+                timestamp,
+                arguments,
+                return_value,
+                calling_script_name,
+                calling_script_path,
+            );
         }
         ClientMessage::RspyDecompiled {
             script_path,
             source,
         } => {
-            if remote_spy::is_active_remote_spy(client_id, active_remote_spy).await {
-                remote_spy::handle_rspy_decompiled(app_handle, script_path, source);
-            }
+            remote_spy::handle_rspy_decompiled(app_handle, script_path, source);
         }
         ClientMessage::RspyGeneratedCode { call_id, code } => {
-            if remote_spy::is_active_remote_spy(client_id, active_remote_spy).await {
-                remote_spy::handle_rspy_generated_code(app_handle, call_id, code);
-            }
+            remote_spy::handle_rspy_generated_code(app_handle, call_id, code);
         }
     }
 }

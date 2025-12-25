@@ -1,5 +1,5 @@
 use crate::models::explorer::*;
-use crate::state::{ActiveExplorerClient, ClientRegistry};
+use crate::state::ClientRegistry;
 use crate::utils::events::emit_or_log;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -7,19 +7,6 @@ use tauri::AppHandle;
 
 use super::super::client_manager::send_to_client;
 use super::super::messages::ServerMessage;
-
-/// Check if a client is the active explorer client
-pub async fn is_active_explorer(
-    client_id: &Option<String>,
-    active_explorer: &ActiveExplorerClient,
-) -> bool {
-    if let Some(id) = client_id {
-        let active = active_explorer.read().await;
-        active.as_ref() == Some(id)
-    } else {
-        false
-    }
-}
 
 /// Emit an explorer event to the frontend
 pub fn emit_explorer_event<T: Serialize + Clone>(

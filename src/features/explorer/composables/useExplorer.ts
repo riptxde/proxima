@@ -80,13 +80,12 @@ export function useExplorer() {
     id: string,
     className: string,
     name: string,
-    pathString?: string,
   ) => {
     try {
       selectedItemId.value = id;
       selectedItemName.value = name;
       selectedItemClassName.value = className;
-      selectedItemPathString.value = pathString || null;
+      selectedItemPathString.value = null; // Will be set from property data
       selectedProperty.value = null; // Clear property selection when selecting an instance
 
       await invoke("exp_get_properties", {
@@ -149,13 +148,8 @@ export function useExplorer() {
       expGetTree(Array.from(expandedIds.value));
     });
 
-    // Select the target instance with path string from search result
-    await expGetProperties(
-      result.id,
-      result.className,
-      result.name,
-      result.pathString,
-    );
+    // Select the target instance
+    await expGetProperties(result.id, result.className, result.name);
 
     // Wait for DOM to update, then scroll to the selected item
     await nextTick();
@@ -201,6 +195,16 @@ export function useExplorer() {
           event.payload.props,
           event.payload.specialProps,
         );
+
+        // Set pathString from first property (all properties have the same pathString)
+        const allProps = {
+          ...event.payload.props,
+          ...event.payload.specialProps,
+        };
+        const firstPropKey = Object.keys(allProps)[0];
+        if (firstPropKey && allProps[firstPropKey].pathString) {
+          selectedItemPathString.value = allProps[firstPropKey].pathString;
+        }
       }
     });
 
@@ -319,7 +323,8 @@ function convertPropertiesToArray(
       deprecated: data.deprecated || false,
       hidden: data.hidden || false,
       notScriptable: data.notScriptable || false,
-      example: data.example,
+      pathString: data.pathString || "",
+      propertyCode: data.propertyCode,
     });
   }
 
@@ -332,7 +337,8 @@ function convertPropertiesToArray(
       deprecated: data.deprecated || false,
       hidden: data.hidden || false,
       notScriptable: data.notScriptable || false,
-      example: data.example,
+      pathString: data.pathString || "",
+      propertyCode: data.propertyCode,
     });
   }
 

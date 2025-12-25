@@ -52,7 +52,7 @@ const handleSendToEditor = () => {
     openFileAsTab(props.script.title, props.script.script);
     navigate("editor");
     toast.success("Script sent to editor", {
-        description: `Name: ${props.script.title}`,
+        description: `Script: ${props.script.title}`,
     });
 };
 

@@ -58,12 +58,13 @@ pub(super) enum ClientMessage {
     ExpDecompiled { id: u32, source: String },
     #[serde(rename = "rspy_call")]
     RspyCall {
+        #[serde(rename = "callId")]
+        call_id: u32,
         #[serde(rename = "remoteId")]
         remote_id: u32,
         name: String,
         path: String,
-        #[serde(rename = "remoteType")]
-        remote_type: String,
+        class: String,
         direction: String,
         timestamp: String,
         arguments: Vec<RemoteArgument>,
@@ -71,8 +72,8 @@ pub(super) enum ClientMessage {
         #[serde(rename = "returnValue")]
         return_value: Option<RemoteArgument>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        #[serde(rename = "callingScript")]
-        calling_script: Option<String>,
+        #[serde(rename = "callingScriptName")]
+        calling_script_name: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         #[serde(rename = "callingScriptPath")]
         calling_script_path: Option<String>,
@@ -86,7 +87,7 @@ pub(super) enum ClientMessage {
     #[serde(rename = "rspy_generated_code")]
     RspyGeneratedCode {
         #[serde(rename = "callId")]
-        call_id: String,
+        call_id: u32,
         code: String,
     },
 }
@@ -117,12 +118,6 @@ pub(super) enum ServerMessage {
     #[serde(rename = "rspy_generate_code")]
     RspyGenerateCode {
         #[serde(rename = "callId")]
-        call_id: String,
-        name: String,
-        path: String,
-        #[serde(rename = "remoteType")]
-        remote_type: String,
-        direction: String,
-        arguments: Vec<RemoteArgument>,
+        call_id: u32,
     },
 }

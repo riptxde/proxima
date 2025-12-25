@@ -133,7 +133,7 @@ local function HandleMessage(Message)
     elseif Data.type == 'rspy_decompile' then
         RspyDecompile(Data.scriptPath)
     elseif Data.type == 'rspy_generate_code' then
-        RspyGenerateCode(Data.callId, Data.name, Data.path, Data.remoteType, Data.direction, Data.arguments or {})
+        RspyGenerateCode(Data.callId)
     end
 end
 
@@ -255,6 +255,55 @@ local function EscapeInstanceName(Name)
         -- Need bracket notation with escaped string
         return "[" .. EscapeStringLiteral(Name) .. "]"
     end
+end
+
+local function BuildInstancePath(Instance)
+    -- Build a Lua path string for the instance
+    local PathParts = {}
+    local Current = Instance
+
+    -- Build path from instance up to game
+    while Current and Current ~= game do
+        table.insert(PathParts, 1, EscapeInstanceName(Current.Name))
+        Current = Current.Parent
+    end
+
+    -- Determine root
+    local PathRoot = "game"
+
+    if #PathParts > 0 then
+        -- Check if the top-level parent is a direct child of game
+        local TopParent = Instance
+        while TopParent.Parent and TopParent.Parent ~= game do
+            TopParent = TopParent.Parent
+        end
+
+        if TopParent.Parent == game then
+            -- Check if it's Workspace
+            if TopParent:IsA("Workspace") then
+                PathRoot = "workspace"
+                table.remove(PathParts, 1) -- Remove Workspace from parts
+            else
+                -- Check if it's a service
+                local Success, Service = pcall(function()
+                    return game:GetService(TopParent.ClassName)
+                end)
+
+                if Success and Service == TopParent then
+                    PathRoot = "game:GetService(" .. EscapeStringLiteral(TopParent.ClassName) .. ")"
+                    table.remove(PathParts, 1) -- Remove service name from parts
+                end
+            end
+        end
+    end
+
+    -- Build final path
+    local PathString = PathRoot
+    if #PathParts > 0 then
+        PathString = PathRoot .. table.concat(PathParts, "")
+    end
+
+    return PathString
 end
 
 local function GetOrCreateId(Instance)
@@ -449,6 +498,9 @@ function ExpGetProperties(Id, Properties, SpecialProperties)
     local Props = {}
     local SpecialProps = {}
 
+    -- Build the instance path once for all properties
+    local InstancePath = BuildInstancePath(Instance)
+
     -- Check if gethiddenproperty is available for special properties
     local HasGetHiddenProperty = type(gethiddenproperty) == 'function'
 
@@ -460,6 +512,16 @@ function ExpGetProperties(Id, Properties, SpecialProperties)
         end)
 
         if Success then
+            -- Generate property code example
+            local PropertyCode = string.format([[-- Get the instance
+local instance = %s
+
+-- Get the property value
+local value = instance.%s
+
+-- Set the property value
+instance.%s = value]], InstancePath, PropName, PropName)
+
             Props[PropName] = {
                 value = tostring(Value),
                 type = typeof(Value),
@@ -467,10 +529,8 @@ function ExpGetProperties(Id, Properties, SpecialProperties)
                 deprecated = PropMetadata.deprecated,
                 hidden = PropMetadata.hidden,
                 notScriptable = PropMetadata.not_scriptable,
-                example = {
-                    get = "local value = instance." .. PropName,
-                    set = "instance." .. PropName .. " = value"
-                }
+                pathString = InstancePath,
+                propertyCode = PropertyCode
             }
         end
     end
@@ -484,6 +544,16 @@ function ExpGetProperties(Id, Properties, SpecialProperties)
             end)
 
             if Success then
+                -- Generate property code example for hidden properties
+                local PropertyCode = string.format([[-- Get the instance
+local instance = %s
+
+-- Get the property value
+local value = gethiddenproperty(instance, %s)
+
+-- Set the property value
+sethiddenproperty(instance, %s, value)]], InstancePath, EscapeStringLiteral(PropName), EscapeStringLiteral(PropName))
+
                 SpecialProps[PropName] = {
                     value = tostring(Value),
                     type = typeof(Value),
@@ -491,10 +561,8 @@ function ExpGetProperties(Id, Properties, SpecialProperties)
                     deprecated = PropMetadata.deprecated,
                     hidden = PropMetadata.hidden,
                     notScriptable = PropMetadata.not_scriptable,
-                    example = {
-                        get = "local value = gethiddenproperty(instance, '" .. PropName .. "')",
-                        set = "sethiddenproperty(instance, '" .. PropName .. "', value)"
-                    }
+                    pathString = InstancePath,
+                    propertyCode = PropertyCode
                 }
             end
         end
@@ -689,9 +757,8 @@ end
 
 --/ Remote Spy /--
 local RemoteSpyActive = false
-local RemoteCallCounter = 0
-local RemoteInstances = {} -- Maps remote instance -> ID
-local NextRemoteId = 1
+local RemoteCallData = {} -- Maps call ID -> call data for code generation
+local NextCallId = 1
 
 -- Remote Spy Functions
 local function SendRemoteSpyMessage(Data)
@@ -730,8 +797,6 @@ function RspyStop()
 end
 
 function SendDummyRemoteCall()
-    RemoteCallCounter = RemoteCallCounter + 1
-
     -- Dummy remotes to cycle through (each represents a unique "instance")
     local DummyRemotes = {
         {
@@ -805,17 +870,22 @@ function SendDummyRemoteCall()
         })
     end
 
+    -- Generate unique call ID
+    local CallId = NextCallId
+    NextCallId = NextCallId + 1
+
     -- Build remote call event
     local CallEvent = {
         type = 'rspy_call',
+        callId = CallId,
         remoteId = Remote.id,
         name = Remote.name,
         path = Remote.path,
-        remoteType = Remote.type,
+        class = Remote.type,
         direction = Direction,
         timestamp = os.date('!%Y-%m-%dT%H:%M:%S') .. '.000Z',
         arguments = DummyArgs,
-        callingScript = Script.name,
+        callingScriptName = Script.name,
         callingScriptPath = Script.path
     }
 
@@ -826,6 +896,15 @@ function SendDummyRemoteCall()
             value = math.random() > 0.5 and 'true' or '{ success = true }'
         }
     end
+
+    -- Store call data for later code generation
+    RemoteCallData[CallId] = {
+        name = Remote.name,
+        path = Remote.path,
+        class = Remote.type,
+        direction = Direction,
+        arguments = DummyArgs
+    }
 
     SendRemoteSpyMessage(CallEvent)
 end
@@ -852,20 +931,25 @@ end
         scriptPath = ScriptPath,
         source = DummyCode
     })
-
-    Log(LOG_SUCCESS, 'Sent dummy decompiled code for: ' .. ScriptPath)
 end
 
-function RspyGenerateCode(CallId, Name, Path, RemoteType, Direction, Arguments)
-    -- Generate dummy code
+function RspyGenerateCode(CallId)
+    -- Look up stored call data
+    local CallData = RemoteCallData[CallId]
+    if not CallData then
+        Log(LOG_ERROR, 'Call ID not found: ' .. tostring(CallId))
+        return
+    end
+
+    -- Generate code from stored data
     local Args = {}
-    for I = 1, #Arguments do
-        table.insert(Args, Arguments[I].value)
+    for I = 1, #CallData.arguments do
+        table.insert(Args, CallData.arguments[I].value)
     end
     local ArgsStr = table.concat(Args, ', ')
 
     local PathParts = {}
-    for Part in string.gmatch(Path, '[^.]+') do
+    for Part in string.gmatch(CallData.path, '[^.]+') do
         table.insert(PathParts, Part)
     end
 
@@ -873,13 +957,13 @@ function RspyGenerateCode(CallId, Name, Path, RemoteType, Direction, Arguments)
     local RestPath = table.concat(PathParts, '.', 2)
 
     local Code
-    if RemoteType == 'RemoteEvent' then
-        local Method = Direction == 'outgoing' and 'FireServer' or 'FireClient'
-        local Target = Direction == 'outgoing' and '' or 'player, '
+    if CallData.class == 'RemoteEvent' then
+        local Method = CallData.direction == 'outgoing' and 'FireServer' or 'FireClient'
+        local Target = CallData.direction == 'outgoing' and '' or 'player, '
         Code = string.format('game:GetService("%s").%s:%s(%s%s)', Service, RestPath, Method, Target, ArgsStr)
     else
-        local Method = Direction == 'outgoing' and 'InvokeServer' or 'InvokeClient'
-        local Target = Direction == 'outgoing' and '' or 'player, '
+        local Method = CallData.direction == 'outgoing' and 'InvokeServer' or 'InvokeClient'
+        local Target = CallData.direction == 'outgoing' and '' or 'player, '
         Code = string.format('local result = game:GetService("%s").%s:%s(%s%s)', Service, RestPath, Method, Target, ArgsStr)
     end
 
@@ -888,8 +972,6 @@ function RspyGenerateCode(CallId, Name, Path, RemoteType, Direction, Arguments)
         callId = CallId,
         code = Code
     })
-
-    Log(LOG_SUCCESS, 'Sent dummy generated code for call: ' .. CallId)
 end
 
 --/ Main /--

@@ -11,13 +11,6 @@ pub struct ExplorerNode {
     pub children: Vec<ExplorerNode>,
 }
 
-/// Example code for getting and setting a property
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct PropertyExample {
-    pub get: String,
-    pub set: String,
-}
-
 /// Property data for an instance
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PropertyData {
@@ -28,8 +21,10 @@ pub struct PropertyData {
     pub hidden: bool,
     #[serde(rename = "notScriptable")]
     pub not_scriptable: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub example: Option<PropertyExample>,
+    #[serde(rename = "pathString")]
+    pub path_string: String,
+    #[serde(rename = "propertyCode")]
+    pub property_code: String,
 }
 
 /// Search result item

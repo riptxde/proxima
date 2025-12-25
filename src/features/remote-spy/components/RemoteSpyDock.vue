@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { Play, Square, Trash2, Code2, Scroll } from "lucide-vue-next";
 import { Dock, DockIcon } from "@/components/ui/dock";
 import LiquidGlass from "@/components/shared/LiquidGlass.vue";
@@ -23,7 +23,8 @@ const {
     remotes,
     stopSpy,
     clearCalls,
-    generateCodeForCall,
+    generateCode,
+    decompileScript,
 } = useRemoteSpy();
 const { openFileAsTab } = useEditorTabs();
 const { navigate } = useNavigation();
@@ -61,42 +62,40 @@ const handleStopSpy = async () => {
     }
 };
 
-const handleSendCodeToEditor = () => {
-    if (!isCallSelected.value || !selectedRemote.value) {
+const handleSendCodeToEditor = async () => {
+    if (!isCallSelected.value || !selectedRemote.value || !selectedCall.value) {
         toast.error("Could not send code", {
             description: "No remote call selected",
         });
         return;
     }
 
-    const remote = selectedRemote.value;
-    const call = selectedCall.value!;
-    const code = generateCodeForCall(remote, call);
+    const call = selectedCall.value;
 
     try {
-        openFileAsTab(`${remote.name} Call`, code);
-        navigate("editor");
-        toast.success("Code sent to editor", {
-            description: `${remote.name} calling code`,
-        });
+        await generateCode(call.id);
     } catch (error) {
-        toast.error("Failed to send code to editor", {
+        toast.error("Failed to generate code", {
             description: String(error),
         });
     }
 };
 
-const handleDecompile = () => {
-    if (!hasCallingScript.value) {
+const handleDecompile = async () => {
+    if (!hasCallingScript.value || !selectedCall.value?.callingScriptPath) {
         toast.error("Could not decompile", {
             description: "No calling script available",
         });
         return;
     }
 
-    toast.info("Decompile functionality will be implemented soon", {
-        description: "Coming in a future update",
-    });
+    try {
+        await decompileScript(selectedCall.value.callingScriptPath);
+    } catch (error) {
+        toast.error("Failed to decompile script", {
+            description: String(error),
+        });
+    }
 };
 
 const handleClearCalls = () => {
@@ -118,6 +117,63 @@ watch(showClientDialog, (newValue, oldValue) => {
     if (oldValue && !newValue) {
         dockTooltipKey.value++;
     }
+});
+
+// Listen for generated code and send to editor
+const handleCodeGenerated = (event: Event) => {
+    const customEvent = event as CustomEvent<{ callId: number; code: string }>;
+    const { code } = customEvent.detail;
+
+    if (!selectedRemote.value) return;
+
+    try {
+        openFileAsTab(`${selectedRemote.value.name} Call`, code);
+        navigate("editor");
+        toast.success("Code sent to editor", {
+            description: `${selectedRemote.value.name} calling code`,
+        });
+    } catch (error) {
+        toast.error("Failed to send code to editor", {
+            description: String(error),
+        });
+    }
+};
+
+// Listen for decompiled code and send to editor
+const handleDecompiled = (event: Event) => {
+    const customEvent = event as CustomEvent<{
+        scriptPath: string;
+        source: string;
+    }>;
+    const { scriptPath, source } = customEvent.detail;
+
+    // Extract script name from path
+    const scriptName = scriptPath.split(".").pop() || "Script";
+
+    try {
+        openFileAsTab(`${scriptName} (Decompiled)`, source);
+        navigate("editor");
+        toast.success("Decompiled code sent to editor", {
+            description: `Script: ${scriptName}`,
+        });
+    } catch (error) {
+        toast.error("Failed to send decompiled code to editor", {
+            description: String(error),
+        });
+    }
+};
+
+onMounted(() => {
+    window.addEventListener("remote-spy-code-generated", handleCodeGenerated);
+    window.addEventListener("remote-spy-decompiled", handleDecompiled);
+});
+
+onUnmounted(() => {
+    window.removeEventListener(
+        "remote-spy-code-generated",
+        handleCodeGenerated,
+    );
+    window.removeEventListener("remote-spy-decompiled", handleDecompiled);
 });
 </script>
 

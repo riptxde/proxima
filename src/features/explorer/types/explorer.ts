@@ -14,10 +14,8 @@ export interface ExplorerProperty {
   deprecated: boolean;
   hidden: boolean;
   notScriptable: boolean;
-  example?: {
-    get: string;
-    set: string;
-  };
+  pathString: string;
+  propertyCode: string;
 }
 
 export interface ExplorerClient {

@@ -109,7 +109,7 @@ const handleSendInstanceNameToEditorClick = () => {
         openFileAsTab("Instance Path", code);
         navigate("editor");
         toast.success("Instance path sent to editor", {
-            description: selectedItemPathString.value!,
+            description: `Instance: ${selectedItemName.value!}`,
         });
     } catch (error) {
         addLog("error", `Failed to send instance path to editor: ${error}`);
@@ -128,30 +128,12 @@ const handleSendCodeToEditorClick = () => {
     }
 
     const property = selectedProperty.value!;
-    const pathString = selectedItemPathString.value!;
-
-    if (!property.example) {
-        toast.error("Could not send code", {
-            description: "No example code available for this property",
-        });
-        return;
-    }
-
-    // Generate the code snippet
-    const code = `-- Get the instance
-local instance = ${pathString}
-
--- Get the property value
-${property.example.get}
-
--- Set the property value
-${property.example.set}`;
 
     try {
-        openFileAsTab(`${property.name} Example`, code);
+        openFileAsTab(`${property.name} Example`, property.propertyCode);
         navigate("editor");
         toast.success("Code sent to editor", {
-            description: `${property.name} example code`,
+            description: `Generated ${property.name} example code`,
         });
     } catch (error) {
         addLog("error", `Failed to send code to editor: ${error}`);
@@ -196,7 +178,7 @@ onMounted(async () => {
             openFileAsTab(scriptName, event.payload.source);
             navigate("editor");
             toast.success("Script decompiled and sent to editor", {
-                description: scriptName,
+                description: `Script: ${scriptName}`,
             });
         } catch (error) {
             addLog(

@@ -5,12 +5,12 @@ export type RemoteType = "RemoteEvent" | "RemoteFunction";
  * Represents a single remote call event
  */
 export interface RemoteCall {
-  id: string;
+  id: number;
   timestamp: Date;
   direction: RemoteDirection;
   arguments: RemoteArgument[];
   returnValue?: RemoteArgument;
-  callingScript?: string;
+  callingScriptName?: string;
   callingScriptPath?: string;
 }
 

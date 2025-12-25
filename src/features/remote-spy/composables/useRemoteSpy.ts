@@ -9,13 +9,12 @@ import type {
   RemoteDirection,
   RemoteType,
   RemoteSpyClient,
-  RemoteArgument,
 } from "../types/remote-spy";
 
 // State
 const remotes = ref<Remote[]>([]);
 const selectedRemoteId = ref<number | null>(null);
-const selectedCallId = ref<string | null>(null);
+const selectedCallId = ref<number | null>(null);
 const isSpyActive = ref(false);
 const selectedClient = ref<RemoteSpyClient | null>(null);
 const availableClients = ref<RemoteSpyClient[]>([]);
@@ -140,7 +139,7 @@ export function useRemoteSpy() {
   /**
    * Select a call
    */
-  const selectCall = (id: string) => {
+  const selectCall = (id: number) => {
     selectedCallId.value = id;
   };
 
@@ -221,23 +220,9 @@ export function useRemoteSpy() {
     }
   };
 
-  const rspyGenerateCode = async (
-    callId: string,
-    name: string,
-    path: string,
-    remoteType: string,
-    direction: string,
-    args: RemoteArgument[],
-  ) => {
+  const rspyGenerateCode = async (callId: number) => {
     try {
-      await invoke("rspy_generate_code", {
-        callId,
-        name,
-        path,
-        remoteType,
-        direction,
-        arguments: args,
-      });
+      await invoke("rspy_generate_code", { callId });
     } catch (error) {
       addLog("error", `Failed to generate code: ${error}`);
       throw error;
@@ -262,7 +247,7 @@ export function useRemoteSpy() {
           id: callData.remoteId,
           name: callData.name,
           path: callData.path,
-          type: callData.remoteType as RemoteType,
+          type: callData.class as RemoteType,
           calls: [],
         };
         remotes.value.push(remote);
@@ -270,12 +255,12 @@ export function useRemoteSpy() {
 
       // Create call object
       const call: RemoteCall = {
-        id: `${callData.remoteId}-call-${Date.now()}-${Math.random()}`,
+        id: callData.callId,
         timestamp: new Date(callData.timestamp),
         direction: callData.direction as RemoteDirection,
         arguments: callData.arguments || [],
         returnValue: callData.returnValue,
-        callingScript: callData.callingScript,
+        callingScriptName: callData.callingScriptName,
         callingScriptPath: callData.callingScriptPath,
       };
 
@@ -295,16 +280,25 @@ export function useRemoteSpy() {
       scriptPath: string;
       source: string;
     }>("remote-spy-decompiled", (event) => {
-      // TODO: Handle decompiled code (open in editor?)
-      addLog("success", `Decompiled script: ${event.payload.scriptPath}`);
+      // Emit a custom event that components can listen to
+      window.dispatchEvent(
+        new CustomEvent("remote-spy-decompiled", {
+          detail: event.payload,
+        }),
+      );
     });
 
     unlistenRemoteSpyGeneratedCode = await listen<{
-      callId: string;
+      callId: number;
       code: string;
     }>("remote-spy-generated-code", (event) => {
-      // TODO: Handle generated code (open in editor?)
-      addLog("success", `Generated code for call: ${event.payload.callId}`);
+      // Store the generated code temporarily
+      // Emit a custom event that components can listen to
+      window.dispatchEvent(
+        new CustomEvent("remote-spy-code-generated", {
+          detail: event.payload,
+        }),
+      );
     });
   };
 
@@ -334,28 +328,6 @@ export function useRemoteSpy() {
     unlistenRemoteSpyGeneratedCode?.();
   };
 
-  /**
-   * Generate Lua code for a remote call (client-side fallback)
-   */
-  const generateCodeForCall = (remote: Remote, call: RemoteCall): string => {
-    const args = call.arguments.map((arg) => arg.value).join(", ");
-    const pathParts = remote.path.split(".");
-    const service = pathParts[0];
-    const path = pathParts.slice(1).join(".");
-
-    if (remote.type === "RemoteEvent") {
-      const method =
-        call.direction === "outgoing" ? "FireServer" : "FireClient";
-      const target = call.direction === "outgoing" ? "" : "player, ";
-      return `game:GetService("${service}").${path}:${method}(${target}${args})`;
-    } else {
-      const method =
-        call.direction === "outgoing" ? "InvokeServer" : "InvokeClient";
-      const target = call.direction === "outgoing" ? "" : "player, ";
-      return `local result = game:GetService("${service}").${path}:${method}(${target}${args})`;
-    }
-  };
-
   return {
     // State
     remotes: filteredRemotes,
@@ -380,7 +352,6 @@ export function useRemoteSpy() {
     stopSpy: rspyStop,
     decompileScript: rspyDecompile,
     generateCode: rspyGenerateCode,
-    generateCodeForCall,
 
     // Listeners
     initializeListeners,

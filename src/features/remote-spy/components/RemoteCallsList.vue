@@ -13,11 +13,11 @@ import type { Remote } from "../types/remote-spy";
 
 interface Props {
     remote: Remote;
-    selectedCallId: string | null;
+    selectedCallId: number | null;
 }
 
 interface Emits {
-    (e: "select-call", id: string): void;
+    (e: "select-call", id: number): void;
     (e: "back"): void;
 }
 
