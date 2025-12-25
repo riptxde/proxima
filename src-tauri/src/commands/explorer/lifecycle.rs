@@ -1,6 +1,6 @@
 use crate::services::websocket::{send_start_explorer, send_stop_explorer};
-use crate::state::{ActiveExplorerClient, ClientRegistry};
-use crate::utils::client_helpers::verify_client_exists;
+use crate::state::{ActiveClientsState, ClientRegistry};
+use crate::utils::clients::verify_client_exists;
 use crate::utils::events::emit_or_error;
 use tauri::State;
 
@@ -8,15 +8,15 @@ use tauri::State;
 pub async fn exp_start(
     client_id: String,
     clients: State<'_, ClientRegistry>,
-    active_explorer: State<'_, ActiveExplorerClient>,
+    active_clients: State<'_, ActiveClientsState>,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
     log::info!("Starting explorer for client: {}", client_id);
 
     // Check if another client already has explorer active
     {
-        let active = active_explorer.read().await;
-        if let Some(existing_id) = active.as_ref() {
+        let active = active_clients.read().await;
+        if let Some(existing_id) = &active.explorer {
             if existing_id != &client_id {
                 return Err(format!(
                     "Explorer is already active for another client: {}",
@@ -33,8 +33,8 @@ pub async fn exp_start(
 
     // Set as active explorer client
     {
-        let mut active = active_explorer.write().await;
-        *active = Some(client_id.clone());
+        let mut active = active_clients.write().await;
+        active.explorer = Some(client_id.clone());
     }
 
     // Send start_explorer message to client
@@ -50,15 +50,15 @@ pub async fn exp_start(
 
 #[tauri::command]
 pub async fn exp_stop(
-    active_explorer: State<'_, ActiveExplorerClient>,
+    active_clients: State<'_, ActiveClientsState>,
     clients: State<'_, ClientRegistry>,
     app: tauri::AppHandle,
 ) -> Result<(), String> {
     log::info!("Stopping explorer");
 
     let client_id = {
-        let mut active = active_explorer.write().await;
-        active.take()
+        let mut active = active_clients.write().await;
+        active.explorer.take()
     };
 
     if let Some(id) = client_id {

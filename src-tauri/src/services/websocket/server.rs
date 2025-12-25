@@ -1,6 +1,4 @@
-use crate::state::{
-    ActiveExplorerClient, ActiveRemoteSpyClient, ApiDumpCache, ClientInfo, ClientRegistry,
-};
+use crate::state::{ActiveClientsState, ApiDumpCache, ClientInfo, ClientRegistry};
 use crate::utils::events::emit_or_log;
 use futures_util::{SinkExt, StreamExt};
 use std::net::SocketAddr;
@@ -21,8 +19,7 @@ use super::messages::ClientMessage;
 pub async fn start_websocket_server(
     app_handle: AppHandle,
     clients: ClientRegistry,
-    active_explorer: ActiveExplorerClient,
-    active_remote_spy: ActiveRemoteSpyClient,
+    active_clients: ActiveClientsState,
     api_dump_cache: ApiDumpCache,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let listener = TcpListener::bind("127.0.0.1:13376").await?;
@@ -35,8 +32,7 @@ pub async fn start_websocket_server(
     while let Ok((stream, addr)) = listener.accept().await {
         let clients = Arc::clone(&clients);
         let app_handle = app_handle.clone();
-        let active_explorer = Arc::clone(&active_explorer);
-        let active_remote_spy = Arc::clone(&active_remote_spy);
+        let active_clients = Arc::clone(&active_clients);
         let api_dump_cache = Arc::clone(&api_dump_cache);
 
         tauri::async_runtime::spawn(async move {
@@ -45,8 +41,7 @@ pub async fn start_websocket_server(
                 addr,
                 clients,
                 app_handle,
-                active_explorer,
-                active_remote_spy,
+                active_clients,
                 api_dump_cache,
             )
             .await
@@ -65,8 +60,7 @@ async fn handle_client(
     addr: SocketAddr,
     clients: ClientRegistry,
     app_handle: AppHandle,
-    active_explorer: ActiveExplorerClient,
-    active_remote_spy: ActiveRemoteSpyClient,
+    active_clients: ActiveClientsState,
     _api_dump_cache: ApiDumpCache,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let ws_stream = accept_async(stream).await?;
@@ -138,8 +132,7 @@ async fn handle_client(
         client_id,
         &clients_clone,
         &app_handle_clone,
-        &active_explorer,
-        &active_remote_spy,
+        &active_clients,
     )
     .await;
 
@@ -263,8 +256,7 @@ async fn handle_disconnect(
     client_id: Option<String>,
     clients: &ClientRegistry,
     app_handle: &AppHandle,
-    active_explorer: &ActiveExplorerClient,
-    active_remote_spy: &ActiveRemoteSpyClient,
+    active_clients: &ActiveClientsState,
 ) {
     if let Some(id) = client_id {
         // Get username before removing from registry
@@ -274,21 +266,20 @@ async fn handle_disconnect(
             .get(&id)
             .map(|info| info.username.clone());
 
-        // If this was the active explorer client, clean up explorer state
+        // Clean up active feature states for this client
         {
-            let mut active = active_explorer.write().await;
-            if active.as_ref() == Some(&id) {
-                *active = None;
+            let mut active = active_clients.write().await;
+
+            // If this was the active explorer client, clean up explorer state
+            if active.explorer.as_ref() == Some(&id) {
+                active.explorer = None;
                 emit_or_log(app_handle, "explorer-stopped", ());
                 log::info!("Active explorer client disconnected, clearing explorer state");
             }
-        }
 
-        // If this was the active remote spy client, clean up remote spy state
-        {
-            let mut active = active_remote_spy.write().await;
-            if active.as_ref() == Some(&id) {
-                *active = None;
+            // If this was the active remote spy client, clean up remote spy state
+            if active.remote_spy.as_ref() == Some(&id) {
+                active.remote_spy = None;
                 emit_or_log(app_handle, "remote-spy-stopped", ());
                 log::info!("Active remote spy client disconnected, clearing remote spy state");
             }

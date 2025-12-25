@@ -18,20 +18,19 @@ pub struct ClientInfo {
 /// Shared across all features (executor, explorer, remote spy).
 pub type ClientRegistry = Arc<RwLock<HashMap<String, ClientInfo>>>;
 
-/// Active explorer client
-///
-/// Stores the client ID of the currently active explorer session.
-/// Only one client can have explorer active at a time.
-pub type ActiveExplorerClient = Arc<RwLock<Option<String>>>;
-
 /// API dump cache
 ///
 /// Cached Roblox API dump service for property metadata.
 /// Shared across explorer features.
 pub type ApiDumpCache = Arc<RwLock<crate::services::api_dump::ApiDumpService>>;
 
-/// Active remote spy client
+/// Active feature clients
 ///
-/// Stores the client ID of the currently active remote spy session.
-/// Only one client can have remote spy active at a time.
-pub type ActiveRemoteSpyClient = Arc<RwLock<Option<String>>>;
+/// Stores which client (if any) is currently using each feature.
+/// The same client can use multiple features simultaneously.
+pub struct ActiveClients {
+    pub explorer: Option<String>,
+    pub remote_spy: Option<String>,
+}
+
+pub type ActiveClientsState = Arc<RwLock<ActiveClients>>;

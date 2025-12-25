@@ -39,13 +39,13 @@ pub fn run() {
             let clients: state::ClientRegistry = Arc::new(RwLock::new(HashMap::new()));
             app.manage(clients.clone());
 
-            // Initialize explorer state
-            let active_explorer: state::ActiveExplorerClient = Arc::new(RwLock::new(None));
-            app.manage(active_explorer.clone());
-
-            // Initialize remote spy state
-            let active_remote_spy: state::ActiveRemoteSpyClient = Arc::new(RwLock::new(None));
-            app.manage(active_remote_spy.clone());
+            // Initialize active clients state
+            let active_clients =
+                state::ActiveClientsState::new(RwLock::new(state::ActiveClients {
+                    explorer: None,
+                    remote_spy: None,
+                }));
+            app.manage(active_clients.clone());
 
             let api_dump_cache: state::ApiDumpCache =
                 Arc::new(RwLock::new(services::api_dump::ApiDumpService::new()));
@@ -68,8 +68,7 @@ pub fn run() {
                 if let Err(e) = services::websocket::start_websocket_server(
                     app_handle.clone(),
                     clients,
-                    active_explorer,
-                    active_remote_spy,
+                    active_clients,
                     api_dump_cache,
                 )
                 .await
