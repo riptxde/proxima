@@ -7,7 +7,7 @@ import {
     FunctionSquare,
     Radio,
 } from "lucide-vue-next";
-import type { Remote, RemoteCall, RemoteType } from "../types/remote-spy";
+import type { Remote, RemoteCall, RemoteClass } from "../types/remote-spy";
 
 interface Props {
     remote: Remote;
@@ -37,15 +37,15 @@ const getDirectionColor = (direction: "outgoing" | "incoming") => {
     return direction === "outgoing" ? "text-green-400" : "text-blue-400";
 };
 
-const getTypeIcon = (type: RemoteType) => {
-    if (type === "RemoteEvent") return Zap;
-    if (type === "RemoteFunction") return FunctionSquare;
+const getClassIcon = (remoteClass: RemoteClass) => {
+    if (remoteClass === "RemoteEvent") return Zap;
+    if (remoteClass === "RemoteFunction") return FunctionSquare;
     return Radio; // UnreliableRemoteEvent
 };
 
-const getTypeColor = (type: RemoteType) => {
-    if (type === "RemoteEvent") return "text-yellow-400";
-    if (type === "RemoteFunction") return "text-purple-400";
+const getClassColor = (remoteClass: RemoteClass) => {
+    if (remoteClass === "RemoteEvent") return "text-yellow-400";
+    if (remoteClass === "RemoteFunction") return "text-purple-400";
     return "text-orange-400"; // UnreliableRemoteEvent
 };
 </script>
@@ -95,24 +95,24 @@ const getTypeColor = (type: RemoteType) => {
                     }}</span>
                 </div>
 
-                <!-- Type Badge -->
+                <!-- Class Badge -->
                 <div
                     class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border"
                     :class="{
                         'bg-yellow-500/10 border-yellow-500/30':
-                            remote.type === 'RemoteEvent',
+                            remote.class === 'RemoteEvent',
                         'bg-purple-500/10 border-purple-500/30':
-                            remote.type === 'RemoteFunction',
+                            remote.class === 'RemoteFunction',
                         'bg-orange-500/10 border-orange-500/30':
-                            remote.type === 'UnreliableRemoteEvent',
+                            remote.class === 'UnreliableRemoteEvent',
                     }"
                 >
                     <component
-                        :is="getTypeIcon(remote.type)"
+                        :is="getClassIcon(remote.class)"
                         class="w-3 h-3"
-                        :class="getTypeColor(remote.type)"
+                        :class="getClassColor(remote.class)"
                     />
-                    <span class="text-xs font-medium">{{ remote.type }}</span>
+                    <span class="text-xs font-medium">{{ remote.class }}</span>
                 </div>
             </div>
         </div>

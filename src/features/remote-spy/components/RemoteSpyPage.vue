@@ -28,7 +28,7 @@ const {
     deselectRemote,
     selectCall,
     toggleDirectionFilter,
-    toggleTypeFilter,
+    toggleClassFilter,
     setSearchFilter,
 } = useRemoteSpy();
 
@@ -59,9 +59,9 @@ onMounted(async () => {
                         <!-- Filter Header -->
                         <RemoteFilters
                             :active-directions="filters.directions"
-                            :active-types="filters.types"
+                            :active-classes="filters.classes"
                             @toggle-direction="toggleDirectionFilter"
-                            @toggle-type="toggleTypeFilter"
+                            @toggle-class="toggleClassFilter"
                         />
 
                         <!-- Content Area -->

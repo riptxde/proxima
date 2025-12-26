@@ -12,16 +12,16 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { RemoteDirection, RemoteType } from "../types/remote-spy";
+import type { RemoteDirection, RemoteClass } from "../types/remote-spy";
 
 interface Props {
     activeDirections: RemoteDirection[];
-    activeTypes: RemoteType[];
+    activeClasses: RemoteClass[];
 }
 
 interface Emits {
     (e: "toggle-direction", direction: RemoteDirection): void;
-    (e: "toggle-type", type: RemoteType): void;
+    (e: "toggle-class", remoteClass: RemoteClass): void;
 }
 
 defineProps<Props>();
@@ -34,8 +34,11 @@ const isDirectionActive = (
     return activeDirections.includes(direction);
 };
 
-const isTypeActive = (type: RemoteType, activeTypes: RemoteType[]) => {
-    return activeTypes.includes(type);
+const isClassActive = (
+    remoteClass: RemoteClass,
+    activeClasses: RemoteClass[],
+) => {
+    return activeClasses.includes(remoteClass);
 };
 </script>
 
@@ -104,21 +107,26 @@ const isTypeActive = (type: RemoteType, activeTypes: RemoteType[]) => {
                 <!-- Divider -->
                 <div class="h-7 w-px bg-border/50" />
 
-                <!-- Type Filter Group -->
+                <!-- Class Filter Group -->
                 <div class="flex items-center gap-2.5">
                     <div
-                        class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide"
+                        class="text-xs font-medium text-muted-foreground uppercase tracking-wide"
                     >
-                        Type
+                        Class
                     </div>
                     <div class="flex items-center gap-1">
                         <Tooltip>
                             <TooltipTrigger as-child>
                                 <button
-                                    @click="$emit('toggle-type', 'RemoteEvent')"
+                                    @click="
+                                        $emit('toggle-class', 'RemoteEvent')
+                                    "
                                     class="relative flex items-center justify-center w-7 h-7 rounded-md transition-all border"
                                     :class="
-                                        isTypeActive('RemoteEvent', activeTypes)
+                                        isClassActive(
+                                            'RemoteEvent',
+                                            activeClasses,
+                                        )
                                             ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
                                             : 'text-muted-foreground hover:text-foreground hover:bg-card border-border/50'
                                     "
@@ -135,13 +143,13 @@ const isTypeActive = (type: RemoteType, activeTypes: RemoteType[]) => {
                             <TooltipTrigger as-child>
                                 <button
                                     @click="
-                                        $emit('toggle-type', 'RemoteFunction')
+                                        $emit('toggle-class', 'RemoteFunction')
                                     "
                                     class="relative flex items-center justify-center w-7 h-7 rounded-md transition-all border"
                                     :class="
-                                        isTypeActive(
+                                        isClassActive(
                                             'RemoteFunction',
-                                            activeTypes,
+                                            activeClasses,
                                         )
                                             ? 'bg-purple-500/10 text-purple-400 border-purple-500/30'
                                             : 'text-muted-foreground hover:text-foreground hover:bg-card border-border/50'
@@ -160,15 +168,15 @@ const isTypeActive = (type: RemoteType, activeTypes: RemoteType[]) => {
                                 <button
                                     @click="
                                         $emit(
-                                            'toggle-type',
+                                            'toggle-class',
                                             'UnreliableRemoteEvent',
                                         )
                                     "
                                     class="relative flex items-center justify-center w-7 h-7 rounded-md transition-all border"
                                     :class="
-                                        isTypeActive(
+                                        isClassActive(
                                             'UnreliableRemoteEvent',
-                                            activeTypes,
+                                            activeClasses,
                                         )
                                             ? 'bg-orange-500/10 text-orange-400 border-orange-500/30'
                                             : 'text-muted-foreground hover:text-foreground hover:bg-card border-border/50'

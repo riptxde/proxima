@@ -1,5 +1,5 @@
 export type RemoteDirection = "outgoing" | "incoming";
-export type RemoteType =
+export type RemoteClass =
   | "RemoteEvent"
   | "RemoteFunction"
   | "UnreliableRemoteEvent";
@@ -32,7 +32,7 @@ export interface Remote {
   id: number; // Unique numeric ID for the remote instance
   name: string;
   path: string;
-  type: RemoteType;
+  class: RemoteClass;
   calls: RemoteCall[];
 }
 
@@ -41,7 +41,7 @@ export interface Remote {
  */
 export interface RemoteSpyFilters {
   directions: RemoteDirection[];
-  types: RemoteType[];
+  classes: RemoteClass[];
   search: string;
 }
 

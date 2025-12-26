@@ -9,7 +9,7 @@ import {
     ArrowDown,
     ChevronRight,
 } from "lucide-vue-next";
-import type { Remote, RemoteType } from "../types/remote-spy";
+import type { Remote, RemoteClass } from "../types/remote-spy";
 
 interface Props {
     remotes: Remote[];
@@ -24,15 +24,15 @@ interface Emits {
 defineProps<Props>();
 defineEmits<Emits>();
 
-const getTypeIcon = (type: RemoteType) => {
-    if (type === "RemoteEvent") return Zap;
-    if (type === "RemoteFunction") return FunctionSquare;
+const getClassIcon = (remoteClass: RemoteClass) => {
+    if (remoteClass === "RemoteEvent") return Zap;
+    if (remoteClass === "RemoteFunction") return FunctionSquare;
     return Radio; // UnreliableRemoteEvent
 };
 
-const getTypeColor = (type: RemoteType) => {
-    if (type === "RemoteEvent") return "text-yellow-400";
-    if (type === "RemoteFunction") return "text-purple-400";
+const getClassColor = (remoteClass: RemoteClass) => {
+    if (remoteClass === "RemoteEvent") return "text-yellow-400";
+    if (remoteClass === "RemoteFunction") return "text-purple-400";
     return "text-orange-400"; // UnreliableRemoteEvent
 };
 
@@ -89,11 +89,11 @@ const getDirectionStats = (
                     @click="$emit('select', remote.id)"
                 >
                     <div class="flex items-center gap-2.5">
-                        <!-- Type Icon -->
+                        <!-- Class Icon -->
                         <component
-                            :is="getTypeIcon(remote.type)"
+                            :is="getClassIcon(remote.class)"
                             class="w-4 h-4 shrink-0"
-                            :class="getTypeColor(remote.type)"
+                            :class="getClassColor(remote.class)"
                         />
 
                         <!-- Remote Name -->

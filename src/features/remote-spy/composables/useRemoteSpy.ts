@@ -7,7 +7,7 @@ import type {
   RemoteCall,
   RemoteSpyFilters,
   RemoteDirection,
-  RemoteType,
+  RemoteClass,
   RemoteSpyClient,
 } from "../types/remote-spy";
 
@@ -23,7 +23,7 @@ const availableClients = ref<RemoteSpyClient[]>([]);
 // Filter state
 const filters = ref<RemoteSpyFilters>({
   directions: ["outgoing", "incoming"],
-  types: ["RemoteEvent", "RemoteFunction", "UnreliableRemoteEvent"],
+  classes: ["RemoteEvent", "RemoteFunction", "UnreliableRemoteEvent"],
   search: "",
 });
 
@@ -36,8 +36,8 @@ export function useRemoteSpy() {
   const filteredRemotes = computed(() => {
     return remotes.value
       .filter((remote) => {
-        // Filter by type
-        if (!filters.value.types.includes(remote.type)) return false;
+        // Filter by class
+        if (!filters.value.classes.includes(remote.class)) return false;
 
         // Filter by search
         if (filters.value.search) {
@@ -108,10 +108,11 @@ export function useRemoteSpy() {
   };
 
   /**
-   * Get count of remotes by type
+   * Get count of remotes by class
    */
-  const getTypeCount = (type: RemoteType) => {
-    return remotes.value.filter((remote) => remote.type === type).length;
+  const getClassCount = (remoteClass: RemoteClass) => {
+    return remotes.value.filter((remote) => remote.class === remoteClass)
+      .length;
   };
 
   /**
@@ -165,14 +166,14 @@ export function useRemoteSpy() {
   };
 
   /**
-   * Toggle type filter
+   * Toggle class filter
    */
-  const toggleTypeFilter = (type: RemoteType) => {
-    const index = filters.value.types.indexOf(type);
+  const toggleClassFilter = (remoteClass: RemoteClass) => {
+    const index = filters.value.classes.indexOf(remoteClass);
     if (index === -1) {
-      filters.value.types.push(type);
-    } else if (filters.value.types.length > 1) {
-      filters.value.types.splice(index, 1);
+      filters.value.classes.push(remoteClass);
+    } else if (filters.value.classes.length > 1) {
+      filters.value.classes.splice(index, 1);
     }
   };
 
@@ -252,7 +253,7 @@ export function useRemoteSpy() {
           id: callData.remoteId,
           name: callData.name,
           path: callData.path,
-          type: callData.class as RemoteType,
+          class: callData.class as RemoteClass,
           calls: [],
         };
         remotes.value.push(remote);
@@ -344,7 +345,7 @@ export function useRemoteSpy() {
     selectCall,
     clearCalls,
     toggleDirectionFilter,
-    toggleTypeFilter,
+    toggleClassFilter,
     setSearchFilter,
     startSpy: rspyStart,
     stopSpy: rspyStop,
@@ -358,6 +359,6 @@ export function useRemoteSpy() {
 
     // Helpers
     getDirectionCount,
-    getTypeCount,
+    getClassCount,
   };
 }
