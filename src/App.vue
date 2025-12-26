@@ -23,7 +23,10 @@ const { initialize } = useClients();
 const { initializeLogListener } = useLogs();
 const { initialize: initHttpExecutor } = useHttpExecutor();
 const { initializeExplorerClientListeners } = useExplorer();
-const { initializeRemoteSpyClientListeners } = useRemoteSpy();
+const {
+    initializeRemoteSpyClientListeners,
+    initializeListeners: initRemoteSpyListeners,
+} = useRemoteSpy();
 
 onMounted(() => {
     initialize();
@@ -31,6 +34,7 @@ onMounted(() => {
     initHttpExecutor();
     initializeExplorerClientListeners();
     initializeRemoteSpyClientListeners();
+    initRemoteSpyListeners();
 });
 
 const currentPageComponent = computed(() => {

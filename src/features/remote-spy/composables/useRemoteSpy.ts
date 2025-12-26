@@ -1,6 +1,6 @@
 import { ref, computed } from "vue";
 import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { listen } from "@tauri-apps/api/event";
 import { useLogger } from "@/composables/useLogger";
 import type {
   Remote,
@@ -25,13 +25,6 @@ const filters = ref<RemoteSpyFilters>({
   types: ["RemoteEvent", "RemoteFunction"],
   search: "",
 });
-
-// Event listeners
-let unlistenRemoteSpyCall: UnlistenFn | null = null;
-let unlistenRemoteSpyStarted: UnlistenFn | null = null;
-let unlistenRemoteSpyStopped: UnlistenFn | null = null;
-let unlistenRemoteSpyDecompiled: UnlistenFn | null = null;
-let unlistenRemoteSpyGeneratedCode: UnlistenFn | null = null;
 
 export function useRemoteSpy() {
   const { addLog } = useLogger();
@@ -236,7 +229,7 @@ export function useRemoteSpy() {
 
   // Event listeners
   const initializeListeners = async () => {
-    unlistenRemoteSpyCall = await listen<any>("remote-spy-call", (event) => {
+    await listen<any>("remote-spy-call", (event) => {
       const callData = event.payload;
 
       // Find or create remote
@@ -268,15 +261,15 @@ export function useRemoteSpy() {
       remote.calls.unshift(call);
     });
 
-    unlistenRemoteSpyStarted = await listen("remote-spy-started", () => {
+    await listen("remote-spy-started", () => {
       isSpyActive.value = true;
     });
 
-    unlistenRemoteSpyStopped = await listen("remote-spy-stopped", () => {
+    await listen("remote-spy-stopped", () => {
       resetRemoteSpyState();
     });
 
-    unlistenRemoteSpyDecompiled = await listen<{
+    await listen<{
       scriptPath: string;
       source: string;
     }>("remote-spy-decompiled", (event) => {
@@ -288,7 +281,7 @@ export function useRemoteSpy() {
       );
     });
 
-    unlistenRemoteSpyGeneratedCode = await listen<{
+    await listen<{
       callId: number;
       code: string;
     }>("remote-spy-generated-code", (event) => {
@@ -320,14 +313,6 @@ export function useRemoteSpy() {
     });
   };
 
-  const cleanupListeners = () => {
-    unlistenRemoteSpyCall?.();
-    unlistenRemoteSpyStarted?.();
-    unlistenRemoteSpyStopped?.();
-    unlistenRemoteSpyDecompiled?.();
-    unlistenRemoteSpyGeneratedCode?.();
-  };
-
   return {
     // State
     remotes: filteredRemotes,
@@ -355,7 +340,6 @@ export function useRemoteSpy() {
 
     // Listeners
     initializeListeners,
-    cleanupListeners,
     initializeRemoteSpyClientListeners,
 
     // Helpers

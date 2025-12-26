@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onBeforeUnmount } from "vue";
+import { onMounted } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import {
     ResizableHandle,
@@ -30,13 +30,9 @@ const {
     toggleDirectionFilter,
     toggleTypeFilter,
     setSearchFilter,
-    initializeListeners,
-    cleanupListeners,
 } = useRemoteSpy();
 
 onMounted(async () => {
-    await initializeListeners();
-
     // Fetch initial client list
     try {
         const clients = await invoke("get_attached_clients");
@@ -44,10 +40,6 @@ onMounted(async () => {
     } catch (error) {
         addLog("error", `Failed to get clients: ${error}`);
     }
-});
-
-onBeforeUnmount(() => {
-    cleanupListeners();
 });
 </script>
 
