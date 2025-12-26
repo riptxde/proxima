@@ -512,8 +512,20 @@ function ExpGetProperties(Id, Properties, SpecialProperties)
         end)
 
         if Success then
-            -- Generate property code example
-            local PropertyCode = string.format([[-- Get the instance
+            local TypeStr = typeof(Value)
+            local ValueStr = tostring(Value)
+            local PropertyCode
+
+            -- Check if the value is unreadable (only if property type isn't string)
+            if PropMetadata.valueType ~= "string" and ValueStr:match("^Unable to get property .+, type %S+$") then
+                local TypeName = ValueStr:match("type (%S+)$")
+                TypeStr = TypeName or PropMetadata.valueType or "Unknown"
+                ValueStr = "[Unreadable]"
+                PropertyCode = "-- Property is unreadable"
+            elseif Value == nil then
+                TypeStr = PropMetadata.valueType or TypeStr
+                ValueStr = "nil"
+                PropertyCode = string.format([[-- Get the instance
 local instance = %s
 
 -- Get the property value
@@ -521,10 +533,31 @@ local value = instance.%s
 
 -- Set the property value
 instance.%s = value]], InstancePath, PropName, PropName)
+            else
+                if TypeStr == "Instance" then
+                    ValueStr = Value:GetFullName()
+                elseif TypeStr == "string" then
+                    local TestJson = pcall(function()
+                        HttpService:JSONEncode({test = ValueStr})
+                    end)
+                    if not TestJson then
+                        ValueStr = "[Binary/Non-UTF8 data, length: " .. #ValueStr .. "]"
+                    end
+                end
+
+                PropertyCode = string.format([[-- Get the instance
+local instance = %s
+
+-- Get the property value
+local value = instance.%s
+
+-- Set the property value
+instance.%s = value]], InstancePath, PropName, PropName)
+            end
 
             Props[PropName] = {
-                value = tostring(Value),
-                type = typeof(Value),
+                value = ValueStr,
+                type = TypeStr,
                 class = Instance.ClassName,
                 deprecated = PropMetadata.deprecated,
                 hidden = PropMetadata.hidden,
@@ -544,7 +577,31 @@ instance.%s = value]], InstancePath, PropName, PropName)
             end)
 
             if Success then
-                -- Generate property code example for hidden properties
+                local TypeStr = typeof(Value)
+                local ValueStr = tostring(Value)
+
+                -- Check if the value is unreadable (only if property type isn't string)
+                if PropMetadata.valueType ~= "string" and ValueStr:match("^Unable to get property .+, type %S+$") then
+                    local TypeName = ValueStr:match("type (%S+)$")
+                    TypeStr = TypeName or PropMetadata.valueType or "Unknown"
+                    ValueStr = "[Unreadable]"
+                elseif Value == nil then
+                    TypeStr = PropMetadata.valueType or TypeStr
+                    ValueStr = "nil"
+                else
+                    -- For certain types, provide more useful representations
+                    if TypeStr == "Instance" then
+                        ValueStr = Value:GetFullName()
+                    elseif TypeStr == "string" then
+                        local TestJson = pcall(function()
+                            HttpService:JSONEncode({test = ValueStr})
+                        end)
+                        if not TestJson then
+                            ValueStr = "[Binary/Non-UTF8 data, length: " .. #ValueStr .. "]"
+                        end
+                    end
+                end
+
                 local PropertyCode = string.format([[-- Get the instance
 local instance = %s
 
@@ -555,8 +612,8 @@ local value = gethiddenproperty(instance, %s)
 sethiddenproperty(instance, %s, value)]], InstancePath, EscapeStringLiteral(PropName), EscapeStringLiteral(PropName))
 
                 SpecialProps[PropName] = {
-                    value = tostring(Value),
-                    type = typeof(Value),
+                    value = ValueStr,
+                    type = TypeStr,
                     class = Instance.ClassName,
                     deprecated = PropMetadata.deprecated,
                     hidden = PropMetadata.hidden,

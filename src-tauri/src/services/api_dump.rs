@@ -4,53 +4,75 @@ use std::collections::HashMap;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PropertyMetadata {
     pub name: String,
+    #[serde(rename = "valueType")]
+    pub value_type: Option<String>,
     pub deprecated: bool,
     pub hidden: bool,
     pub not_scriptable: bool,
 }
 
+/// MessagePack API dump structure from roblox_api_viewer
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ApiDump {
-    #[serde(rename = "Classes")]
-    pub classes: Vec<ApiClass>,
-    #[serde(rename = "Version")]
-    pub version: Option<u32>,
+pub struct ApiDumpMsgpack {
+    pub metadata: ApiMetadata,
+    pub classes: Vec<ApiClassMsgpack>,
+    pub enums: Vec<ApiEnum>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ApiClass {
-    #[serde(rename = "Name")]
+pub struct ApiMetadata {
+    pub version: Option<String>,
+    pub updated: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiClassMsgpack {
     pub name: String,
-    #[serde(rename = "Members")]
-    pub members: Vec<ApiMember>,
-    #[serde(rename = "Superclass")]
-    pub superclass: Option<String>,
+    pub inherits: Option<Vec<String>>,
+    pub members: Vec<ApiMemberMsgpack>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "MemberType")]
-pub enum ApiMember {
-    Property {
-        #[serde(rename = "Name")]
-        name: String,
-        #[serde(rename = "ValueType")]
-        value_type: ApiValueType,
-        #[serde(rename = "Tags")]
-        tags: Option<Vec<String>>,
-    },
-    #[serde(other)]
-    Other,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ApiValueType {
-    #[serde(rename = "Name")]
+pub struct ApiMemberMsgpack {
     pub name: String,
+    pub member_type: String,
+    #[serde(default)]
+    pub value_type: Option<String>,
+    #[serde(default)]
+    pub security: Option<String>,
+    #[serde(default)]
+    pub deprecated: bool,
+    #[serde(default)]
+    pub hidden: bool,
+    #[serde(default)]
+    pub unreplicated: bool,
+    #[serde(default)]
+    pub unscriptable: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiEnum {
+    pub name: String,
+    pub items: Vec<ApiEnumItem>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ApiEnumItem {
+    pub name: String,
+    pub value: i32,
+    #[serde(default)]
+    pub deprecated: bool,
+    #[serde(default)]
+    pub hidden: bool,
+    #[serde(default)]
+    pub unscriptable: bool,
+    #[serde(default)]
+    pub security: Option<String>,
 }
 
 pub struct ApiDumpService {
-    dump: Option<ApiDump>,
-    class_lookup: HashMap<String, ApiClass>,
+    dump: Option<ApiDumpMsgpack>,
+    class_lookup: HashMap<String, ApiClassMsgpack>,
 }
 
 impl ApiDumpService {
@@ -62,16 +84,22 @@ impl ApiDumpService {
     }
 
     pub async fn load(&mut self) -> Result<(), String> {
-        log::info!("Loading Roblox API dump...");
+        log::info!("Loading Roblox API dump from roblox_api_viewer...");
 
-        let version = self.fetch_version().await?;
-        log::info!("Roblox version: {}", version);
+        let dump = self.fetch_api_dump().await?;
 
-        let dump = self.fetch_api_dump(&version).await?;
         log::info!(
-            "API dump loaded successfully ({} classes)",
-            dump.classes.len()
+            "API dump loaded successfully ({} classes, {} enums)",
+            dump.classes.len(),
+            dump.enums.len()
         );
+
+        if let Some(ref metadata) = dump.metadata.version {
+            log::info!("API version: {}", metadata);
+        }
+        if let Some(ref updated) = dump.metadata.updated {
+            log::info!("API updated: {}", updated);
+        }
 
         self.class_lookup = self.build_class_lookup(&dump);
         self.dump = Some(dump);
@@ -79,35 +107,21 @@ impl ApiDumpService {
         Ok(())
     }
 
-    async fn fetch_version(&self) -> Result<String, String> {
-        let version_url = "https://raw.githubusercontent.com/MaximumADHD/Roblox-Client-Tracker/refs/heads/roblox/version-guid.txt";
+    async fn fetch_api_dump(&self) -> Result<ApiDumpMsgpack, String> {
+        let api_url = "https://github.com/riptxde/roblox_api_viewer/raw/refs/heads/master/resources/roblox_api.msgpack";
 
-        reqwest::get(version_url)
-            .await
-            .map_err(|e| format!("Failed to fetch version: {}", e))?
-            .text()
-            .await
-            .map(|s| s.trim().to_string())
-            .map_err(|e| format!("Failed to read version: {}", e))
-    }
-
-    async fn fetch_api_dump(&self, version: &str) -> Result<ApiDump, String> {
-        let api_url = format!("https://setup.rbxcdn.com/{}-API-Dump.json", version);
-        log::info!("Fetching API dump from: {}", api_url);
-
-        let api_text = reqwest::get(&api_url)
+        let bytes = reqwest::get(api_url)
             .await
             .map_err(|e| format!("Failed to fetch API dump: {}", e))?
-            .text()
+            .bytes()
             .await
-            .map_err(|e| format!("Failed to read API dump: {}", e))?;
+            .map_err(|e| format!("Failed to read API dump bytes: {}", e))?;
 
-        log::info!("API dump fetched ({} bytes), parsing...", api_text.len());
-
-        serde_json::from_str(&api_text).map_err(|e| format!("Failed to parse API dump: {}", e))
+        rmp_serde::from_slice(&bytes)
+            .map_err(|e| format!("Failed to parse MessagePack API dump: {}", e))
     }
 
-    fn build_class_lookup(&self, dump: &ApiDump) -> HashMap<String, ApiClass> {
+    fn build_class_lookup(&self, dump: &ApiDumpMsgpack) -> HashMap<String, ApiClassMsgpack> {
         dump.classes
             .iter()
             .map(|class| (class.name.clone(), class.clone()))
@@ -120,61 +134,87 @@ impl ApiDumpService {
     ) -> (Vec<PropertyMetadata>, Vec<PropertyMetadata>) {
         let mut properties = Vec::new();
         let mut special_properties = Vec::new();
-        let mut current_class_name = Some(class_name.to_string());
 
-        while let Some(name) = current_class_name {
-            if let Some(class) = self.class_lookup.get(&name) {
-                self.collect_class_properties(class, &mut properties, &mut special_properties);
-                current_class_name = class.superclass.clone().filter(|s| s != "<<<ROOT>>>");
-            } else {
-                break;
-            }
-        }
+        // Walk the inheritance chain to collect all properties
+        self.collect_properties_with_inheritance(
+            class_name,
+            &mut properties,
+            &mut special_properties,
+        );
 
         (properties, special_properties)
     }
 
+    fn collect_properties_with_inheritance(
+        &self,
+        class_name: &str,
+        properties: &mut Vec<PropertyMetadata>,
+        special_properties: &mut Vec<PropertyMetadata>,
+    ) {
+        // Get the class from the lookup
+        let Some(class) = self.class_lookup.get(class_name) else {
+            return;
+        };
+
+        // First, recursively collect properties from parent classes
+        if let Some(ref inherits_list) = class.inherits {
+            for parent_class in inherits_list {
+                self.collect_properties_with_inheritance(
+                    parent_class,
+                    properties,
+                    special_properties,
+                );
+            }
+        }
+
+        // Then collect this class's own properties
+        self.collect_class_properties(class, properties, special_properties);
+    }
+
     fn collect_class_properties(
         &self,
-        class: &ApiClass,
+        class: &ApiClassMsgpack,
         properties: &mut Vec<PropertyMetadata>,
         special_properties: &mut Vec<PropertyMetadata>,
     ) {
         for member in &class.members {
-            if let ApiMember::Property { name, tags, .. } = member {
-                if self.should_skip_property(name) {
-                    continue;
-                }
-
-                let metadata = self.create_property_metadata(name, tags);
-
-                if self.is_special_property(tags) {
-                    special_properties.push(metadata);
-                } else {
-                    properties.push(metadata);
-                }
+            // Only process Property members
+            if member.member_type != "Property" {
+                continue;
             }
-        }
-    }
 
-    fn create_property_metadata(&self, name: &str, tags: &Option<Vec<String>>) -> PropertyMetadata {
-        let tags_vec = tags.as_ref();
-        PropertyMetadata {
-            name: name.to_string(),
-            deprecated: tags_vec.map_or(false, |t| t.contains(&"Deprecated".to_string())),
-            hidden: tags_vec.map_or(false, |t| t.contains(&"Hidden".to_string())),
-            not_scriptable: tags_vec.map_or(false, |t| t.contains(&"NotScriptable".to_string())),
+            if self.should_skip_property(&member.name) {
+                continue;
+            }
+
+            let metadata = PropertyMetadata {
+                name: member.name.clone(),
+                value_type: member.value_type.clone(),
+                deprecated: member.deprecated,
+                hidden: member.hidden,
+                not_scriptable: member.unscriptable,
+            };
+
+            // Properties are "special" if they have:
+            // - hidden tag
+            // - unscriptable tag
+            // - security restrictions (anything other than "None")
+            let has_security = member
+                .security
+                .as_ref()
+                .map(|s| s != "None")
+                .unwrap_or(false);
+
+            if member.hidden || member.unscriptable || has_security {
+                special_properties.push(metadata);
+            } else {
+                properties.push(metadata);
+            }
         }
     }
 
     fn should_skip_property(&self, name: &str) -> bool {
         matches!(name, "UniqueId" | "Capabilities")
-    }
-
-    fn is_special_property(&self, tags: &Option<Vec<String>>) -> bool {
-        tags.as_ref().map_or(false, |tags| {
-            tags.contains(&"Hidden".to_string()) || tags.contains(&"NotScriptable".to_string())
-        })
     }
 
     pub fn is_loaded(&self) -> bool {
