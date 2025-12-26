@@ -7,7 +7,7 @@ import {
     ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-vue-next";
+import { Search, ListTree, PackageSearch } from "lucide-vue-next";
 import ExplorerItem from "./ExplorerItem.vue";
 import ExplorerDock from "./ExplorerDock.vue";
 import { useExplorer } from "../composables/useExplorer";
@@ -107,11 +107,17 @@ onUnmounted(() => {
                 <!-- No Client Selected State -->
                 <div
                     v-if="!selectedClient"
-                    class="h-full flex items-center justify-center bg-card rounded-lg border border-border"
+                    class="h-full flex items-center justify-center text-center p-8 bg-card rounded-lg border border-border"
                 >
-                    <p class="text-muted-foreground text-sm font-mono">
-                        Select an explorer client to use the explorer
-                    </p>
+                    <div class="text-muted-foreground">
+                        <PackageSearch
+                            class="w-12 h-12 mx-auto mb-3 opacity-30"
+                        />
+                        <p class="text-sm">Explorer not started</p>
+                        <p class="text-xs mt-1">
+                            Start the explorer and select a client
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Explorer with Client Selected -->
@@ -352,9 +358,18 @@ onUnmounted(() => {
                                 </div>
                                 <div
                                     v-else
-                                    class="flex-1 flex items-center justify-center text-muted-foreground text-xs font-mono h-full"
+                                    class="flex-1 flex items-center justify-center text-center p-8 h-full"
                                 >
-                                    Select an item to view its properties
+                                    <div class="text-muted-foreground">
+                                        <ListTree
+                                            class="w-12 h-12 mx-auto mb-3 opacity-30"
+                                        />
+                                        <p class="text-sm">No item selected</p>
+                                        <p class="text-xs mt-1">
+                                            Select an item to view its
+                                            properties
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>

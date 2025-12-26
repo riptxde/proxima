@@ -10,6 +10,7 @@ import {
     AlertTriangle,
     XCircle,
     CheckCircle,
+    Logs,
 } from "lucide-vue-next";
 import { useLogs } from "../composables/useLogs";
 import type { LogLevel } from "../types/log";
@@ -136,9 +137,15 @@ const isLevelActive = (level: LogLevel) => {
             >
                 <div
                     v-if="logs.length === 0"
-                    class="text-muted-foreground text-center font-mono text-sm select-none flex-1 flex items-center justify-center"
+                    class="flex-1 flex items-center justify-center text-center p-8"
                 >
-                    No logs to display
+                    <div class="text-muted-foreground">
+                        <Logs class="w-12 h-12 mx-auto mb-3 opacity-30" />
+                        <p class="text-sm">No logs to display</p>
+                        <p class="text-xs mt-1">
+                            Logs will appear here as they are generated
+                        </p>
+                    </div>
                 </div>
                 <div v-else class="space-y-0.5 font-mono text-sm">
                     <div
