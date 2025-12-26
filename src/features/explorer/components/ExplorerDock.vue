@@ -59,17 +59,23 @@ const isScriptSelected = computed(() => {
     );
 });
 
-const handleToggleExplorer = () => {
+const handleStartExplorer = () => {
     if (isClientSelected.value) {
-        // Stop explorer
-        handleStopExplorer();
-    } else {
-        // Start explorer - show client selection dialog
-        clientsDialogOpen.value = true;
+        toast.error("Could not start explorer", {
+            description: "Explorer is already running",
+        });
+        return;
     }
+    clientsDialogOpen.value = true;
 };
 
 const handleStopExplorer = async () => {
+    if (!isClientSelected.value) {
+        toast.error("Could not stop explorer", {
+            description: "No explorer running",
+        });
+        return;
+    }
     const username = selectedClient.value?.username;
     try {
         await expStop();
@@ -217,25 +223,49 @@ watch(
                 <Dock class="m-0!">
                     <Tooltip>
                         <TooltipTrigger as-child>
-                            <DockIcon @click="handleToggleExplorer">
+                            <DockIcon
+                                @click="handleStartExplorer"
+                                :class="{
+                                    'opacity-30 cursor-not-allowed':
+                                        isClientSelected,
+                                }"
+                            >
                                 <Play
-                                    v-if="!isClientSelected"
-                                    class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
-                                />
-                                <Square
-                                    v-else
-                                    class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
+                                    class="size-5 text-app-shell-foreground transition-opacity"
+                                    :class="{
+                                        'opacity-60 group-hover:opacity-100':
+                                            !isClientSelected,
+                                        'opacity-30': isClientSelected,
+                                    }"
                                 />
                             </DockIcon>
                         </TooltipTrigger>
                         <TooltipContent :side-offset="-15">
-                            <p>
-                                {{
-                                    isClientSelected
-                                        ? "Stop Explorer"
-                                        : "Start Explorer"
-                                }}
-                            </p>
+                            <p>Start Explorer</p>
+                        </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger as-child>
+                            <DockIcon
+                                @click="handleStopExplorer"
+                                :class="{
+                                    'opacity-30 cursor-not-allowed':
+                                        !isClientSelected,
+                                }"
+                            >
+                                <Square
+                                    class="size-5 text-app-shell-foreground transition-opacity"
+                                    :class="{
+                                        'opacity-60 group-hover:opacity-100':
+                                            isClientSelected,
+                                        'opacity-30': !isClientSelected,
+                                    }"
+                                />
+                            </DockIcon>
+                        </TooltipTrigger>
+                        <TooltipContent :side-offset="-15">
+                            <p>Stop Explorer</p>
                         </TooltipContent>
                     </Tooltip>
 

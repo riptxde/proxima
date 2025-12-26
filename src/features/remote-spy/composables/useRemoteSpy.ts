@@ -16,6 +16,7 @@ const remotes = ref<Remote[]>([]);
 const selectedRemoteId = ref<number | null>(null);
 const selectedCallId = ref<number | null>(null);
 const isSpyActive = ref(false);
+const isPaused = ref(false);
 const selectedClient = ref<RemoteSpyClient | null>(null);
 const availableClients = ref<RemoteSpyClient[]>([]);
 
@@ -188,10 +189,15 @@ export function useRemoteSpy() {
       await invoke("rspy_start", { clientId: client.id });
       selectedClient.value = client;
       isSpyActive.value = true;
+      isPaused.value = false;
     } catch (error) {
       addLog("error", `Failed to start remote spy: ${error}`);
       throw error;
     }
+  };
+
+  const togglePause = () => {
+    isPaused.value = !isPaused.value;
   };
 
   const rspyStop = async () => {
@@ -225,11 +231,17 @@ export function useRemoteSpy() {
   const resetRemoteSpyState = () => {
     selectedClient.value = null;
     isSpyActive.value = false;
+    isPaused.value = false;
   };
 
   // Event listeners
   const initializeListeners = async () => {
     await listen<any>("remote-spy-call", (event) => {
+      // If paused, don't add new calls to the UI
+      if (isPaused.value) {
+        return;
+      }
+
       const callData = event.payload;
 
       // Find or create remote
@@ -321,6 +333,7 @@ export function useRemoteSpy() {
     selectedRemoteId,
     selectedCallId,
     isSpyActive,
+    isPaused,
     selectedClient,
     availableClients,
     filters,
@@ -335,6 +348,7 @@ export function useRemoteSpy() {
     setSearchFilter,
     startSpy: rspyStart,
     stopSpy: rspyStop,
+    togglePause,
     decompileScript: rspyDecompile,
     generateCode: rspyGenerateCode,
 

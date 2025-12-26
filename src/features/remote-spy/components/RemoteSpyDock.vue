@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
-import { Play, Square, Trash2, Code2, Scroll } from "lucide-vue-next";
+import { Play, Square, Trash2, Code2, Scroll, Pause } from "lucide-vue-next";
 import { Dock, DockIcon } from "@/components/ui/dock";
 import LiquidGlass from "@/components/shared/LiquidGlass.vue";
 import {
@@ -17,11 +17,13 @@ import ClientsDialog from "./ClientsDialog.vue";
 
 const {
     isSpyActive,
+    isPaused,
     selectedRemote,
     selectedCall,
     selectedClient,
     remotes,
     stopSpy,
+    togglePause,
     clearCalls,
     generateCode,
     decompileScript,
@@ -38,13 +40,22 @@ const hasCallingScript = computed(
 );
 const hasCalls = computed(() => remotes.value.length > 0);
 
-const handleToggleSpy = () => {
-    if (isSpyActive.value) {
-        // Stop spy
-        handleStopSpy();
-    } else {
+const handleStartOrPause = () => {
+    if (!isSpyActive.value) {
         // Start spy - show client selection dialog
         showClientDialog.value = true;
+    } else {
+        // Toggle pause
+        togglePause();
+        if (isPaused.value) {
+            toast.info("Remote spy paused", {
+                description: "Not receiving new remote calls",
+            });
+        } else {
+            toast.info("Remote spy resumed", {
+                description: "Receiving new remote calls",
+            });
+        }
     }
 };
 
@@ -184,12 +195,12 @@ onUnmounted(() => {
                 <Dock class="m-0!">
                     <Tooltip>
                         <TooltipTrigger as-child>
-                            <DockIcon @click="handleToggleSpy">
+                            <DockIcon @click="handleStartOrPause">
                                 <Play
-                                    v-if="!isSpyActive"
+                                    v-if="!isSpyActive || isPaused"
                                     class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
                                 />
-                                <Square
+                                <Pause
                                     v-else
                                     class="size-5 text-app-shell-foreground opacity-60 group-hover:opacity-100 transition-opacity"
                                 />
@@ -198,11 +209,37 @@ onUnmounted(() => {
                         <TooltipContent :side-offset="-15">
                             <p>
                                 {{
-                                    isSpyActive
-                                        ? "Stop Remote Spy"
-                                        : "Start Remote Spy"
+                                    !isSpyActive
+                                        ? "Start Remote Spy"
+                                        : isPaused
+                                          ? "Resume Remote Spy"
+                                          : "Pause Remote Spy"
                                 }}
                             </p>
+                        </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger as-child>
+                            <DockIcon
+                                @click="handleStopSpy"
+                                :class="{
+                                    'opacity-30 cursor-not-allowed':
+                                        !isSpyActive,
+                                }"
+                            >
+                                <Square
+                                    class="size-5 text-app-shell-foreground transition-opacity"
+                                    :class="{
+                                        'opacity-60 group-hover:opacity-100':
+                                            isSpyActive,
+                                        'opacity-30': !isSpyActive,
+                                    }"
+                                />
+                            </DockIcon>
+                        </TooltipTrigger>
+                        <TooltipContent :side-offset="-15">
+                            <p>Stop Remote Spy</p>
                         </TooltipContent>
                     </Tooltip>
 
