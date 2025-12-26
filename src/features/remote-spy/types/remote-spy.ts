@@ -1,5 +1,8 @@
 export type RemoteDirection = "outgoing" | "incoming";
-export type RemoteType = "RemoteEvent" | "RemoteFunction";
+export type RemoteType =
+  | "RemoteEvent"
+  | "RemoteFunction"
+  | "UnreliableRemoteEvent";
 
 /**
  * Represents a single remote call event

@@ -880,6 +880,12 @@ function SendDummyRemoteCall()
             path = 'ReplicatedStorage.Remotes.Teleport',
             type = 'RemoteFunction'
         },
+        {
+            id = 5,
+            name = 'PlayerPosition',
+            path = 'ReplicatedStorage.Network.PlayerPosition',
+            type = 'UnreliableRemoteEvent'
+        },
     }
 
     -- Dummy calling scripts

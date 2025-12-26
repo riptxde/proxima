@@ -23,7 +23,7 @@ const availableClients = ref<RemoteSpyClient[]>([]);
 // Filter state
 const filters = ref<RemoteSpyFilters>({
   directions: ["outgoing", "incoming"],
-  types: ["RemoteEvent", "RemoteFunction"],
+  types: ["RemoteEvent", "RemoteFunction", "UnreliableRemoteEvent"],
   search: "",
 });
 

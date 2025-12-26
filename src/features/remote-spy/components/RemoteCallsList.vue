@@ -6,10 +6,11 @@ import {
     ArrowDown,
     Zap,
     FunctionSquare,
+    Radio,
     ChevronLeft,
     ChevronRight,
 } from "lucide-vue-next";
-import type { Remote } from "../types/remote-spy";
+import type { Remote, RemoteType } from "../types/remote-spy";
 
 interface Props {
     remote: Remote;
@@ -78,12 +79,16 @@ const getDirectionColor = (direction: "outgoing" | "incoming") => {
     return direction === "outgoing" ? "text-green-400" : "text-blue-400";
 };
 
-const getTypeIcon = (type: "RemoteEvent" | "RemoteFunction") => {
-    return type === "RemoteEvent" ? Zap : FunctionSquare;
+const getTypeIcon = (type: RemoteType) => {
+    if (type === "RemoteEvent") return Zap;
+    if (type === "RemoteFunction") return FunctionSquare;
+    return Radio; // UnreliableRemoteEvent
 };
 
-const getTypeColor = (type: "RemoteEvent" | "RemoteFunction") => {
-    return type === "RemoteEvent" ? "text-yellow-400" : "text-purple-400";
+const getTypeColor = (type: RemoteType) => {
+    if (type === "RemoteEvent") return "text-yellow-400";
+    if (type === "RemoteFunction") return "text-purple-400";
+    return "text-orange-400"; // UnreliableRemoteEvent
 };
 
 const getDirectionStats = (

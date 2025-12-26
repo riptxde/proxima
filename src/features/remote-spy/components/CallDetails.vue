@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { Badge } from "@/components/ui/badge";
-import { ArrowUp, ArrowDown, Zap, FunctionSquare } from "lucide-vue-next";
-import type { Remote, RemoteCall } from "../types/remote-spy";
+import {
+    ArrowUp,
+    ArrowDown,
+    Zap,
+    FunctionSquare,
+    Radio,
+} from "lucide-vue-next";
+import type { Remote, RemoteCall, RemoteType } from "../types/remote-spy";
 
 interface Props {
     remote: Remote;
@@ -31,12 +37,16 @@ const getDirectionColor = (direction: "outgoing" | "incoming") => {
     return direction === "outgoing" ? "text-green-400" : "text-blue-400";
 };
 
-const getTypeIcon = (type: "RemoteEvent" | "RemoteFunction") => {
-    return type === "RemoteEvent" ? Zap : FunctionSquare;
+const getTypeIcon = (type: RemoteType) => {
+    if (type === "RemoteEvent") return Zap;
+    if (type === "RemoteFunction") return FunctionSquare;
+    return Radio; // UnreliableRemoteEvent
 };
 
-const getTypeColor = (type: "RemoteEvent" | "RemoteFunction") => {
-    return type === "RemoteEvent" ? "text-yellow-400" : "text-purple-400";
+const getTypeColor = (type: RemoteType) => {
+    if (type === "RemoteEvent") return "text-yellow-400";
+    if (type === "RemoteFunction") return "text-purple-400";
+    return "text-orange-400"; // UnreliableRemoteEvent
 };
 </script>
 
@@ -88,11 +98,14 @@ const getTypeColor = (type: "RemoteEvent" | "RemoteFunction") => {
                 <!-- Type Badge -->
                 <div
                     class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border"
-                    :class="
-                        remote.type === 'RemoteEvent'
-                            ? 'bg-yellow-500/10 border-yellow-500/30'
-                            : 'bg-purple-500/10 border-purple-500/30'
-                    "
+                    :class="{
+                        'bg-yellow-500/10 border-yellow-500/30':
+                            remote.type === 'RemoteEvent',
+                        'bg-purple-500/10 border-purple-500/30':
+                            remote.type === 'RemoteFunction',
+                        'bg-orange-500/10 border-orange-500/30':
+                            remote.type === 'UnreliableRemoteEvent',
+                    }"
                 >
                     <component
                         :is="getTypeIcon(remote.type)"

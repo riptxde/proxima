@@ -149,7 +149,7 @@ const openUnofficialDocs = async () => {
             <!-- Resizable Panels -->
             <ResizablePanelGroup direction="horizontal" class="flex-1 gap-4">
                 <!-- Explorer Tree Panel -->
-                <ResizablePanel :default-size="45" :min-size="25">
+                <ResizablePanel :default-size="40" :min-size="25">
                     <div
                         class="h-full flex flex-col bg-card rounded-lg border border-border"
                     >
@@ -187,7 +187,7 @@ const openUnofficialDocs = async () => {
                 <ResizableHandle with-handle />
 
                 <!-- Properties Panel -->
-                <ResizablePanel :default-size="55" :min-size="25">
+                <ResizablePanel :default-size="60" :min-size="25">
                     <div
                         class="h-full flex flex-col bg-card rounded-lg border border-border"
                     >
