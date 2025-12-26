@@ -141,7 +141,7 @@ const handleCodeGenerated = (event: Event) => {
         openFileAsTab(`${selectedRemote.value.name} Call`, code);
         navigate("editor");
         toast.success("Code sent to editor", {
-            description: `${selectedRemote.value.name} calling code`,
+            description: `Remote: ${selectedRemote.value.name}`,
         });
     } catch (error) {
         toast.error("Failed to send code to editor", {

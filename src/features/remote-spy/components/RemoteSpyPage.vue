@@ -52,7 +52,7 @@ onMounted(async () => {
             <!-- Resizable Panels -->
             <ResizablePanelGroup direction="horizontal" class="flex-1 gap-4">
                 <!-- Remotes List Panel -->
-                <ResizablePanel :default-size="45" :min-size="30">
+                <ResizablePanel :default-size="45" :min-size="40">
                     <div
                         class="h-full flex flex-col bg-card rounded-lg border border-border"
                     >

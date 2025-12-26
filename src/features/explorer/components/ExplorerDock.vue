@@ -114,7 +114,7 @@ const handleSendInstanceNameToEditorClick = () => {
     try {
         openFileAsTab("Instance Path", code);
         navigate("editor");
-        toast.success("Instance path sent to editor", {
+        toast.success("Path sent to editor", {
             description: `Instance: ${selectedItemName.value!}`,
         });
     } catch (error) {
