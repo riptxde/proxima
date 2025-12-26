@@ -7,7 +7,16 @@ import {
     ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { Input } from "@/components/ui/input";
-import { Search, ListTree, ScanSearch } from "lucide-vue-next";
+import {
+    Search,
+    ListTree,
+    ScanSearch,
+    BookOpen,
+    FileText,
+} from "lucide-vue-next";
+import { Button } from "@/components/ui/button";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { toast } from "vue-sonner";
 import ExplorerItem from "./ExplorerItem.vue";
 import ExplorerDock from "./ExplorerDock.vue";
 import { useExplorer } from "../composables/useExplorer";
@@ -20,6 +29,7 @@ const {
     explorerItems,
     availableClients,
     selectedItemId,
+    selectedItemClassName,
     selectedItemProperties,
     selectedProperty,
     expandedIds,
@@ -95,6 +105,39 @@ onMounted(async () => {
 onUnmounted(() => {
     cleanupListeners();
 });
+
+const openOfficialDocs = async () => {
+    if (!selectedItemClassName.value) return;
+
+    const url = `https://create.roblox.com/docs/reference/engine/classes/${selectedItemClassName.value}`;
+    try {
+        await openUrl(url);
+        addLog("info", `Opening official docs: ${selectedItemClassName.value}`);
+    } catch (error) {
+        toast.error("Failed to open documentation", {
+            description: String(error),
+        });
+        addLog("error", `Failed to open official docs: ${error}`);
+    }
+};
+
+const openUnofficialDocs = async () => {
+    if (!selectedItemClassName.value) return;
+
+    const url = `https://robloxapi.github.io/ref/class/${selectedItemClassName.value}`;
+    try {
+        await openUrl(url);
+        addLog(
+            "info",
+            `Opening unofficial docs: ${selectedItemClassName.value}`,
+        );
+    } catch (error) {
+        toast.error("Failed to open documentation", {
+            description: String(error),
+        });
+        addLog("error", `Failed to open unofficial docs: ${error}`);
+    }
+};
 </script>
 
 <template>
@@ -342,6 +385,47 @@ onUnmounted(() => {
                                                 {{ property.value }}
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+
+                                <!-- Documentation Section -->
+                                <div v-if="selectedItemClassName">
+                                    <h3
+                                        class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3"
+                                    >
+                                        Documentation
+                                    </h3>
+                                    <div class="space-y-3">
+                                        <div class="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                class="flex-1 gap-2"
+                                                @click="openOfficialDocs"
+                                            >
+                                                <BookOpen class="w-4 h-4" />
+                                                Official Docs
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                class="flex-1 gap-2"
+                                                @click="openUnofficialDocs"
+                                            >
+                                                <FileText class="w-4 h-4" />
+                                                Unofficial Docs
+                                            </Button>
+                                        </div>
+                                        <p
+                                            class="text-xs text-muted-foreground/80 italic"
+                                        >
+                                            Note: The official documentation
+                                            provides better examples, while the
+                                            unofficial docs contain
+                                            documentation on properties and
+                                            events hidden from the official
+                                            documentation.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
