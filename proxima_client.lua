@@ -814,10 +814,11 @@ end
 
 --/ Remote Spy /--
 local RemoteSpyActive = false
-local RemoteCallData = {} -- Maps call ID -> call data for code generation
-local NextCallId = 1
+local RspyHooks = {}
+local RspyNextCallId = 1
+local RspyRemoteToId = {}
+local RspyNextRemoteId = 1
 
--- Remote Spy Functions
 local function SendRemoteSpyMessage(Data)
     if not Socket then
         return
@@ -829,211 +830,133 @@ local function SendRemoteSpyMessage(Data)
     end)
 end
 
+local function GetOrCreateRemoteId(RemoteInstance)
+    if RspyRemoteToId[RemoteInstance] then
+        return RspyRemoteToId[RemoteInstance]
+    end
+
+    local RemoteId = RspyNextRemoteId
+    RspyNextRemoteId = RspyNextRemoteId + 1
+    RspyRemoteToId[RemoteInstance] = RemoteId
+    return RemoteId
+end
+
 function RspyStart()
+    if RemoteSpyActive then
+        return
+    end
+
     RemoteSpyActive = true
-    Log(LOG_SUCCESS, 'Remote spy started')
 
-    -- Start sending dummy remote calls
-    task.spawn(function()
-        while RemoteSpyActive do
-            task.wait(math.random(2, 5)) -- Random interval between 2-5 seconds
+    -- Hook __namecall to catch outgoing namecall remote calls
+    local OriginalNamecall
+    OriginalNamecall = hookmetamethod(game, '__namecall', function(...)
+        local self = ...
+        local method = getnamecallmethod()
 
-            if not RemoteSpyActive then
-                break
+        local ShouldLog = false
+        local ClassName = typeof(self) == 'Instance' and self.ClassName or nil
+
+        if method == 'FireServer' and (ClassName == 'RemoteEvent' or ClassName == 'UnreliableRemoteEvent') then
+            ShouldLog = true
+        elseif method == 'InvokeServer' and ClassName == 'RemoteFunction' then
+            ShouldLog = true
+        end
+
+        if ShouldLog then
+            local CallingScript = getcallingscript()
+            local Args = {...}
+
+            local Result = table.pack(OriginalNamecall(...))
+
+            local CallId = RspyNextCallId
+            RspyNextCallId = RspyNextCallId + 1
+
+            local RemoteId = GetOrCreateRemoteId(self)
+
+            local CallingScriptPath = nil
+            local CallingScriptName = nil
+            if CallingScript and typeof(CallingScript) == 'Instance' then
+                CallingScriptPath = CallingScript:GetFullName()
+                CallingScriptName = CallingScript.Name
             end
 
-            -- Generate a random dummy remote call
-            SendDummyRemoteCall()
+            local Arguments = {}
+            for i = 2, #Args do
+                table.insert(Arguments, {
+                    type = typeof(Args[i]),
+                    value = tostring(Args[i])
+                })
+            end
+
+            local ReturnValue = nil
+            if ClassName == 'RemoteFunction' and Result.n > 0 and Result[1] ~= nil then
+                ReturnValue = {
+                    type = typeof(Result[1]),
+                    value = tostring(Result[1])
+                }
+            end
+
+            SendRemoteSpyMessage({
+                type = 'rspy_call',
+                callId = CallId,
+                remoteId = RemoteId,
+                name = self.Name,
+                path = self:GetFullName(),
+                class = ClassName,
+                direction = 'outgoing',
+                timestamp = os.date('!%Y-%m-%dT%H:%M:%S') .. '.000Z',
+                arguments = Arguments,
+                returnValue = ReturnValue,
+                callingScriptName = CallingScriptName,
+                callingScriptPath = CallingScriptPath,
+            })
+
+            return table.unpack(Result)
         end
+
+        return OriginalNamecall(...)
     end)
+
+    RspyHooks.Namecall = OriginalNamecall
+
+    Log(LOG_SUCCESS, 'Remote spy started')
 end
 
 function RspyStop()
+    if not RemoteSpyActive then
+        return
+    end
+
     RemoteSpyActive = false
+
+    -- Unhook __namecall
+    if RspyHooks.Namecall then
+        hookmetamethod(game, '__namecall', RspyHooks.Namecall)
+    end
+
+    -- Clear state
+    RspyHooks = {}
+    RspyRemoteToId = {}
+    RspyNextCallId = 1
+    RspyNextRemoteId = 1
+
     Log(LOG_SUCCESS, 'Remote spy stopped')
 end
 
-function SendDummyRemoteCall()
-    -- Dummy remotes to cycle through (each represents a unique "instance")
-    local DummyRemotes = {
-        {
-            id = 1,
-            name = 'PlayerDataRequest',
-            path = 'ReplicatedStorage.Remotes.PlayerData',
-            type = 'RemoteFunction'
-        },
-        {
-            id = 2,
-            name = 'UpdateInventory',
-            path = 'ReplicatedStorage.Remotes.Inventory.Update',
-            type = 'RemoteEvent'
-        },
-        {
-            id = 3,
-            name = 'FireWeapon',
-            path = 'ReplicatedStorage.Combat.WeaponFire',
-            type = 'RemoteEvent'
-        },
-        {
-            id = 4,
-            name = 'TeleportPlayer',
-            path = 'ReplicatedStorage.Remotes.Teleport',
-            type = 'RemoteFunction'
-        },
-        {
-            id = 5,
-            name = 'PlayerPosition',
-            path = 'ReplicatedStorage.Network.PlayerPosition',
-            type = 'UnreliableRemoteEvent'
-        },
-    }
-
-    -- Dummy calling scripts
-    local DummyScripts = {
-        {
-            name = 'LocalScript',
-            path = 'StarterPlayer.StarterPlayerScripts.LocalScript'
-        },
-        {
-            name = 'PlayerController',
-            path = 'StarterPlayer.StarterPlayerScripts.Controllers.PlayerController'
-        },
-        {
-            name = 'WeaponHandler',
-            path = 'StarterPlayer.StarterPlayerScripts.WeaponHandler'
-        },
-    }
-
-    -- Pick random remote and script
-    local Remote = DummyRemotes[math.random(1, #DummyRemotes)]
-    local Script = DummyScripts[math.random(1, #DummyScripts)]
-    local Direction = math.random() > 0.5 and 'outgoing' or 'incoming'
-
-    -- Generate dummy arguments
-    local DummyArgs = {}
-    local ArgCount = math.random(1, 3)
-    for I = 1, ArgCount do
-        local ArgTypes = {'string', 'number', 'boolean', 'table'}
-        local ArgType = ArgTypes[math.random(1, #ArgTypes)]
-
-        local Value
-        if ArgType == 'string' then
-            Value = '"Example ' .. I .. '"'
-        elseif ArgType == 'number' then
-            Value = tostring(math.random(1, 100))
-        elseif ArgType == 'boolean' then
-            Value = math.random() > 0.5 and 'true' or 'false'
-        else
-            Value = '{ ... }'
-        end
-
-        table.insert(DummyArgs, {
-            type = ArgType,
-            value = Value
-        })
-    end
-
-    -- Generate unique call ID
-    local CallId = NextCallId
-    NextCallId = NextCallId + 1
-
-    -- Build remote call event
-    local CallEvent = {
-        type = 'rspy_call',
-        callId = CallId,
-        remoteId = Remote.id,
-        name = Remote.name,
-        path = Remote.path,
-        class = Remote.type,
-        direction = Direction,
-        timestamp = os.date('!%Y-%m-%dT%H:%M:%S') .. '.000Z',
-        arguments = DummyArgs,
-        callingScriptName = Script.name,
-        callingScriptPath = Script.path
-    }
-
-    -- Add return value for RemoteFunctions with incoming direction
-    if Remote.type == 'RemoteFunction' and Direction == 'incoming' then
-        CallEvent.returnValue = {
-            type = math.random() > 0.5 and 'boolean' or 'table',
-            value = math.random() > 0.5 and 'true' or '{ success = true }'
-        }
-    end
-
-    -- Store call data for later code generation
-    RemoteCallData[CallId] = {
-        name = Remote.name,
-        path = Remote.path,
-        class = Remote.type,
-        direction = Direction,
-        arguments = DummyArgs
-    }
-
-    SendRemoteSpyMessage(CallEvent)
-end
-
 function RspyDecompile(ScriptPath)
-    -- Send dummy decompiled code
-    local DummyCode = string.format([[
--- Decompiled from: %s
--- This is dummy decompiled code
-
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
-print("Hello from %s")
-
--- More dummy code here
-while task.wait(1) do
-    print("Still running...")
-end
-]], ScriptPath, ScriptPath)
-
     SendRemoteSpyMessage({
         type = 'rspy_decompiled',
         scriptPath = ScriptPath,
-        source = DummyCode
+        source = '-- Decompile not implemented'
     })
 end
 
 function RspyGenerateCode(CallId)
-    -- Look up stored call data
-    local CallData = RemoteCallData[CallId]
-    if not CallData then
-        Log(LOG_ERROR, 'Call ID not found: ' .. tostring(CallId))
-        return
-    end
-
-    -- Generate code from stored data
-    local Args = {}
-    for I = 1, #CallData.arguments do
-        table.insert(Args, CallData.arguments[I].value)
-    end
-    local ArgsStr = table.concat(Args, ', ')
-
-    local PathParts = {}
-    for Part in string.gmatch(CallData.path, '[^.]+') do
-        table.insert(PathParts, Part)
-    end
-
-    local Service = PathParts[1]
-    local RestPath = table.concat(PathParts, '.', 2)
-
-    local Code
-    if CallData.class == 'RemoteEvent' then
-        local Method = CallData.direction == 'outgoing' and 'FireServer' or 'FireClient'
-        local Target = CallData.direction == 'outgoing' and '' or 'player, '
-        Code = string.format('game:GetService("%s").%s:%s(%s%s)', Service, RestPath, Method, Target, ArgsStr)
-    else
-        local Method = CallData.direction == 'outgoing' and 'InvokeServer' or 'InvokeClient'
-        local Target = CallData.direction == 'outgoing' and '' or 'player, '
-        Code = string.format('local result = game:GetService("%s").%s:%s(%s%s)', Service, RestPath, Method, Target, ArgsStr)
-    end
-
     SendRemoteSpyMessage({
         type = 'rspy_generated_code',
         callId = CallId,
-        code = Code
+        code = '-- Code generation not implemented'
     })
 end
 
