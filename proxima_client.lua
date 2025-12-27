@@ -892,15 +892,17 @@ local function RspyHandleInstance(Instance)
         table.insert(RspyConnections, Connection)
         RspySignalMapping[Instance.OnClientEvent] = Instance
     elseif ClassName == 'RemoteFunction' then
+        -- For RemoteFunctions, check if they have an existing callback
         if not getcallbackvalue then
             return
         end
 
         local Success, Callback = pcall(getcallbackvalue, Instance, 'OnClientInvoke')
         if Success and typeof(Callback) == 'function' then
-            -- Store the original callback so we can restore it later
+            -- Store the original callback
             RspyOriginalCallbacks[Instance] = Callback
-            Instance.OnClientInvoke = RspyCreateCallbackDetour(Instance, ClassName, Callback)
+            -- Re-assign to trigger __newindex hook (which will wrap it)
+            Instance.OnClientInvoke = Callback
         end
     end
 end
@@ -1153,34 +1155,36 @@ function RspyStop()
         end
     end
 
-    -- Restore original RemoteFunction callbacks (from getcallbackvalue)
+    -- Restore original RemoteFunction callbacks
+    -- First restore from RspyOriginalCallbacks (callbacks that existed before spy started)
     for instance, originalCallback in pairs(RspyOriginalCallbacks) do
         if instance and typeof(instance) == 'Instance' then
             instance.OnClientInvoke = originalCallback
         end
     end
 
-    -- Restore callbacks that were detoured through __newindex hook
+    -- Then restore callbacks that were set after spy started (via __newindex hook)
+    -- Note: We can't check if current callback is our detour because OnClientInvoke getter throws error
+    -- Just restore all detoured callbacks - if user changed it, RspyOriginalCallbacks won't have it
     for instance, callbacks in pairs(RspyDetouredCallbacks) do
-        if instance and typeof(instance) == 'Instance' then
-            -- Only restore if the current callback is still our detour
-            local CurrentCallback = instance.OnClientInvoke
-            if CurrentCallback == callbacks.detour then
-                instance.OnClientInvoke = callbacks.original
-            end
+        if instance and typeof(instance) == 'Instance' and not RspyOriginalCallbacks[instance] then
+            -- Only restore if we didn't already restore from RspyOriginalCallbacks
+            instance.OnClientInvoke = callbacks.original
         end
     end
 
-    -- Clear state
+    -- Clear session-specific state (hooks, connections, callbacks)
     RspyHooks = {}
-    RspyRemoteToId = {}
-    RspyNextCallId = 1
-    RspyNextRemoteId = 1
     RspyConnections = {}
     RspyLogConnectionFunctions = {}
     RspySignalMapping = setmetatable({}, { __mode = 'kv' })
     RspyOriginalCallbacks = {}
     RspyDetouredCallbacks = {}
+
+    -- Keep persistent state for continuity across sessions:
+    -- - RspyNextCallId (call IDs continue incrementing)
+    -- - RspyRemoteToId (remotes keep their IDs)
+    -- - RspyNextRemoteId (remote ID counter continues)
 
     Log(LOG_SUCCESS, 'Remote spy stopped')
 end
