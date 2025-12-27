@@ -508,7 +508,7 @@ local value = instance.%s
 instance.%s = value]], InstancePath, PropName, PropName)
             else
                 if TypeStr == 'Instance' then
-                    ValueStr = Value:GetFullName()
+                    ValueStr = BuildInstancePath(Value)
                 elseif TypeStr == 'string' then
                     local TestJson = pcall(function()
                         HttpService:JSONEncode({test = ValueStr})
@@ -564,7 +564,7 @@ instance.%s = value]], InstancePath, PropName, PropName)
                 else
                     -- For certain types, provide more useful representations
                     if TypeStr == 'Instance' then
-                        ValueStr = Value:GetFullName()
+                        ValueStr = BuildInstancePath(Value)
                     elseif TypeStr == 'string' then
                         local TestJson = pcall(function()
                             HttpService:JSONEncode({test = ValueStr})
@@ -823,7 +823,7 @@ local function GetCallingScriptInfo()
     local CallingScript = getcallingscript()
 
     if CallingScript and typeof(CallingScript) == 'Instance' then
-        return CallingScript:GetFullName(), CallingScript.Name
+        return BuildInstancePath(CallingScript), CallingScript.Name
     end
 
     return nil, nil
@@ -840,7 +840,7 @@ local function LogRemoteCall(Instance, ClassName, Direction, Arguments, ReturnVa
         callId = CallId,
         remoteId = RemoteId,
         name = Instance.Name,
-        path = Instance:GetFullName(),
+        path = BuildInstancePath(Instance),
         class = ClassName,
         direction = Direction,
         timestamp = os.date('!%Y-%m-%dT%H:%M:%S') .. '.000Z',
