@@ -51,12 +51,12 @@ pub fn handle_rspy_call(
 }
 
 /// Handle RspyDecompiled message from client
-pub fn handle_rspy_decompiled(app_handle: &AppHandle, script_path: String, source: String) {
+pub fn handle_rspy_decompiled(app_handle: &AppHandle, call_id: u32, source: String) {
     emit_remote_spy_event(
         app_handle,
         "remote-spy-decompiled",
         serde_json::json!({
-            "scriptPath": script_path,
+            "callId": call_id,
             "source": source,
         }),
     );
@@ -100,10 +100,10 @@ pub async fn send_stop_remote_spy(client_id: &str, clients: &ClientRegistry) -> 
 /// Send rspy_decompile message to a client
 pub async fn send_decompile_request(
     client_id: &str,
-    script_path: String,
+    call_id: u32,
     clients: &ClientRegistry,
 ) -> Result<(), String> {
-    let msg = ServerMessage::RspyDecompile { script_path };
+    let msg = ServerMessage::RspyDecompile { call_id };
     let msg_text = serde_json::to_string(&msg)
         .map_err(|e| format!("Failed to serialize rspy_decompile message: {}", e))?;
 

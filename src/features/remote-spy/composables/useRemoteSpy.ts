@@ -218,9 +218,9 @@ export function useRemoteSpy() {
     }
   };
 
-  const rspyDecompile = async (scriptPath: string) => {
+  const rspyDecompile = async (callId: number) => {
     try {
-      await invoke("rspy_decompile", { scriptPath });
+      await invoke("rspy_decompile", { callId });
     } catch (error) {
       addLog("error", `Failed to decompile script: ${error}`);
       throw error;

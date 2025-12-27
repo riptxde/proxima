@@ -80,8 +80,8 @@ pub(super) enum ClientMessage {
     },
     #[serde(rename = "rspy_decompiled")]
     RspyDecompiled {
-        #[serde(rename = "scriptPath")]
-        script_path: String,
+        #[serde(rename = "callId")]
+        call_id: u32,
         source: String,
     },
     #[serde(rename = "rspy_generated_code")]
@@ -112,8 +112,8 @@ pub(super) enum ServerMessage {
     RspyStop,
     #[serde(rename = "rspy_decompile")]
     RspyDecompile {
-        #[serde(rename = "scriptPath")]
-        script_path: String,
+        #[serde(rename = "callId")]
+        call_id: u32,
     },
     #[serde(rename = "rspy_generate_code")]
     RspyGenerateCode {

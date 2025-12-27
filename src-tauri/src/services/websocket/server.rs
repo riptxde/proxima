@@ -239,11 +239,8 @@ async fn handle_message(
                 calling_script_path,
             );
         }
-        ClientMessage::RspyDecompiled {
-            script_path,
-            source,
-        } => {
-            remote_spy::handle_rspy_decompiled(app_handle, script_path, source);
+        ClientMessage::RspyDecompiled { call_id, source } => {
+            remote_spy::handle_rspy_decompiled(app_handle, call_id, source);
         }
         ClientMessage::RspyGeneratedCode { call_id, code } => {
             remote_spy::handle_rspy_generated_code(app_handle, call_id, code);

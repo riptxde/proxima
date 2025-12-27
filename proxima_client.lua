@@ -220,7 +220,7 @@ local function HandleMessage(Message)
     elseif Data.type == 'rspy_stop' then
         RspyStop()
     elseif Data.type == 'rspy_decompile' then
-        RspyDecompile(Data.scriptPath)
+        RspyDecompile(Data.callId)
     elseif Data.type == 'rspy_generate_code' then
         RspyGenerateCode(Data.callId)
     end
@@ -759,19 +759,15 @@ function ExpDecompile(Id)
     end
 
     -- Try to decompile using the decompile function if available
-    local DecompiledSource
-    if decompile then
-        local Success, Result = pcall(function()
-            return decompile(Instance)
-        end)
+    local DecompiledSource = '-- Your executor does not support script decompilation'
 
+    if typeof(decompile) == 'function' then
+        local Success, Result = pcall(decompile, Instance)
         if Success then
             DecompiledSource = Result
         else
-            DecompiledSource = '-- Decompile failed: ' .. tostring(Result)
+            DecompiledSource = ('--[[\nError decompiling: %s\n]]--'):format(tostring(Result))
         end
-    else
-        DecompiledSource = '-- Your executor does not support script decompilation'
     end
 
     SendMessage('exp_decompiled', {
@@ -782,13 +778,13 @@ end
 
 --/ Remote Spy /--
 local RemoteSpyActive = false
-local RspyNextCallId = 1
 local RspyRemoteToId = {}
 local RspyNextRemoteId = 1
+local RspyCallIdToCallData = {}
+local RspyNextCallId = 1
 local RspyHooks = {}
 local RspyConnections = {}
 local RspyLogConnectionFunctions = {}
-local RspyOriginalCallbacks = {}
 local RspyDetouredCallbacks = {}
 
 -- Helper: Get or create a unique ID for a remote instance
@@ -818,23 +814,40 @@ local function SerializeArguments(Args, StartIndex)
     return Arguments
 end
 
--- Helper: Get calling script info
-local function GetCallingScriptInfo()
+-- Helper: Get calling script instance
+local function GetCallingScript()
     local CallingScript = getcallingscript()
 
     if CallingScript and typeof(CallingScript) == 'Instance' then
-        return BuildInstancePath(CallingScript), CallingScript.Name
+        return CallingScript
     end
 
-    return nil, nil
+    return nil
 end
 
 -- Helper: Log a remote call
-local function LogRemoteCall(Instance, ClassName, Direction, Arguments, ReturnValue, CallingScriptPath, CallingScriptName)
+local function LogRemoteCall(Instance, ClassName, Direction, Arguments, ReturnValue, CallingScript)
     local CallId = RspyNextCallId
     RspyNextCallId = RspyNextCallId + 1
 
     local RemoteId = GetOrCreateRemoteId(Instance)
+
+    local CallingScriptPath = nil
+    local CallingScriptName = nil
+    if CallingScript then
+        CallingScriptPath = BuildInstancePath(CallingScript)
+        CallingScriptName = CallingScript.Name
+    end
+
+    -- Store call data for decompile and code generation
+    RspyCallIdToCallData[CallId] = {
+        instance = Instance,
+        className = ClassName,
+        direction = Direction,
+        arguments = Arguments,
+        returnValue = ReturnValue,
+        callingScript = CallingScript,
+    }
 
     SendMessage('rspy_call', {
         callId = CallId,
@@ -855,7 +868,7 @@ end
 local function RspyCreateConnectionFunction(Instance, ClassName)
     local ConnectionFunction = function(...)
         local Arguments = SerializeArguments({...})
-        LogRemoteCall(Instance, ClassName, 'incoming', Arguments, nil, nil, nil)
+        LogRemoteCall(Instance, ClassName, 'incoming', Arguments, nil, nil)
     end
 
     RspyLogConnectionFunctions[ConnectionFunction] = true
@@ -876,7 +889,7 @@ local function RspyCreateCallbackDetour(Instance, ClassName, Callback)
             }
         end
 
-        LogRemoteCall(Instance, ClassName, 'incoming', Arguments, ReturnValue, nil, nil)
+        LogRemoteCall(Instance, ClassName, 'incoming', Arguments, ReturnValue, nil)
         return table.unpack(Result)
     end
 
@@ -893,11 +906,12 @@ local function RspyHandleInstance(Instance)
         table.insert(RspyConnections, Connection)
 
     elseif ClassName == 'RemoteFunction' and getcallbackvalue then
-        -- For existing callbacks, store and re-assign to trigger __newindex hook
-        local Success, Callback = pcall(getcallbackvalue, Instance, 'OnClientInvoke')
-        if Success and typeof(Callback) == 'function' then
-            RspyOriginalCallbacks[Instance] = Callback
-            Instance.OnClientInvoke = Callback
+        -- For existing callbacks, re-assign to trigger __newindex hook
+        if typeof(getcallbackvalue) == 'function' then
+            local Success, Callback = pcall(getcallbackvalue, Instance, 'OnClientInvoke')
+            if Success and typeof(Callback) == 'function' then
+                Instance.OnClientInvoke = Callback
+            end
         end
     end
 end
@@ -918,7 +932,7 @@ local function RspySetupOutgoingHooks()
             local Args = {...}
             local Result = table.pack(OriginalNamecall(...))
 
-            local CallingScriptPath, CallingScriptName = GetCallingScriptInfo()
+            local CallingScript = GetCallingScript()
             local Arguments = SerializeArguments(Args, 2)
 
             local ReturnValue = nil
@@ -926,7 +940,7 @@ local function RspySetupOutgoingHooks()
                 ReturnValue = {type = typeof(Result[1]), value = tostring(Result[1])}
             end
 
-            LogRemoteCall(self, ClassName, 'outgoing', Arguments, ReturnValue, CallingScriptPath, CallingScriptName)
+            LogRemoteCall(self, ClassName, 'outgoing', Arguments, ReturnValue, CallingScript)
             return table.unpack(Result)
         end
 
@@ -944,7 +958,7 @@ local function RspySetupOutgoingHooks()
             local Result = table.pack(RspyHooks[HookName](self, ...))
 
             if typeof(self) == 'Instance' and self.ClassName == ClassName then
-                local CallingScriptPath, CallingScriptName = GetCallingScriptInfo()
+                local CallingScript = GetCallingScript()
                 local Arguments = SerializeArguments(Args)
 
                 local ReturnValue = nil
@@ -952,7 +966,7 @@ local function RspySetupOutgoingHooks()
                     ReturnValue = {type = typeof(Result[1]), value = tostring(Result[1])}
                 end
 
-                LogRemoteCall(self, ClassName, 'outgoing', Arguments, ReturnValue, CallingScriptPath, CallingScriptName)
+                LogRemoteCall(self, ClassName, 'outgoing', Arguments, ReturnValue, CallingScript)
             end
 
             return table.unpack(Result)
@@ -1043,41 +1057,136 @@ function RspyStop()
     end
 
     -- Restore RemoteFunction callbacks
-    for instance, originalCallback in pairs(RspyOriginalCallbacks) do
-        if instance and typeof(instance) == 'Instance' then
-            instance.OnClientInvoke = originalCallback
-        end
-    end
     for instance, callbacks in pairs(RspyDetouredCallbacks) do
-        if instance and typeof(instance) == 'Instance' and not RspyOriginalCallbacks[instance] then
+        if instance and typeof(instance) == 'Instance' then
             instance.OnClientInvoke = callbacks.original
         end
     end
 
     -- Clear all session state
-    RspyNextCallId = 1
     RspyRemoteToId = {}
     RspyNextRemoteId = 1
+    RspyCallIdToCallData = {}
+    RspyNextCallId = 1
     RspyHooks = {}
     RspyConnections = {}
     RspyLogConnectionFunctions = {}
-    RspyOriginalCallbacks = {}
     RspyDetouredCallbacks = {}
 
     Log(LOG_SUCCESS, 'Remote spy stopped')
 end
 
-function RspyDecompile(ScriptPath)
+function RspyDecompile(CallId)
+    local CallData = RspyCallIdToCallData[CallId]
+
+    if not CallData then
+        SendMessage('rspy_decompiled', {
+            callId = CallId,
+            source = '-- This remote has no associated call data'
+        })
+        return
+    end
+
+    local ScriptInstance = CallData.callingScript
+
+    if not ScriptInstance then
+        SendMessage('rspy_decompiled', {
+            callId = CallId,
+            source = '-- This remote call has no associated calling script'
+        })
+        return
+    end
+
+    local Source = '-- Your executor does not support script decompilation'
+
+    if typeof(decompile) == 'function' then
+        local Success, Result = pcall(decompile, ScriptInstance)
+        if Success then
+            Source = Result
+        else
+            Source = ('--[[\nError decompiling: %s\n]]--'):format(tostring(Result))
+        end
+    end
+
     SendMessage('rspy_decompiled', {
-        scriptPath = ScriptPath,
-        source = '-- Decompile not implemented'
+        callId = CallId,
+        source = Source
     })
 end
 
 function RspyGenerateCode(CallId)
+    local CallData = RspyCallIdToCallData[CallId]
+
+    if not CallData then
+        SendMessage('rspy_generated_code', {
+            callId = CallId,
+            code = '-- This remote has no associated call data'
+        })
+        return
+    end
+
+    local RemotePath = BuildInstancePath(CallData.instance)
+    local Code = ''
+
+    -- Generate code based on direction and class
+    if CallData.direction == 'outgoing' then
+        -- Outgoing: remote:FireServer() or remote:InvokeServer()
+        local MethodName = (CallData.className == 'RemoteFunction') and 'InvokeServer' or 'FireServer'
+
+        Code = RemotePath .. ':' .. MethodName .. '('
+
+        -- Add arguments
+        if #CallData.arguments > 0 then
+            local ArgStrings = {}
+            for i, arg in ipairs(CallData.arguments) do
+                table.insert(ArgStrings, arg.value)
+            end
+            Code = Code .. table.concat(ArgStrings, ', ')
+        end
+
+        Code = Code .. ')'
+    else
+        -- Incoming: OnClientEvent:Connect() or OnClientInvoke callback
+        if CallData.className == 'RemoteFunction' then
+            Code = RemotePath .. '.OnClientInvoke = function('
+
+            -- Add parameters
+            if #CallData.arguments > 0 then
+                local ParamNames = {}
+                for i = 1, #CallData.arguments do
+                    table.insert(ParamNames, 'arg' .. i)
+                end
+                Code = Code .. table.concat(ParamNames, ', ')
+            end
+
+            Code = Code .. ')\n    -- Handle request\n'
+
+            -- Add return if there was a return value
+            if CallData.returnValue then
+                Code = Code .. '    return ' .. CallData.returnValue.value .. '\n'
+            end
+
+            Code = Code .. 'end'
+        else
+            -- RemoteEvent or UnreliableRemoteEvent
+            Code = RemotePath .. '.OnClientEvent:Connect(function('
+
+            -- Add parameters
+            if #CallData.arguments > 0 then
+                local ParamNames = {}
+                for i = 1, #CallData.arguments do
+                    table.insert(ParamNames, 'arg' .. i)
+                end
+                Code = Code .. table.concat(ParamNames, ', ')
+            end
+
+            Code = Code .. ')\n    -- Handle event\nend)'
+        end
+    end
+
     SendMessage('rspy_generated_code', {
         callId = CallId,
-        code = '-- Code generation not implemented'
+        code = Code
     })
 end
 

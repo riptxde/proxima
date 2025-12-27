@@ -106,7 +106,7 @@ const handleSendCodeToEditor = async () => {
 };
 
 const handleDecompile = async () => {
-    if (!hasCallingScript.value || !selectedCall.value?.callingScriptPath) {
+    if (!hasCallingScript.value || !selectedCall.value) {
         toast.error("Could not decompile", {
             description: "No calling script available",
         });
@@ -114,7 +114,7 @@ const handleDecompile = async () => {
     }
 
     try {
-        await decompileScript(selectedCall.value.callingScriptPath);
+        await decompileScript(selectedCall.value.id);
     } catch (error) {
         toast.error("Failed to decompile script", {
             description: String(error),
@@ -179,13 +179,20 @@ const handleCodeGenerated = (event: Event) => {
 // Listen for decompiled code and send to editor
 const handleDecompiled = (event: Event) => {
     const customEvent = event as CustomEvent<{
-        scriptPath: string;
+        callId: number;
         source: string;
     }>;
-    const { scriptPath, source } = customEvent.detail;
+    const { callId, source } = customEvent.detail;
 
-    // Extract script name from path
-    const scriptName = scriptPath.split(".").pop() || "Script";
+    // Find the call to get the script name
+    let scriptName = "Script";
+    for (const remote of remotes.value) {
+        const call = remote.calls.find((c) => c.id === callId);
+        if (call?.callingScriptName) {
+            scriptName = call.callingScriptName;
+            break;
+        }
+    }
 
     try {
         openFileAsTab(`${scriptName} (Decompiled)`, source);
