@@ -22,8 +22,8 @@ pub struct RemoteCallEvent {
     pub timestamp: String,
     pub arguments: Vec<RemoteArgument>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "returnValue")]
-    pub return_value: Option<RemoteArgument>,
+    #[serde(rename = "returnValues")]
+    pub return_values: Option<Vec<RemoteArgument>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "callingScriptName")]
     pub calling_script_name: Option<String>,

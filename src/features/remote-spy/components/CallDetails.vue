@@ -204,15 +204,24 @@ const getClassColor = (remoteClass: RemoteClass) => {
             </div>
         </div>
 
-        <!-- Return Value Section -->
-        <div v-if="call.returnValue" class="space-y-3">
+        <!-- Return Values Section -->
+        <div
+            v-if="call.returnValues && call.returnValues.length > 0"
+            class="space-y-3"
+        >
             <div
                 class="text-[10px] text-muted-foreground/70 uppercase tracking-wider font-semibold"
             >
-                Return Value
+                {{
+                    call.returnValues.length === 1
+                        ? "Return Value"
+                        : "Return Values"
+                }}
             </div>
 
             <div
+                v-for="(returnValue, index) in call.returnValues"
+                :key="index"
                 class="group rounded-md border border-green-500/30 bg-green-500/5 overflow-hidden transition-all hover:border-green-500/50 hover:bg-green-500/10"
             >
                 <!-- Return Header -->
@@ -224,12 +233,19 @@ const getClassColor = (remoteClass: RemoteClass) => {
                             class="text-xs font-mono font-semibold text-green-400"
                             >return</span
                         >
+                        <Badge
+                            v-if="call.returnValues.length > 1"
+                            variant="outline"
+                            class="text-[10px] font-mono px-1.5 py-0 h-5 bg-background/60 border-green-500/20"
+                        >
+                            {{ index + 1 }}
+                        </Badge>
                         <div class="w-px h-3.5 bg-green-500/30"></div>
                         <Badge
                             variant="secondary"
                             class="text-[10px] font-mono px-1.5 py-0 h-5 bg-background/60 border-green-500/20"
                         >
-                            {{ call.returnValue.type }}
+                            {{ returnValue.type }}
                         </Badge>
                     </div>
                 </div>
@@ -239,7 +255,7 @@ const getClassColor = (remoteClass: RemoteClass) => {
                     <div
                         class="text-xs font-mono break-all leading-relaxed text-foreground/90"
                     >
-                        {{ call.returnValue.value }}
+                        {{ returnValue.value }}
                     </div>
                 </div>
             </div>

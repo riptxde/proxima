@@ -27,7 +27,7 @@ pub fn handle_rspy_call(
     direction: String,
     timestamp: String,
     arguments: Vec<RemoteArgument>,
-    return_value: Option<RemoteArgument>,
+    return_values: Option<Vec<RemoteArgument>>,
     calling_script_name: Option<String>,
     calling_script_path: Option<String>,
 ) {
@@ -43,7 +43,7 @@ pub fn handle_rspy_call(
             direction,
             timestamp,
             arguments,
-            return_value,
+            return_values,
             calling_script_name,
             calling_script_path,
         },

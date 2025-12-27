@@ -69,8 +69,8 @@ pub(super) enum ClientMessage {
         timestamp: String,
         arguments: Vec<RemoteArgument>,
         #[serde(skip_serializing_if = "Option::is_none")]
-        #[serde(rename = "returnValue")]
-        return_value: Option<RemoteArgument>,
+        #[serde(rename = "returnValues")]
+        return_values: Option<Vec<RemoteArgument>>,
         #[serde(skip_serializing_if = "Option::is_none")]
         #[serde(rename = "callingScriptName")]
         calling_script_name: Option<String>,

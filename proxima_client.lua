@@ -23,21 +23,42 @@ local Reconnecting = false
 
 --/ Utilities /--
 local function EscapeStringLiteral(Name)
+    -- Escape special characters
+    local EscapeMap = {
+        ['\\'] = '\\\\',
+        ['\n'] = '\\n',
+        ['\r'] = '\\r',
+        ['\t'] = '\\t',
+        ['\a'] = '\\a',
+        ['\b'] = '\\b',
+        ['\v'] = '\\v',
+        ['\f'] = '\\f',
+    }
+
     -- Determine which quote style to use based on what's in the string
     local HasSingleQuote = string.find(Name, "'", 1, true) ~= nil
     local HasDoubleQuote = string.find(Name, '"', 1, true) ~= nil
 
     if HasSingleQuote and not HasDoubleQuote then
         -- Has single quotes only - use double quotes
-        return '"' .. Name .. '"'
+        local Escaped = string.gsub(Name, '[\\%c]', function(c)
+            if c == '"' then return '\\"' end
+            return EscapeMap[c] or string.format('\\x%02X', string.byte(c))
+        end)
+        return '"' .. Escaped .. '"'
     elseif HasSingleQuote and HasDoubleQuote then
-        -- Has both quotes - use single quotes and escape them with backslash
-        local Escaped = string.gsub(Name, '\\', '\\\\')  -- Escape backslashes first
-        Escaped = string.gsub(Escaped, "'", "\\'")       -- Escape single quotes
+        -- Has both quotes - use single quotes and escape them
+        local Escaped = string.gsub(Name, '[\\%c\']', function(c)
+            if c == "'" then return "\\'" end
+            return EscapeMap[c] or string.format('\\x%02X', string.byte(c))
+        end)
         return "'" .. Escaped .. "'"
     else
         -- Has no quotes or only double quotes - use single quotes (preferred)
-        return "'" .. Name .. "'"
+        local Escaped = string.gsub(Name, '[\\%c]', function(c)
+            return EscapeMap[c] or string.format('\\x%02X', string.byte(c))
+        end)
+        return "'" .. Escaped .. "'"
     end
 end
 
@@ -105,6 +126,41 @@ local function BuildInstancePath(Instance)
     return PathString
 end
 
+local function TryCommaSeparatedConstructor(ValueType, ToStringValue)
+    -- Check if tostring value is comma-separated numbers that can use ClassName.new(tostring)
+    -- e.g., "1, 2, 3" for Vector3 -> Vector3.new(1, 2, 3)
+    local Pattern = '^%-?%d+%.?%d*'  -- Number pattern
+    local Parts = {}
+
+    for Part in string.gmatch(ToStringValue, '[^,]+') do
+        local Trimmed = string.match(Part, '^%s*(.-)%s*$')  -- Trim whitespace
+        if string.match(Trimmed, Pattern .. '$') then
+            table.insert(Parts, Trimmed)
+        else
+            return nil  -- Not all parts are numbers
+        end
+    end
+
+    if #Parts > 0 then
+        return ValueType .. '.new(' .. table.concat(Parts, ', ') .. ')'
+    end
+
+    return nil
+end
+
+local function FormatNumber(Num)
+    -- Format number to 3 decimal places, removing trailing zeros
+    if Num == math.floor(Num) then
+        -- Integer, no decimal needed
+        return tostring(Num)
+    end
+
+    local Formatted = string.format('%.3f', Num)
+    -- Remove trailing zeros after decimal point
+    Formatted = string.gsub(Formatted, '%.?0+$', '')
+    return Formatted
+end
+
 local function Serialize(Value, Depth, Shown)
     -- Serialize Lua values to readable code
     Depth = Depth or 0
@@ -123,10 +179,15 @@ local function Serialize(Value, Depth, Shown)
             return 'math.huge'
         elseif Value == -math.huge then
             return '-math.huge'
+        elseif Value == math.pi then
+            return 'math.pi'
+        elseif Value ~= Value then
+            -- NaN detection
+            return '0/0'
         end
         return tostring(Value)
     elseif type(Value) == 'string' then
-        return ('%q'):format(Value)
+        return EscapeStringLiteral(Value)
     end
 
     -- Tables with __tostring
@@ -212,9 +273,30 @@ local function Serialize(Value, Depth, Shown)
     elseif ValueType == 'BrickColor' then
         return 'BrickColor.new(' .. ('%q'):format(Value.Name) .. ')'
     elseif ValueType == 'CFrame' then
-        return 'CFrame.new(' .. table.concat({Value:GetComponents()}, ', ') .. ')'
+        if Value == CFrame.identity then
+            return 'CFrame.identity'
+        end
+        -- Use position + rotation for more intuitive representation
+        local Position = Value.Position
+        local X, Y, Z = Value:ToOrientation()
+
+        -- Format each angle individually - use degrees with math.rad() if non-zero
+        local function FormatAngle(Radians)
+            if math.abs(tonumber(string.format('%.3f', Radians))) > 0 then
+                -- Non-zero: use degrees with math.rad()
+                return 'math.rad(' .. FormatNumber(math.deg(Radians)) .. ')'
+            else
+                -- Zero: just use 0
+                return '0'
+            end
+        end
+
+        return ('CFrame.new(%s, %s, %s) * CFrame.Angles(%s, %s, %s)'):format(
+            FormatNumber(Position.X), FormatNumber(Position.Y), FormatNumber(Position.Z),
+            FormatAngle(X), FormatAngle(Y), FormatAngle(Z)
+        )
     elseif ValueType == 'Color3' then
-        return ('Color3.new(%s, %s, %s)'):format(Value.R, Value.G, Value.B)
+        return ('Color3.new(%s, %s, %s)'):format(FormatNumber(Value.R), FormatNumber(Value.G), FormatNumber(Value.B))
     elseif ValueType == 'ColorSequence' then
         if #Value.Keypoints > 2 then
             return 'ColorSequence.new(' .. Serialize(Value.Keypoints, Depth, Shown) .. ')'
@@ -224,9 +306,9 @@ local function Serialize(Value, Depth, Shown)
             return 'ColorSequence.new(' .. Serialize(Value.Keypoints[1].Value, Depth, Shown) .. ', ' .. Serialize(Value.Keypoints[2].Value, Depth, Shown) .. ')'
         end
     elseif ValueType == 'ColorSequenceKeypoint' then
-        return ('ColorSequenceKeypoint.new(%s, %s)'):format(Value.Time, Serialize(Value.Value, Depth, Shown))
+        return ('ColorSequenceKeypoint.new(%s, %s)'):format(FormatNumber(Value.Time), Serialize(Value.Value, Depth, Shown))
     elseif ValueType == 'DateTime' then
-        return 'DateTime.fromIsoDate(' .. ('%q'):format(Value:ToIsoDate()) .. ')'
+        return 'DateTime.fromIsoDate(' .. EscapeStringLiteral(Value:ToIsoDate()) .. ')'
     elseif ValueType == 'Enum' then
         return 'Enum.' .. tostring(Value)
     elseif ValueType == 'EnumItem' then
@@ -241,32 +323,43 @@ local function Serialize(Value, Depth, Shown)
         return 'Faces.new(' .. table.concat(Components, ', ') .. ')'
     elseif ValueType == 'NumberRange' then
         if Value.Min == Value.Max then
-            return ('NumberRange.new(%s)'):format(Value.Min)
+            return ('NumberRange.new(%s)'):format(FormatNumber(Value.Min))
         else
-            return ('NumberRange.new(%s, %s)'):format(Value.Min, Value.Max)
+            return ('NumberRange.new(%s, %s)'):format(FormatNumber(Value.Min), FormatNumber(Value.Max))
         end
     elseif ValueType == 'NumberSequence' then
         if #Value.Keypoints > 2 then
             return 'NumberSequence.new(' .. Serialize(Value.Keypoints, Depth, Shown) .. ')'
         elseif Value.Keypoints[1].Value == Value.Keypoints[2].Value then
-            return ('NumberSequence.new(%s)'):format(Value.Keypoints[1].Value)
+            return ('NumberSequence.new(%s)'):format(FormatNumber(Value.Keypoints[1].Value))
         else
-            return ('NumberSequence.new(%s, %s)'):format(Value.Keypoints[1].Value, Value.Keypoints[2].Value)
+            return ('NumberSequence.new(%s, %s)'):format(FormatNumber(Value.Keypoints[1].Value), FormatNumber(Value.Keypoints[2].Value))
         end
     elseif ValueType == 'NumberSequenceKeypoint' then
         if Value.Envelope ~= 0 then
-            return ('NumberSequenceKeypoint.new(%s, %s, %s)'):format(Value.Time, Value.Value, Value.Envelope)
+            return ('NumberSequenceKeypoint.new(%s, %s, %s)'):format(FormatNumber(Value.Time), FormatNumber(Value.Value), FormatNumber(Value.Envelope))
         else
-            return ('NumberSequenceKeypoint.new(%s, %s)'):format(Value.Time, Value.Value)
+            return ('NumberSequenceKeypoint.new(%s, %s)'):format(FormatNumber(Value.Time), FormatNumber(Value.Value))
         end
     elseif ValueType == 'PathWaypoint' then
         return 'PathWaypoint.new(' .. Serialize(Value.Position, Depth, Shown) .. ', ' .. Serialize(Value.Action, Depth, Shown) .. ')'
     elseif ValueType == 'PhysicalProperties' then
-        return ('PhysicalProperties.new(%s, %s, %s, %s, %s)'):format(Value.Density, Value.Friction, Value.Elasticity, Value.FrictionWeight, Value.ElasticityWeight)
+        return ('PhysicalProperties.new(%s, %s, %s, %s, %s)'):format(
+            FormatNumber(Value.Density),
+            FormatNumber(Value.Friction),
+            FormatNumber(Value.Elasticity),
+            FormatNumber(Value.FrictionWeight),
+            FormatNumber(Value.ElasticityWeight)
+        )
     elseif ValueType == 'Ray' then
         return 'Ray.new(' .. Serialize(Value.Origin, Depth, Shown) .. ', ' .. Serialize(Value.Direction, Depth, Shown) .. ')'
     elseif ValueType == 'Rect' then
-        return ('Rect.new(%s, %s, %s, %s)'):format(Value.Min.X, Value.Min.Y, Value.Max.X, Value.Max.Y)
+        return ('Rect.new(%s, %s, %s, %s)'):format(
+            FormatNumber(Value.Min.X),
+            FormatNumber(Value.Min.Y),
+            FormatNumber(Value.Max.X),
+            FormatNumber(Value.Max.Y)
+        )
     elseif ValueType == 'Region3' then
         local Min = Value.CFrame.Position + Value.Size * -0.5
         local Max = Value.CFrame.Position + Value.Size * 0.5
@@ -275,26 +368,75 @@ local function Serialize(Value, Depth, Shown)
         return 'Region3int16.new(' .. Serialize(Value.Min, Depth, Shown) .. ', ' .. Serialize(Value.Max, Depth, Shown) .. ')'
     elseif ValueType == 'TweenInfo' then
         return ('TweenInfo.new(%s, %s, %s, %s, %s, %s)'):format(
-            Value.Time,
+            FormatNumber(Value.Time),
             Serialize(Value.EasingStyle, Depth, Shown),
             Serialize(Value.EasingDirection, Depth, Shown),
             Value.RepeatCount,
             Serialize(Value.Reverses, Depth, Shown),
-            Value.DelayTime
+            FormatNumber(Value.DelayTime)
         )
     elseif ValueType == 'UDim' then
-        return ('UDim.new(%s, %s)'):format(Value.Scale, Value.Offset)
+        return ('UDim.new(%s, %s)'):format(FormatNumber(Value.Scale), FormatNumber(Value.Offset))
     elseif ValueType == 'UDim2' then
-        return ('UDim2.new(%s, %s, %s, %s)'):format(Value.X.Scale, Value.X.Offset, Value.Y.Scale, Value.Y.Offset)
+        if Value.X.Offset == 0 and Value.Y.Offset == 0 then
+            return ('UDim2.fromScale(%s, %s)'):format(FormatNumber(Value.X.Scale), FormatNumber(Value.Y.Scale))
+        elseif Value.X.Scale == 0 and Value.Y.Scale == 0 then
+            return ('UDim2.fromOffset(%s, %s)'):format(FormatNumber(Value.X.Offset), FormatNumber(Value.Y.Offset))
+        end
+        return ('UDim2.new(%s, %s, %s, %s)'):format(FormatNumber(Value.X.Scale), FormatNumber(Value.X.Offset), FormatNumber(Value.Y.Scale), FormatNumber(Value.Y.Offset))
     elseif ValueType == 'Vector2' then
-        return ('Vector2.new(%s, %s)'):format(Value.X, Value.Y)
+        if Value == Vector2.zero then
+            return 'Vector2.zero'
+        elseif Value == Vector2.one then
+            return 'Vector2.one'
+        elseif Value == Vector2.xAxis then
+            return 'Vector2.xAxis'
+        elseif Value == Vector2.yAxis then
+            return 'Vector2.yAxis'
+        end
+        return ('Vector2.new(%s, %s)'):format(FormatNumber(Value.X), FormatNumber(Value.Y))
     elseif ValueType == 'Vector2int16' then
         return ('Vector2int16.new(%s, %s)'):format(Value.X, Value.Y)
     elseif ValueType == 'Vector3' then
-        return ('Vector3.new(%s, %s, %s)'):format(Value.X, Value.Y, Value.Z)
+        if Value == Vector3.zero then
+            return 'Vector3.zero'
+        elseif Value == Vector3.one then
+            return 'Vector3.one'
+        elseif Value == Vector3.xAxis then
+            return 'Vector3.xAxis'
+        elseif Value == Vector3.yAxis then
+            return 'Vector3.yAxis'
+        elseif Value == Vector3.zAxis then
+            return 'Vector3.zAxis'
+        end
+        return ('Vector3.new(%s, %s, %s)'):format(FormatNumber(Value.X), FormatNumber(Value.Y), FormatNumber(Value.Z))
     elseif ValueType == 'Vector3int16' then
         return ('Vector3int16.new(%s, %s, %s)'):format(Value.X, Value.Y, Value.Z)
+    elseif ValueType == 'Font' then
+        return 'Font.new(' .. Serialize(Value.Family, Depth, Shown) .. ', ' .. Serialize(Value.Weight, Depth, Shown) .. ', ' .. Serialize(Value.Style, Depth, Shown) .. ')'
+    elseif ValueType == 'FloatCurveKey' then
+        return ('FloatCurveKey.new(%s, %s, %s)'):format(FormatNumber(Value.Time), FormatNumber(Value.Value), Serialize(Value.Interpolation, Depth, Shown))
+    elseif ValueType == 'RotationCurveKey' then
+        return 'RotationCurveKey.new(' .. FormatNumber(Value.Time) .. ', ' .. Serialize(Value.Value, Depth, Shown) .. ', ' .. Serialize(Value.Interpolation, Depth, Shown) .. ')'
+    elseif ValueType == 'Random' then
+        return 'Random.new()'
+    elseif ValueType == 'buffer' then
+        local Encoded = HttpService:JSONEncode(Value)
+        return 'game:GetService("HttpService"):JSONDecode(' .. EscapeStringLiteral(Encoded) .. ')'
+    elseif ValueType == 'userdata' then
+        if getmetatable(Value) ~= nil then
+            return 'newproxy(true)'
+        else
+            return 'newproxy()'
+        end
     else
+        -- Try comma-separated constructor as fallback for unknown types
+        local ToStringValue = tostring(Value)
+        local CommaSeparatedResult = TryCommaSeparatedConstructor(ValueType, ToStringValue)
+        if CommaSeparatedResult then
+            return CommaSeparatedResult
+        end
+
         return ('--[[ %s ]]--'):format(ValueType)
     end
 end
@@ -1014,7 +1156,7 @@ local function GetCallingScript()
     return nil
 end
 
-local function LogRemoteCall(Instance, ClassName, Direction, Arguments, ReturnValue, CallingScript)
+local function LogRemoteCall(Instance, ClassName, Direction, Arguments, ReturnValues, CallingScript)
     local CallId = RspyNextCallId
     RspyNextCallId = RspyNextCallId + 1
 
@@ -1027,7 +1169,7 @@ local function LogRemoteCall(Instance, ClassName, Direction, Arguments, ReturnVa
         CallingScriptName = CallingScript.Name
     end
 
-    -- Serialize arguments and return value for display
+    -- Serialize arguments and return values for display
     local SerializedArguments = {}
     for i = 1, #Arguments do
         table.insert(SerializedArguments, {
@@ -1036,12 +1178,15 @@ local function LogRemoteCall(Instance, ClassName, Direction, Arguments, ReturnVa
         })
     end
 
-    local SerializedReturnValue = nil
-    if ReturnValue ~= nil then
-        SerializedReturnValue = {
-            type = typeof(ReturnValue),
-            value = Serialize(ReturnValue)
-        }
+    local SerializedReturnValues = nil
+    if ReturnValues ~= nil and #ReturnValues > 0 then
+        SerializedReturnValues = {}
+        for i = 1, #ReturnValues do
+            table.insert(SerializedReturnValues, {
+                type = typeof(ReturnValues[i]),
+                value = Serialize(ReturnValues[i])
+            })
+        end
     end
 
     -- Store call data for decompile and code generation
@@ -1050,7 +1195,7 @@ local function LogRemoteCall(Instance, ClassName, Direction, Arguments, ReturnVa
         className = ClassName,
         direction = Direction,
         arguments = Arguments,
-        returnValue = ReturnValue,
+        returnValues = ReturnValues,
         callingScript = CallingScript,
     }
 
@@ -1063,7 +1208,7 @@ local function LogRemoteCall(Instance, ClassName, Direction, Arguments, ReturnVa
         direction = Direction,
         timestamp = os.date('!%Y-%m-%dT%H:%M:%S') .. '.000Z',
         arguments = SerializedArguments,
-        returnValue = SerializedReturnValue,
+        returnValues = SerializedReturnValues,
         callingScriptName = CallingScriptName,
         callingScriptPath = CallingScriptPath,
     })
@@ -1084,13 +1229,16 @@ local function RspyCreateCallbackDetour(Instance, ClassName, Callback)
     local Detour = function(...)
         local Result = table.pack(Callback(...))
 
-        local ReturnValue = nil
-        if Result.n > 0 and Result[1] ~= nil then
-            ReturnValue = Result[1]
+        local ReturnValues = nil
+        if Result.n > 0 then
+            ReturnValues = {}
+            for i = 1, Result.n do
+                table.insert(ReturnValues, Result[i])
+            end
         end
 
-        LogRemoteCall(Instance, ClassName, 'incoming', {...}, ReturnValue, nil)
-        return table.unpack(Result)
+        LogRemoteCall(Instance, ClassName, 'incoming', {...}, ReturnValues, nil)
+        return table.unpack(Result, 1, Result.n)
     end
 
     return Detour
@@ -1139,13 +1287,16 @@ local function RspySetupOutgoingHooks()
                 table.insert(Arguments, Args[i])
             end
 
-            local ReturnValue = nil
-            if ClassName == 'RemoteFunction' and Result.n > 0 and Result[1] ~= nil then
-                ReturnValue = Result[1]
+            local ReturnValues = nil
+            if ClassName == 'RemoteFunction' and Result.n > 0 then
+                ReturnValues = {}
+                for i = 1, Result.n do
+                    table.insert(ReturnValues, Result[i])
+                end
             end
 
-            LogRemoteCall(self, ClassName, 'outgoing', Arguments, ReturnValue, CallingScript)
-            return table.unpack(Result)
+            LogRemoteCall(self, ClassName, 'outgoing', Arguments, ReturnValues, CallingScript)
+            return table.unpack(Result, 1, Result.n)
         end
 
         return OriginalNamecall(...)
@@ -1163,15 +1314,18 @@ local function RspySetupOutgoingHooks()
             if typeof(self) == 'Instance' and self.ClassName == ClassName then
                 local CallingScript = GetCallingScript()
 
-                local ReturnValue = nil
-                if ClassName == 'RemoteFunction' and Result.n > 0 and Result[1] ~= nil then
-                    ReturnValue = Result[1]
+                local ReturnValues = nil
+                if ClassName == 'RemoteFunction' and Result.n > 0 then
+                    ReturnValues = {}
+                    for i = 1, Result.n do
+                        table.insert(ReturnValues, Result[i])
+                    end
                 end
 
-                LogRemoteCall(self, ClassName, 'outgoing', {...}, ReturnValue, CallingScript)
+                LogRemoteCall(self, ClassName, 'outgoing', {...}, ReturnValues, CallingScript)
             end
 
-            return table.unpack(Result)
+            return table.unpack(Result, 1, Result.n)
         end)
     end
 
@@ -1338,8 +1492,8 @@ function RspyGenerateCode(CallId)
         -- Build arguments table
         if #CallData.arguments > 0 then
             local ArgsRepr = Serialize(CallData.arguments)
-            Code = 'local args = ' .. ArgsRepr .. '\n'
-            Code = Code .. RemotePath .. ':' .. MethodName .. '(table.unpack(args))'
+            Code = 'local args = ' .. ArgsRepr .. '\n\n'
+            Code = Code .. RemotePath .. ':' .. MethodName .. '(table.unpack(args, 1, #args))'
         else
             Code = RemotePath .. ':' .. MethodName .. '()'
         end
@@ -1359,9 +1513,13 @@ function RspyGenerateCode(CallId)
 
             Code = Code .. ')\n    -- Handle request\n'
 
-            -- Add return if there was a return value
-            if CallData.returnValue then
-                Code = Code .. '    return ' .. Serialize(CallData.returnValue) .. '\n'
+            -- Add return if there were return values
+            if CallData.returnValues and #CallData.returnValues > 0 then
+                local ReturnStrs = {}
+                for i = 1, #CallData.returnValues do
+                    table.insert(ReturnStrs, Serialize(CallData.returnValues[i]))
+                end
+                Code = Code .. '    return ' .. table.concat(ReturnStrs, ', ') .. '\n'
             end
 
             Code = Code .. 'end'

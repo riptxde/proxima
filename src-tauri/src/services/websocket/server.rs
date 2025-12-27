@@ -220,7 +220,7 @@ async fn handle_message(
             direction,
             timestamp,
             arguments,
-            return_value,
+            return_values,
             calling_script_name,
             calling_script_path,
         } => {
@@ -234,7 +234,7 @@ async fn handle_message(
                 direction,
                 timestamp,
                 arguments,
-                return_value,
+                return_values,
                 calling_script_name,
                 calling_script_path,
             );

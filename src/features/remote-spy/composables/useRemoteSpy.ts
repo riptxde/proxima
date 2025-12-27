@@ -276,7 +276,7 @@ export function useRemoteSpy() {
         timestamp: new Date(callData.timestamp),
         direction: callData.direction as RemoteDirection,
         arguments: callData.arguments || [],
-        returnValue: callData.returnValue,
+        returnValues: callData.returnValues,
         callingScriptName: callData.callingScriptName,
         callingScriptPath: callData.callingScriptPath,
       };

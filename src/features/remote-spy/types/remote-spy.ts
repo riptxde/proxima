@@ -12,7 +12,7 @@ export interface RemoteCall {
   timestamp: Date;
   direction: RemoteDirection;
   arguments: RemoteArgument[];
-  returnValue?: RemoteArgument;
+  returnValues?: RemoteArgument[];
   callingScriptName?: string;
   callingScriptPath?: string;
 }
