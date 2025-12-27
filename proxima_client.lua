@@ -920,6 +920,73 @@ function RspyStart()
 
     RspyHooks.Namecall = OriginalNamecall
 
+    -- Helper function to create a hook for indexed remote calls
+    local function CreateIndexedHook(ClassName, MethodName, HookName)
+        local Prototype = Instance.new(ClassName)
+        local OriginalMethod = Prototype[MethodName]
+
+        RspyHooks[HookName] = hookfunction(OriginalMethod, function(self, ...)
+            local CallingScript = getcallingscript()
+            local Args = {...}
+
+            -- Call the original method
+            local Result = table.pack(RspyHooks[HookName](self, ...))
+
+            -- Validate this is actually an instance of the correct class
+            if typeof(self) == 'Instance' and self.ClassName == ClassName then
+                local CallId = RspyNextCallId
+                RspyNextCallId = RspyNextCallId + 1
+
+                local RemoteId = GetOrCreateRemoteId(self)
+
+                local CallingScriptPath = nil
+                local CallingScriptName = nil
+                if CallingScript and typeof(CallingScript) == 'Instance' then
+                    CallingScriptPath = CallingScript:GetFullName()
+                    CallingScriptName = CallingScript.Name
+                end
+
+                local Arguments = {}
+                for i = 1, #Args do
+                    table.insert(Arguments, {
+                        type = typeof(Args[i]),
+                        value = tostring(Args[i])
+                    })
+                end
+
+                local ReturnValue = nil
+                if ClassName == 'RemoteFunction' and Result.n > 0 and Result[1] ~= nil then
+                    ReturnValue = {
+                        type = typeof(Result[1]),
+                        value = tostring(Result[1])
+                    }
+                end
+
+                SendRemoteSpyMessage({
+                    type = 'rspy_call',
+                    callId = CallId,
+                    remoteId = RemoteId,
+                    name = self.Name,
+                    path = self:GetFullName(),
+                    class = ClassName,
+                    direction = 'outgoing',
+                    timestamp = os.date('!%Y-%m-%dT%H:%M:%S') .. '.000Z',
+                    arguments = Arguments,
+                    returnValue = ReturnValue,
+                    callingScriptName = CallingScriptName,
+                    callingScriptPath = CallingScriptPath,
+                })
+            end
+
+            return table.unpack(Result)
+        end)
+    end
+
+    -- Hook direct function calls to catch indexed remote calls
+    CreateIndexedHook('RemoteEvent', 'FireServer', 'FireServer')
+    CreateIndexedHook('UnreliableRemoteEvent', 'FireServer', 'UnreliableFireServer')
+    CreateIndexedHook('RemoteFunction', 'InvokeServer', 'InvokeServer')
+
     Log(LOG_SUCCESS, 'Remote spy started')
 end
 
@@ -933,6 +1000,19 @@ function RspyStop()
     -- Unhook __namecall
     if RspyHooks.Namecall then
         hookmetamethod(game, '__namecall', RspyHooks.Namecall)
+    end
+
+    -- Unhook function hooks
+    if RspyHooks.FireServer then
+        hookfunction(Instance.new('RemoteEvent').FireServer, RspyHooks.FireServer)
+    end
+
+    if RspyHooks.UnreliableFireServer then
+        hookfunction(Instance.new('UnreliableRemoteEvent').FireServer, RspyHooks.UnreliableFireServer)
+    end
+
+    if RspyHooks.InvokeServer then
+        hookfunction(Instance.new('RemoteFunction').InvokeServer, RspyHooks.InvokeServer)
     end
 
     -- Clear state
