@@ -665,6 +665,7 @@ function ExpGetProperties(Id, Properties, SpecialProperties)
             local TypeStr = typeof(Value)
             local ValueStr = tostring(Value)
             local PropertyCode
+            local SerializedValue
 
             -- Check if the value is unreadable (only if property type isn't string)
             if PropMetadata.valueType ~= 'string' and ValueStr:match('^Unable to get property .+, type %S+$') then
@@ -675,34 +676,45 @@ function ExpGetProperties(Id, Properties, SpecialProperties)
             elseif Value == nil then
                 TypeStr = PropMetadata.valueType or TypeStr
                 ValueStr = 'nil'
-                PropertyCode = string.format([[-- Get the instance
-local instance = %s
-
--- Get the property value
-local value = instance.%s
-
--- Set the property value
-instance.%s = value]], InstancePath, PropName, PropName)
+                SerializedValue = 'nil'
             else
-                if TypeStr == 'Instance' then
-                    ValueStr = BuildInstancePath(Value)
-                elseif TypeStr == 'string' then
+                -- Check if string is binary/non-UTF8 before serializing
+                local IsBinaryString = false
+                if TypeStr == 'string' then
                     local TestJson = pcall(function()
                         HttpService:JSONEncode({test = ValueStr})
                     end)
                     if not TestJson then
+                        IsBinaryString = true
                         ValueStr = '[Binary/Non-UTF8 data, length: ' .. #ValueStr .. ']'
                     end
                 end
 
-                PropertyCode = string.format([[-- Get the instance
+                -- Serialize for both display and property code (skip if binary)
+                if IsBinaryString then
+                    SerializedValue = "'[Binary data]'"
+                else
+                    local SerializeSuccess, Result = pcall(Serialize, Value)
+                    if SerializeSuccess then
+                        SerializedValue = Result
+                        ValueStr = Result  -- Use serialized value for display too
+                    else
+                        SerializedValue = 'nil'
+                        ValueStr = tostring(Value)  -- Fallback to tostring
+                    end
+                end
+            end
+
+            -- Build property code
+            if PropertyCode ~= '-- Property is unreadable' then
+                PropertyCode = ([[-- Get the instance
 local instance = %s
 
 -- Get the property value
 local value = instance.%s
 
 -- Set the property value
-instance.%s = value]], InstancePath, PropName, PropName)
+instance.%s = %s]]):format(InstancePath, PropName, PropName, SerializedValue)
             end
 
             Props[PropName] = {
@@ -729,37 +741,54 @@ instance.%s = value]], InstancePath, PropName, PropName)
             if Success then
                 local TypeStr = typeof(Value)
                 local ValueStr = tostring(Value)
+                local SerializedValue
 
                 -- Check if the value is unreadable (only if property type isn't string)
                 if PropMetadata.valueType ~= 'string' and ValueStr:match('^Unable to get property .+, type %S+$') then
                     local TypeName = ValueStr:match('type (%S+)$')
                     TypeStr = TypeName or PropMetadata.valueType or 'Unknown'
                     ValueStr = '[Unreadable]'
+                    SerializedValue = 'nil'
                 elseif Value == nil then
                     TypeStr = PropMetadata.valueType or TypeStr
                     ValueStr = 'nil'
+                    SerializedValue = 'nil'
                 else
-                    -- For certain types, provide more useful representations
-                    if TypeStr == 'Instance' then
-                        ValueStr = BuildInstancePath(Value)
-                    elseif TypeStr == 'string' then
+                    -- Check if string is binary/non-UTF8 before serializing
+                    local IsBinaryString = false
+                    if TypeStr == 'string' then
                         local TestJson = pcall(function()
                             HttpService:JSONEncode({test = ValueStr})
                         end)
                         if not TestJson then
+                            IsBinaryString = true
                             ValueStr = '[Binary/Non-UTF8 data, length: ' .. #ValueStr .. ']'
+                        end
+                    end
+
+                    -- Serialize for both display and property code (skip if binary)
+                    if IsBinaryString then
+                        SerializedValue = "'[Binary data]'"
+                    else
+                        local SerializeSuccess, Result = pcall(Serialize, Value)
+                        if SerializeSuccess then
+                            SerializedValue = Result
+                            ValueStr = Result  -- Use serialized value for display too
+                        else
+                            SerializedValue = 'nil'
+                            ValueStr = tostring(Value)  -- Fallback to tostring
                         end
                     end
                 end
 
-                local PropertyCode = string.format([[-- Get the instance
+                local PropertyCode = ([[-- Get the instance
 local instance = %s
 
 -- Get the property value
 local value = gethiddenproperty(instance, %s)
 
 -- Set the property value
-sethiddenproperty(instance, %s, value)]], InstancePath, EscapeStringLiteral(PropName), EscapeStringLiteral(PropName))
+sethiddenproperty(instance, %s, %s)]]):format(InstancePath, EscapeStringLiteral(PropName), EscapeStringLiteral(PropName), SerializedValue)
 
                 SpecialProps[PropName] = {
                     value = ValueStr,

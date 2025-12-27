@@ -421,10 +421,11 @@ const openUnofficialDocs = async () => {
                                         >
                                             Note: The official documentation
                                             provides better examples, while the
-                                            unofficial docs contain
+                                            unofficial documentation includes
                                             documentation on properties and
                                             events hidden from the official
-                                            documentation.
+                                            documentation, which may be useful
+                                            for exploits.
                                         </p>
                                     </div>
                                 </div>
