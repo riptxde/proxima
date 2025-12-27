@@ -110,7 +110,7 @@ const isClassActive = (
                 <!-- Class Filter Group -->
                 <div class="flex items-center gap-2.5">
                     <div
-                        class="text-xs font-medium text-muted-foreground uppercase tracking-wide"
+                        class="text-[11px] font-medium text-muted-foreground uppercase tracking-wide"
                     >
                         Class
                     </div>
