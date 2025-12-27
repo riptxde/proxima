@@ -14,6 +14,8 @@ import { useEditorTabs } from "@/features/editor/composables/useEditorTabs";
 import { useNavigation } from "@/composables/useNavigation";
 import { toast } from "vue-sonner";
 import ClientsDialog from "./ClientsDialog.vue";
+import StopConfirmDialog from "./StopConfirmDialog.vue";
+import ClearCallsConfirmDialog from "./ClearCallsConfirmDialog.vue";
 
 const {
     isSpyActive,
@@ -27,11 +29,14 @@ const {
     clearCalls,
     generateCode,
     decompileScript,
+    getTotalCallCount,
 } = useRemoteSpy();
 const { openFileAsTab } = useEditorTabs();
 const { navigate } = useNavigation();
 
 const showClientDialog = ref(false);
+const showStopConfirmDialog = ref(false);
+const showClearCallsConfirmDialog = ref(false);
 const dockTooltipKey = ref(0);
 
 const isCallSelected = computed(() => selectedCall.value !== null);
@@ -39,6 +44,7 @@ const hasCallingScript = computed(
     () => isCallSelected.value && !!selectedCall.value?.callingScriptPath,
 );
 const hasCalls = computed(() => remotes.value.length > 0);
+const totalCallCount = computed(() => getTotalCallCount());
 
 const handleStartOrPause = () => {
     if (!isSpyActive.value) {
@@ -59,7 +65,14 @@ const handleStartOrPause = () => {
     }
 };
 
-const handleStopSpy = async () => {
+const handleStopSpy = () => {
+    if (!isSpyActive.value) return;
+
+    // Show confirmation dialog
+    showStopConfirmDialog.value = true;
+};
+
+const confirmStopSpy = async () => {
     const username = selectedClient.value?.username;
     try {
         await stopSpy();
@@ -116,19 +129,32 @@ const handleClearCalls = () => {
         });
         return;
     }
+
+    // Show confirmation dialog
+    showClearCallsConfirmDialog.value = true;
+};
+
+const confirmClearCalls = () => {
     const count = clearCalls();
     toast.success("All calls cleared", {
         description: `${count} call${count !== 1 ? "s" : ""} removed`,
     });
 };
 
-// Remount dock tooltips when dialog closes
+// Remount dock tooltips when dialogs close
 // This is absolutely necessary otherwise, tooltips stop working after a dialog opens
-watch(showClientDialog, (newValue, oldValue) => {
-    if (oldValue && !newValue) {
-        dockTooltipKey.value++;
-    }
-});
+watch(
+    [showClientDialog, showStopConfirmDialog, showClearCallsConfirmDialog],
+    (newValues, oldValues) => {
+        // Check if any dialog closed
+        for (let i = 0; i < newValues.length; i++) {
+            if (oldValues[i] && !newValues[i]) {
+                dockTooltipKey.value++;
+                break;
+            }
+        }
+    },
+);
 
 // Listen for generated code and send to editor
 const handleCodeGenerated = (event: Event) => {
@@ -319,5 +345,19 @@ onUnmounted(() => {
 
         <!-- Client Selection Dialog -->
         <ClientsDialog v-model:open="showClientDialog" />
+
+        <!-- Stop Confirmation Dialog -->
+        <StopConfirmDialog
+            v-model:open="showStopConfirmDialog"
+            :call-count="totalCallCount"
+            @confirm="confirmStopSpy"
+        />
+
+        <!-- Clear Calls Confirmation Dialog -->
+        <ClearCallsConfirmDialog
+            v-model:open="showClearCallsConfirmDialog"
+            :call-count="totalCallCount"
+            @confirm="confirmClearCalls"
+        />
     </div>
 </template>

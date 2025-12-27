@@ -116,6 +116,13 @@ export function useRemoteSpy() {
   };
 
   /**
+   * Get total count of all calls across all remotes
+   */
+  const getTotalCallCount = () => {
+    return remotes.value.reduce((sum, remote) => sum + remote.calls.length, 0);
+  };
+
+  /**
    * Select a remote
    */
   const selectRemote = (id: number) => {
@@ -233,6 +240,10 @@ export function useRemoteSpy() {
     selectedClient.value = null;
     isSpyActive.value = false;
     isPaused.value = false;
+    // Clear all calls when stopping
+    remotes.value = [];
+    selectedRemoteId.value = null;
+    selectedCallId.value = null;
   };
 
   // Event listeners
@@ -360,5 +371,6 @@ export function useRemoteSpy() {
     // Helpers
     getDirectionCount,
     getClassCount,
+    getTotalCallCount,
   };
 }
