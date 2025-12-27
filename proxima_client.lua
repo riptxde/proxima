@@ -41,30 +41,13 @@ local function EscapeStringLiteral(Name)
     end
 end
 
+local function IsValidIdentifier(Str)
+    -- Check if string is a valid Lua identifier
+    return type(Str) == 'string' and Str:match('^[A-Za-z_][A-Za-z0-9_]*$') ~= nil
+end
+
 local function EscapeInstanceName(Name)
-    -- Check if name is a valid Lua identifier
-    -- Must start with letter or underscore, followed only by letters, numbers, or underscores
-    -- Pattern: ^[A-Za-z_][A-Za-z0-9_]*$
-    local IsValidIdentifier = true
-
-    -- Check first character (must be letter or underscore)
-    local FirstChar = string.sub(Name, 1, 1)
-    if not string.match(FirstChar, '[A-Za-z_]') then
-        IsValidIdentifier = false
-    end
-
-    -- Check remaining characters (must be letter, number, or underscore)
-    if IsValidIdentifier and #Name > 1 then
-        for i = 2, #Name do
-            local Char = string.sub(Name, i, i)
-            if not string.match(Char, '[A-Za-z0-9_]') then
-                IsValidIdentifier = false
-                break
-            end
-        end
-    end
-
-    if IsValidIdentifier then
+    if IsValidIdentifier(Name) then
         -- Can use dot notation (e.g., Workspace.Part)
         return '.' .. Name
     else
@@ -120,6 +103,200 @@ local function BuildInstancePath(Instance)
     end
 
     return PathString
+end
+
+local function Serialize(Value, Depth, Shown)
+    -- Serialize Lua values to readable code
+    Depth = Depth or 0
+    Shown = Shown or {}
+
+    local Indent = '    '
+    local Tabs = Indent:rep(Depth)
+
+    -- Primitives
+    if type(Value) == 'nil' then
+        return 'nil'
+    elseif type(Value) == 'boolean' then
+        return tostring(Value)
+    elseif type(Value) == 'number' then
+        if Value == math.huge then
+            return 'math.huge'
+        elseif Value == -math.huge then
+            return '-math.huge'
+        end
+        return tostring(Value)
+    elseif type(Value) == 'string' then
+        return ('%q'):format(Value)
+    end
+
+    -- Tables with __tostring
+    if type(Value) == 'table' then
+        local Meta = getmetatable(Value)
+        if Meta and type(Meta.__tostring) == 'function' then
+            return tostring(Value)
+        elseif type(Value.__tostring) == 'function' then
+            return tostring(Value)
+        end
+    end
+
+    -- Tables
+    if type(Value) == 'table' then
+        if Shown[Value] then
+            return '{--[[ Cyclic Table ]]--}'
+        end
+        Shown[Value] = true
+
+        -- Check if array
+        local IsArray = true
+        for Key in next, Value do
+            if type(Key) ~= 'number' then
+                IsArray = false
+                break
+            end
+        end
+
+        local Result = '{\n' .. Indent .. Tabs
+
+        if IsArray then
+            for Index = 1, #Value do
+                if Index > 1 then
+                    Result = Result .. ',\n' .. Indent .. Tabs
+                end
+                Result = Result .. Serialize(Value[Index], Depth + 1, Shown)
+            end
+        else
+            local Keys = {}
+            local KeyValues = {}
+
+            for Key, Val in next, Value do
+                local KeyStr
+                if IsValidIdentifier(Key) then
+                    KeyStr = Key
+                else
+                    KeyStr = '[' .. Serialize(Key, Depth + 1, Shown) .. ']'
+                end
+                table.insert(Keys, KeyStr)
+                KeyValues[KeyStr] = Serialize(Val, Depth + 1, Shown)
+            end
+
+            table.sort(Keys)
+
+            for Index, KeyStr in ipairs(Keys) do
+                if Index > 1 then
+                    Result = Result .. ',\n' .. Indent .. Tabs
+                end
+                Result = Result .. KeyStr .. ' = ' .. KeyValues[KeyStr]
+            end
+        end
+
+        Shown[Value] = false
+        Result = Result .. '\n' .. Tabs .. '}'
+        return Result
+    end
+
+    -- Roblox types
+    if not typeof then
+        return ('--[[ %s ]]--'):format(type(Value))
+    end
+
+    local ValueType = typeof(Value)
+
+    if ValueType == 'Instance' then
+        return BuildInstancePath(Value)
+    elseif ValueType == 'Axes' then
+        local Components = {}
+        if Value.X then table.insert(Components, 'Enum.Axis.X') end
+        if Value.Y then table.insert(Components, 'Enum.Axis.Y') end
+        if Value.Z then table.insert(Components, 'Enum.Axis.Z') end
+        return 'Axes.new(' .. table.concat(Components, ', ') .. ')'
+    elseif ValueType == 'BrickColor' then
+        return 'BrickColor.new(' .. ('%q'):format(Value.Name) .. ')'
+    elseif ValueType == 'CFrame' then
+        return 'CFrame.new(' .. table.concat({Value:GetComponents()}, ', ') .. ')'
+    elseif ValueType == 'Color3' then
+        return ('Color3.new(%s, %s, %s)'):format(Value.R, Value.G, Value.B)
+    elseif ValueType == 'ColorSequence' then
+        if #Value.Keypoints > 2 then
+            return 'ColorSequence.new(' .. Serialize(Value.Keypoints, Depth, Shown) .. ')'
+        elseif Value.Keypoints[1].Value == Value.Keypoints[2].Value then
+            return 'ColorSequence.new(' .. Serialize(Value.Keypoints[1].Value, Depth, Shown) .. ')'
+        else
+            return 'ColorSequence.new(' .. Serialize(Value.Keypoints[1].Value, Depth, Shown) .. ', ' .. Serialize(Value.Keypoints[2].Value, Depth, Shown) .. ')'
+        end
+    elseif ValueType == 'ColorSequenceKeypoint' then
+        return ('ColorSequenceKeypoint.new(%s, %s)'):format(Value.Time, Serialize(Value.Value, Depth, Shown))
+    elseif ValueType == 'DateTime' then
+        return 'DateTime.fromIsoDate(' .. ('%q'):format(Value:ToIsoDate()) .. ')'
+    elseif ValueType == 'Enum' then
+        return 'Enum.' .. tostring(Value)
+    elseif ValueType == 'EnumItem' then
+        return 'Enum.' .. tostring(Value.EnumType) .. '.' .. Value.Name
+    elseif ValueType == 'Faces' then
+        local Components = {}
+        for _, Item in ipairs(Enum.NormalId:GetEnumItems()) do
+            if Value[Item.Name] then
+                table.insert(Components, 'Enum.NormalId.' .. Item.Name)
+            end
+        end
+        return 'Faces.new(' .. table.concat(Components, ', ') .. ')'
+    elseif ValueType == 'NumberRange' then
+        if Value.Min == Value.Max then
+            return ('NumberRange.new(%s)'):format(Value.Min)
+        else
+            return ('NumberRange.new(%s, %s)'):format(Value.Min, Value.Max)
+        end
+    elseif ValueType == 'NumberSequence' then
+        if #Value.Keypoints > 2 then
+            return 'NumberSequence.new(' .. Serialize(Value.Keypoints, Depth, Shown) .. ')'
+        elseif Value.Keypoints[1].Value == Value.Keypoints[2].Value then
+            return ('NumberSequence.new(%s)'):format(Value.Keypoints[1].Value)
+        else
+            return ('NumberSequence.new(%s, %s)'):format(Value.Keypoints[1].Value, Value.Keypoints[2].Value)
+        end
+    elseif ValueType == 'NumberSequenceKeypoint' then
+        if Value.Envelope ~= 0 then
+            return ('NumberSequenceKeypoint.new(%s, %s, %s)'):format(Value.Time, Value.Value, Value.Envelope)
+        else
+            return ('NumberSequenceKeypoint.new(%s, %s)'):format(Value.Time, Value.Value)
+        end
+    elseif ValueType == 'PathWaypoint' then
+        return 'PathWaypoint.new(' .. Serialize(Value.Position, Depth, Shown) .. ', ' .. Serialize(Value.Action, Depth, Shown) .. ')'
+    elseif ValueType == 'PhysicalProperties' then
+        return ('PhysicalProperties.new(%s, %s, %s, %s, %s)'):format(Value.Density, Value.Friction, Value.Elasticity, Value.FrictionWeight, Value.ElasticityWeight)
+    elseif ValueType == 'Ray' then
+        return 'Ray.new(' .. Serialize(Value.Origin, Depth, Shown) .. ', ' .. Serialize(Value.Direction, Depth, Shown) .. ')'
+    elseif ValueType == 'Rect' then
+        return ('Rect.new(%s, %s, %s, %s)'):format(Value.Min.X, Value.Min.Y, Value.Max.X, Value.Max.Y)
+    elseif ValueType == 'Region3' then
+        local Min = Value.CFrame.Position + Value.Size * -0.5
+        local Max = Value.CFrame.Position + Value.Size * 0.5
+        return 'Region3.new(' .. Serialize(Min, Depth, Shown) .. ', ' .. Serialize(Max, Depth, Shown) .. ')'
+    elseif ValueType == 'Region3int16' then
+        return 'Region3int16.new(' .. Serialize(Value.Min, Depth, Shown) .. ', ' .. Serialize(Value.Max, Depth, Shown) .. ')'
+    elseif ValueType == 'TweenInfo' then
+        return ('TweenInfo.new(%s, %s, %s, %s, %s, %s)'):format(
+            Value.Time,
+            Serialize(Value.EasingStyle, Depth, Shown),
+            Serialize(Value.EasingDirection, Depth, Shown),
+            Value.RepeatCount,
+            Serialize(Value.Reverses, Depth, Shown),
+            Value.DelayTime
+        )
+    elseif ValueType == 'UDim' then
+        return ('UDim.new(%s, %s)'):format(Value.Scale, Value.Offset)
+    elseif ValueType == 'UDim2' then
+        return ('UDim2.new(%s, %s, %s, %s)'):format(Value.X.Scale, Value.X.Offset, Value.Y.Scale, Value.Y.Offset)
+    elseif ValueType == 'Vector2' then
+        return ('Vector2.new(%s, %s)'):format(Value.X, Value.Y)
+    elseif ValueType == 'Vector2int16' then
+        return ('Vector2int16.new(%s, %s)'):format(Value.X, Value.Y)
+    elseif ValueType == 'Vector3' then
+        return ('Vector3.new(%s, %s, %s)'):format(Value.X, Value.Y, Value.Z)
+    elseif ValueType == 'Vector3int16' then
+        return ('Vector3int16.new(%s, %s, %s)'):format(Value.X, Value.Y, Value.Z)
+    else
+        return ('--[[ %s ]]--'):format(ValueType)
+    end
 end
 
 local function SendMessage(Type, Data)
@@ -787,7 +964,6 @@ local RspyConnections = {}
 local RspyLogConnectionFunctions = {}
 local RspyDetouredCallbacks = {}
 
--- Helper: Get or create a unique ID for a remote instance
 local function GetOrCreateRemoteId(RemoteInstance)
     if RspyRemoteToId[RemoteInstance] then
         return RspyRemoteToId[RemoteInstance]
@@ -799,22 +975,6 @@ local function GetOrCreateRemoteId(RemoteInstance)
     return RemoteId
 end
 
--- Helper: Serialize arguments to a table
-local function SerializeArguments(Args, StartIndex)
-    local Arguments = {}
-    StartIndex = StartIndex or 1
-
-    for i = StartIndex, #Args do
-        table.insert(Arguments, {
-            type = typeof(Args[i]),
-            value = tostring(Args[i])
-        })
-    end
-
-    return Arguments
-end
-
--- Helper: Get calling script instance
 local function GetCallingScript()
     local CallingScript = getcallingscript()
 
@@ -825,7 +985,6 @@ local function GetCallingScript()
     return nil
 end
 
--- Helper: Log a remote call
 local function LogRemoteCall(Instance, ClassName, Direction, Arguments, ReturnValue, CallingScript)
     local CallId = RspyNextCallId
     RspyNextCallId = RspyNextCallId + 1
@@ -837,6 +996,23 @@ local function LogRemoteCall(Instance, ClassName, Direction, Arguments, ReturnVa
     if CallingScript then
         CallingScriptPath = BuildInstancePath(CallingScript)
         CallingScriptName = CallingScript.Name
+    end
+
+    -- Serialize arguments and return value for display
+    local SerializedArguments = {}
+    for i = 1, #Arguments do
+        table.insert(SerializedArguments, {
+            type = typeof(Arguments[i]),
+            value = Serialize(Arguments[i])
+        })
+    end
+
+    local SerializedReturnValue = nil
+    if ReturnValue ~= nil then
+        SerializedReturnValue = {
+            type = typeof(ReturnValue),
+            value = Serialize(ReturnValue)
+        }
     end
 
     -- Store call data for decompile and code generation
@@ -857,8 +1033,8 @@ local function LogRemoteCall(Instance, ClassName, Direction, Arguments, ReturnVa
         class = ClassName,
         direction = Direction,
         timestamp = os.date('!%Y-%m-%dT%H:%M:%S') .. '.000Z',
-        arguments = Arguments,
-        returnValue = ReturnValue,
+        arguments = SerializedArguments,
+        returnValue = SerializedReturnValue,
         callingScriptName = CallingScriptName,
         callingScriptPath = CallingScriptPath,
     })
@@ -867,8 +1043,7 @@ end
 -- Incoming: Create connection function for RemoteEvent/UnreliableRemoteEvent
 local function RspyCreateConnectionFunction(Instance, ClassName)
     local ConnectionFunction = function(...)
-        local Arguments = SerializeArguments({...})
-        LogRemoteCall(Instance, ClassName, 'incoming', Arguments, nil, nil)
+        LogRemoteCall(Instance, ClassName, 'incoming', {...}, nil, nil)
     end
 
     RspyLogConnectionFunctions[ConnectionFunction] = true
@@ -878,18 +1053,14 @@ end
 -- Incoming: Create callback detour for RemoteFunction
 local function RspyCreateCallbackDetour(Instance, ClassName, Callback)
     local Detour = function(...)
-        local Arguments = SerializeArguments({...})
         local Result = table.pack(Callback(...))
 
         local ReturnValue = nil
         if Result.n > 0 and Result[1] ~= nil then
-            ReturnValue = {
-                type = typeof(Result[1]),
-                value = tostring(Result[1])
-            }
+            ReturnValue = Result[1]
         end
 
-        LogRemoteCall(Instance, ClassName, 'incoming', Arguments, ReturnValue, nil)
+        LogRemoteCall(Instance, ClassName, 'incoming', {...}, ReturnValue, nil)
         return table.unpack(Result)
     end
 
@@ -933,11 +1104,15 @@ local function RspySetupOutgoingHooks()
             local Result = table.pack(OriginalNamecall(...))
 
             local CallingScript = GetCallingScript()
-            local Arguments = SerializeArguments(Args, 2)
+            -- Extract arguments (skip first arg which is 'self')
+            local Arguments = {}
+            for i = 2, #Args do
+                table.insert(Arguments, Args[i])
+            end
 
             local ReturnValue = nil
             if ClassName == 'RemoteFunction' and Result.n > 0 and Result[1] ~= nil then
-                ReturnValue = {type = typeof(Result[1]), value = tostring(Result[1])}
+                ReturnValue = Result[1]
             end
 
             LogRemoteCall(self, ClassName, 'outgoing', Arguments, ReturnValue, CallingScript)
@@ -954,19 +1129,17 @@ local function RspySetupOutgoingHooks()
         local OriginalMethod = Prototype[MethodName]
 
         RspyHooks[HookName] = hookfunction(OriginalMethod, function(self, ...)
-            local Args = {...}
             local Result = table.pack(RspyHooks[HookName](self, ...))
 
             if typeof(self) == 'Instance' and self.ClassName == ClassName then
                 local CallingScript = GetCallingScript()
-                local Arguments = SerializeArguments(Args)
 
                 local ReturnValue = nil
                 if ClassName == 'RemoteFunction' and Result.n > 0 and Result[1] ~= nil then
-                    ReturnValue = {type = typeof(Result[1]), value = tostring(Result[1])}
+                    ReturnValue = Result[1]
                 end
 
-                LogRemoteCall(self, ClassName, 'outgoing', Arguments, ReturnValue, CallingScript)
+                LogRemoteCall(self, ClassName, 'outgoing', {...}, ReturnValue, CallingScript)
             end
 
             return table.unpack(Result)
@@ -1133,18 +1306,14 @@ function RspyGenerateCode(CallId)
         -- Outgoing: remote:FireServer() or remote:InvokeServer()
         local MethodName = (CallData.className == 'RemoteFunction') and 'InvokeServer' or 'FireServer'
 
-        Code = RemotePath .. ':' .. MethodName .. '('
-
-        -- Add arguments
+        -- Build arguments table
         if #CallData.arguments > 0 then
-            local ArgStrings = {}
-            for i, arg in ipairs(CallData.arguments) do
-                table.insert(ArgStrings, arg.value)
-            end
-            Code = Code .. table.concat(ArgStrings, ', ')
+            local ArgsRepr = Serialize(CallData.arguments)
+            Code = 'local args = ' .. ArgsRepr .. '\n'
+            Code = Code .. RemotePath .. ':' .. MethodName .. '(table.unpack(args))'
+        else
+            Code = RemotePath .. ':' .. MethodName .. '()'
         end
-
-        Code = Code .. ')'
     else
         -- Incoming: OnClientEvent:Connect() or OnClientInvoke callback
         if CallData.className == 'RemoteFunction' then
@@ -1163,7 +1332,7 @@ function RspyGenerateCode(CallId)
 
             -- Add return if there was a return value
             if CallData.returnValue then
-                Code = Code .. '    return ' .. CallData.returnValue.value .. '\n'
+                Code = Code .. '    return ' .. Serialize(CallData.returnValue) .. '\n'
             end
 
             Code = Code .. 'end'
