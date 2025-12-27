@@ -21,39 +21,137 @@ local Username = nil
 -- State
 local Reconnecting = false
 
---/ Functions /--
-local function Log(Level, ...)
+--/ Utilities /--
+local function EscapeStringLiteral(Name)
+    -- Determine which quote style to use based on what's in the string
+    local HasSingleQuote = string.find(Name, "'", 1, true) ~= nil
+    local HasDoubleQuote = string.find(Name, '"', 1, true) ~= nil
+
+    if HasSingleQuote and not HasDoubleQuote then
+        -- Has single quotes only - use double quotes
+        return '"' .. Name .. '"'
+    elseif HasSingleQuote and HasDoubleQuote then
+        -- Has both quotes - use single quotes and escape them with backslash
+        local Escaped = string.gsub(Name, '\\', '\\\\')  -- Escape backslashes first
+        Escaped = string.gsub(Escaped, "'", "\\'")       -- Escape single quotes
+        return "'" .. Escaped .. "'"
+    else
+        -- Has no quotes or only double quotes - use single quotes (preferred)
+        return "'" .. Name .. "'"
+    end
+end
+
+local function EscapeInstanceName(Name)
+    -- Check if name is a valid Lua identifier
+    -- Must start with letter or underscore, followed only by letters, numbers, or underscores
+    -- Pattern: ^[A-Za-z_][A-Za-z0-9_]*$
+    local IsValidIdentifier = true
+
+    -- Check first character (must be letter or underscore)
+    local FirstChar = string.sub(Name, 1, 1)
+    if not string.match(FirstChar, '[A-Za-z_]') then
+        IsValidIdentifier = false
+    end
+
+    -- Check remaining characters (must be letter, number, or underscore)
+    if IsValidIdentifier and #Name > 1 then
+        for i = 2, #Name do
+            local Char = string.sub(Name, i, i)
+            if not string.match(Char, '[A-Za-z0-9_]') then
+                IsValidIdentifier = false
+                break
+            end
+        end
+    end
+
+    if IsValidIdentifier then
+        -- Can use dot notation (e.g., Workspace.Part)
+        return '.' .. Name
+    else
+        -- Need bracket notation with escaped string
+        return '[' .. EscapeStringLiteral(Name) .. ']'
+    end
+end
+
+local function BuildInstancePath(Instance)
+    -- Build a Lua path string for the instance
+    local PathParts = {}
+    local Current = Instance
+
+    -- Build path from instance up to game
+    while Current and Current ~= game do
+        table.insert(PathParts, 1, EscapeInstanceName(Current.Name))
+        Current = Current.Parent
+    end
+
+    -- Determine root
+    local PathRoot = 'game'
+
+    if #PathParts > 0 then
+        -- Check if the top-level parent is a direct child of game
+        local TopParent = Instance
+        while TopParent.Parent and TopParent.Parent ~= game do
+            TopParent = TopParent.Parent
+        end
+
+        if TopParent.Parent == game then
+            -- Check if it's Workspace
+            if TopParent:IsA('Workspace') then
+                PathRoot = 'workspace'
+                table.remove(PathParts, 1) -- Remove Workspace from parts
+            else
+                -- Check if it's a service
+                local Success, Service = pcall(function()
+                    return game:GetService(TopParent.ClassName)
+                end)
+
+                if Success and Service == TopParent then
+                    PathRoot = 'game:GetService(' .. EscapeStringLiteral(TopParent.ClassName) .. ')'
+                    table.remove(PathParts, 1) -- Remove service name from parts
+                end
+            end
+        end
+    end
+
+    -- Build final path
+    local PathString = PathRoot
+    if #PathParts > 0 then
+        PathString = PathRoot .. table.concat(PathParts, '')
+    end
+
+    return PathString
+end
+
+local function SendMessage(Type, Data)
     if not Socket then
         return
     end
 
+    Data = Data or {}
+    Data.type = Type
+
+    pcall(function()
+        local Json = HttpService:JSONEncode(Data)
+        Socket:Send(Json)
+    end)
+end
+
+--/ Functions /--
+local function Log(Level, ...)
     local Args = {...}
     for i = 1, #Args do
         Args[i] = tostring(Args[i])
     end
     local Message = table.concat(Args, ' ')
 
-    pcall(function()
-        local Payload = HttpService:JSONEncode({
-            type = 'log',
-            level = Level,
-            message = Message
-        })
-        Socket:Send(Payload)
-    end)
+    SendMessage('log', {
+        level = Level,
+        message = Message
+    })
 end
 
 local function Ready()
-    if not Socket then
-        return
-    end
-
-    pcall(function()
-        local Message = HttpService:JSONEncode({
-            type = 'ready'
-        })
-        Socket:Send(Message)
-    end)
+    SendMessage('ready')
 end
 
 local function Register()
@@ -70,22 +168,13 @@ local function Register()
     -- Set username from LocalPlayer or generate GUID
     Username = LocalPlayer.Name or HttpService:GenerateGUID(false)
 
-    pcall(function()
-        local Message = HttpService:JSONEncode({
-            type = 'register',
-            username = Username
-        })
-        Socket:Send(Message)
-    end)
+    SendMessage('register', {
+        username = Username
+    })
 end
 
 local function Pong()
-    pcall(function()
-        local Message = HttpService:JSONEncode({
-            type = 'pong'
-        })
-        Socket:Send(Message)
-    end)
+    SendMessage('pong')
 end
 
 local function Exec(Script)
@@ -194,118 +283,6 @@ local ChangeDebounceTimer = nil
 local DescendantAddedConnection = nil
 local DescendantRemovingConnection = nil
 
--- Explorer Functions
-local function SendExplorerMessage(Data)
-    if not Socket then
-        return
-    end
-
-    pcall(function()
-        local Json = HttpService:JSONEncode(Data)
-        Socket:Send(Json)
-    end)
-end
-
-local function EscapeStringLiteral(Name)
-    -- Determine which quote style to use based on what's in the string
-    local HasSingleQuote = string.find(Name, "'", 1, true) ~= nil
-    local HasDoubleQuote = string.find(Name, '"', 1, true) ~= nil
-
-    if HasSingleQuote and HasDoubleQuote then
-        -- Has both quotes - use double quotes and escape them with backslash
-        local Escaped = string.gsub(Name, '\\', '\\\\')  -- Escape backslashes first
-        Escaped = string.gsub(Escaped, '"', '\\"')       -- Escape double quotes
-        return '"' .. Escaped .. '"'
-    elseif HasDoubleQuote then
-        -- Has double quotes only - use single quotes
-        return "'" .. Name .. "'"
-    else
-        -- Has no double quotes or only single quotes - use double quotes
-        return '"' .. Name .. '"'
-    end
-end
-
-local function EscapeInstanceName(Name)
-    -- Check if name is a valid Lua identifier
-    -- Must start with letter or underscore, followed only by letters, numbers, or underscores
-    -- Pattern: ^[A-Za-z_][A-Za-z0-9_]*$
-    local IsValidIdentifier = true
-
-    -- Check first character (must be letter or underscore)
-    local FirstChar = string.sub(Name, 1, 1)
-    if not string.match(FirstChar, "[A-Za-z_]") then
-        IsValidIdentifier = false
-    end
-
-    -- Check remaining characters (must be letter, number, or underscore)
-    if IsValidIdentifier and #Name > 1 then
-        for i = 2, #Name do
-            local Char = string.sub(Name, i, i)
-            if not string.match(Char, "[A-Za-z0-9_]") then
-                IsValidIdentifier = false
-                break
-            end
-        end
-    end
-
-    if IsValidIdentifier then
-        -- Can use dot notation (e.g., Workspace.Part)
-        return "." .. Name
-    else
-        -- Need bracket notation with escaped string
-        return "[" .. EscapeStringLiteral(Name) .. "]"
-    end
-end
-
-local function BuildInstancePath(Instance)
-    -- Build a Lua path string for the instance
-    local PathParts = {}
-    local Current = Instance
-
-    -- Build path from instance up to game
-    while Current and Current ~= game do
-        table.insert(PathParts, 1, EscapeInstanceName(Current.Name))
-        Current = Current.Parent
-    end
-
-    -- Determine root
-    local PathRoot = "game"
-
-    if #PathParts > 0 then
-        -- Check if the top-level parent is a direct child of game
-        local TopParent = Instance
-        while TopParent.Parent and TopParent.Parent ~= game do
-            TopParent = TopParent.Parent
-        end
-
-        if TopParent.Parent == game then
-            -- Check if it's Workspace
-            if TopParent:IsA("Workspace") then
-                PathRoot = "workspace"
-                table.remove(PathParts, 1) -- Remove Workspace from parts
-            else
-                -- Check if it's a service
-                local Success, Service = pcall(function()
-                    return game:GetService(TopParent.ClassName)
-                end)
-
-                if Success and Service == TopParent then
-                    PathRoot = "game:GetService(" .. EscapeStringLiteral(TopParent.ClassName) .. ")"
-                    table.remove(PathParts, 1) -- Remove service name from parts
-                end
-            end
-        end
-    end
-
-    -- Build final path
-    local PathString = PathRoot
-    if #PathParts > 0 then
-        PathString = PathRoot .. table.concat(PathParts, "")
-    end
-
-    return PathString
-end
-
 local function GetOrCreateId(Instance)
     if Instances[Instance] then
         return Instances[Instance]
@@ -380,9 +357,7 @@ local function CheckForVisibleChanges()
 
     if CurrentHash ~= LastVisibleTreeHash then
         LastVisibleTreeHash = CurrentHash
-        SendExplorerMessage({
-            type = 'exp_tree_changed'
-        })
+        SendMessage('exp_tree_changed')
     end
 
     ChangeDebounceTimer = nil
@@ -473,8 +448,7 @@ function ExpGetTree(ExpandedIds)
     local Tree = BuildVisibleTree(ExpandedMap)
     LastVisibleTreeHash = HashTree(Tree)
 
-    SendExplorerMessage({
-        type = 'exp_tree',
+    SendMessage('exp_tree', {
         nodes = Tree
     })
 end
@@ -487,8 +461,7 @@ function ExpGetProperties(Id, Properties, SpecialProperties)
     local Instance = GetInstance(Id)
 
     if not Instance then
-        SendExplorerMessage({
-            type = 'error',
+        SendMessage('error', {
             request = 'get_explorer_properties',
             message = 'Invalid ID'
         })
@@ -517,14 +490,14 @@ function ExpGetProperties(Id, Properties, SpecialProperties)
             local PropertyCode
 
             -- Check if the value is unreadable (only if property type isn't string)
-            if PropMetadata.valueType ~= "string" and ValueStr:match("^Unable to get property .+, type %S+$") then
-                local TypeName = ValueStr:match("type (%S+)$")
-                TypeStr = TypeName or PropMetadata.valueType or "Unknown"
-                ValueStr = "[Unreadable]"
-                PropertyCode = "-- Property is unreadable"
+            if PropMetadata.valueType ~= 'string' and ValueStr:match('^Unable to get property .+, type %S+$') then
+                local TypeName = ValueStr:match('type (%S+)$')
+                TypeStr = TypeName or PropMetadata.valueType or 'Unknown'
+                ValueStr = '[Unreadable]'
+                PropertyCode = '-- Property is unreadable'
             elseif Value == nil then
                 TypeStr = PropMetadata.valueType or TypeStr
-                ValueStr = "nil"
+                ValueStr = 'nil'
                 PropertyCode = string.format([[-- Get the instance
 local instance = %s
 
@@ -534,14 +507,14 @@ local value = instance.%s
 -- Set the property value
 instance.%s = value]], InstancePath, PropName, PropName)
             else
-                if TypeStr == "Instance" then
+                if TypeStr == 'Instance' then
                     ValueStr = Value:GetFullName()
-                elseif TypeStr == "string" then
+                elseif TypeStr == 'string' then
                     local TestJson = pcall(function()
                         HttpService:JSONEncode({test = ValueStr})
                     end)
                     if not TestJson then
-                        ValueStr = "[Binary/Non-UTF8 data, length: " .. #ValueStr .. "]"
+                        ValueStr = '[Binary/Non-UTF8 data, length: ' .. #ValueStr .. ']'
                     end
                 end
 
@@ -581,23 +554,23 @@ instance.%s = value]], InstancePath, PropName, PropName)
                 local ValueStr = tostring(Value)
 
                 -- Check if the value is unreadable (only if property type isn't string)
-                if PropMetadata.valueType ~= "string" and ValueStr:match("^Unable to get property .+, type %S+$") then
-                    local TypeName = ValueStr:match("type (%S+)$")
-                    TypeStr = TypeName or PropMetadata.valueType or "Unknown"
-                    ValueStr = "[Unreadable]"
+                if PropMetadata.valueType ~= 'string' and ValueStr:match('^Unable to get property .+, type %S+$') then
+                    local TypeName = ValueStr:match('type (%S+)$')
+                    TypeStr = TypeName or PropMetadata.valueType or 'Unknown'
+                    ValueStr = '[Unreadable]'
                 elseif Value == nil then
                     TypeStr = PropMetadata.valueType or TypeStr
-                    ValueStr = "nil"
+                    ValueStr = 'nil'
                 else
                     -- For certain types, provide more useful representations
-                    if TypeStr == "Instance" then
+                    if TypeStr == 'Instance' then
                         ValueStr = Value:GetFullName()
-                    elseif TypeStr == "string" then
+                    elseif TypeStr == 'string' then
                         local TestJson = pcall(function()
                             HttpService:JSONEncode({test = ValueStr})
                         end)
                         if not TestJson then
-                            ValueStr = "[Binary/Non-UTF8 data, length: " .. #ValueStr .. "]"
+                            ValueStr = '[Binary/Non-UTF8 data, length: ' .. #ValueStr .. ']'
                         end
                     end
                 end
@@ -625,8 +598,7 @@ sethiddenproperty(instance, %s, value)]], InstancePath, EscapeStringLiteral(Prop
         end
     end
 
-    SendExplorerMessage({
-        type = 'exp_properties',
+    SendMessage('exp_properties', {
         id = Id,
         props = Props,
         specialProps = SpecialProps
@@ -685,7 +657,7 @@ function ExpSearch(Query, SearchBy, Limit)
                 table.insert(PathParts, MatchId)
 
                 -- Build proper Lua indexing path from game root
-                local PathRoot = "game"
+                local PathRoot = 'game'
                 local RootInstance = nil
 
                 -- Special case: if the descendant itself is a direct child of game
@@ -704,8 +676,8 @@ function ExpSearch(Query, SearchBy, Limit)
                 -- Check if the root is a direct child of game (service)
                 if RootInstance and RootInstance.Parent == game then
                     -- Check if it's Workspace - use workspace global
-                    if RootInstance:IsA("Workspace") then
-                        PathRoot = "workspace"
+                    if RootInstance:IsA('Workspace') then
+                        PathRoot = 'workspace'
                         -- Only remove from parts if we added it (i.e., not the descendant itself)
                         if RootInstance ~= Descendant then
                             table.remove(PathStringParts, 1)  -- Remove the Workspace part since it's now the root
@@ -718,7 +690,7 @@ function ExpSearch(Query, SearchBy, Limit)
 
                         if Success and Service == RootInstance then
                             -- Use GetService with proper string escaping
-                            PathRoot = "game:GetService(" .. EscapeStringLiteral(RootInstance.ClassName) .. ")"
+                            PathRoot = 'game:GetService(' .. EscapeStringLiteral(RootInstance.ClassName) .. ')'
                             -- Only remove from parts if we added it (i.e., not the descendant itself)
                             if RootInstance ~= Descendant then
                                 table.remove(PathStringParts, 1)  -- Remove the service name since GetService handles it
@@ -735,7 +707,7 @@ function ExpSearch(Query, SearchBy, Limit)
                 -- Build path string (e.g., 'workspace.Model["Part with spaces"]')
                 local PathString = PathRoot
                 if #PathStringParts > 0 then
-                    PathString = PathRoot .. table.concat(PathStringParts, "")
+                    PathString = PathRoot .. table.concat(PathStringParts, '')
                 end
 
                 local Children = Descendant:GetChildren()
@@ -754,8 +726,7 @@ function ExpSearch(Query, SearchBy, Limit)
         end
     end
 
-    SendExplorerMessage({
-        type = 'exp_search_results',
+    SendMessage('exp_search_results', {
         query = Query,
         results = Results,
         total = Count,
@@ -771,8 +742,7 @@ function ExpDecompile(Id)
     -- Get the instance by ID
     local Instance = IdToInstance[Id]
     if not Instance then
-        SendExplorerMessage({
-            type = 'exp_decompiled',
+        SendMessage('exp_decompiled', {
             id = Id,
             source = '-- Instance not found'
         })
@@ -781,8 +751,7 @@ function ExpDecompile(Id)
 
     -- Check if instance is a script type
     if not (Instance:IsA('LocalScript') or Instance:IsA('ModuleScript')) then
-        SendExplorerMessage({
-            type = 'exp_decompiled',
+        SendMessage('exp_decompiled', {
             id = Id,
             source = '-- Not a script instance'
         })
@@ -805,8 +774,7 @@ function ExpDecompile(Id)
         DecompiledSource = '-- Your executor does not support script decompilation'
     end
 
-    SendExplorerMessage({
-        type = 'exp_decompiled',
+    SendMessage('exp_decompiled', {
         id = Id,
         source = DecompiledSource
     })
@@ -822,17 +790,7 @@ local RspyConnections = {}
 local RspyLogConnectionFunctions = {}
 local RspySignalMapping = setmetatable({}, { __mode = 'kv' })
 local RspyOriginalCallbacks = {}
-
-local function SendRemoteSpyMessage(Data)
-    if not Socket then
-        return
-    end
-
-    pcall(function()
-        local Json = HttpService:JSONEncode(Data)
-        Socket:Send(Json)
-    end)
-end
+local RspyDetouredCallbacks = {}
 
 local function GetOrCreateRemoteId(RemoteInstance)
     if RspyRemoteToId[RemoteInstance] then
@@ -861,8 +819,7 @@ local function RspyCreateConnectionFunction(Instance, ClassName)
             })
         end
 
-        SendRemoteSpyMessage({
-            type = 'rspy_call',
+        SendMessage('rspy_call', {
             callId = CallId,
             remoteId = RemoteId,
             name = Instance.Name,
@@ -907,8 +864,7 @@ local function RspyCreateCallbackDetour(Instance, ClassName, Callback)
             }
         end
 
-        SendRemoteSpyMessage({
-            type = 'rspy_call',
+        SendMessage('rspy_call', {
             callId = CallId,
             remoteId = RemoteId,
             name = Instance.Name,
@@ -1005,8 +961,7 @@ function RspyStart()
                 }
             end
 
-            SendRemoteSpyMessage({
-                type = 'rspy_call',
+            SendMessage('rspy_call', {
                 callId = CallId,
                 remoteId = RemoteId,
                 name = self.Name,
@@ -1070,8 +1025,7 @@ function RspyStart()
                     }
                 end
 
-                SendRemoteSpyMessage({
-                    type = 'rspy_call',
+                SendMessage('rspy_call', {
                     callId = CallId,
                     remoteId = RemoteId,
                     name = self.Name,
@@ -1100,7 +1054,10 @@ function RspyStart()
     OriginalNewIndex = hookmetamethod(game, '__newindex', function(self, key, value)
         if typeof(self) == 'Instance' and self.ClassName == 'RemoteFunction' then
             if key == 'OnClientInvoke' and typeof(value) == 'function' then
-                return OriginalNewIndex(self, key, RspyCreateCallbackDetour(self, 'RemoteFunction', value))
+                -- Store the original callback and the detoured one
+                local Detour = RspyCreateCallbackDetour(self, 'RemoteFunction', value)
+                RspyDetouredCallbacks[self] = {original = value, detour = Detour}
+                return OriginalNewIndex(self, key, Detour)
             end
         end
 
@@ -1196,10 +1153,21 @@ function RspyStop()
         end
     end
 
-    -- Restore original RemoteFunction callbacks
+    -- Restore original RemoteFunction callbacks (from getcallbackvalue)
     for instance, originalCallback in pairs(RspyOriginalCallbacks) do
         if instance and typeof(instance) == 'Instance' then
             instance.OnClientInvoke = originalCallback
+        end
+    end
+
+    -- Restore callbacks that were detoured through __newindex hook
+    for instance, callbacks in pairs(RspyDetouredCallbacks) do
+        if instance and typeof(instance) == 'Instance' then
+            -- Only restore if the current callback is still our detour
+            local CurrentCallback = instance.OnClientInvoke
+            if CurrentCallback == callbacks.detour then
+                instance.OnClientInvoke = callbacks.original
+            end
         end
     end
 
@@ -1212,21 +1180,20 @@ function RspyStop()
     RspyLogConnectionFunctions = {}
     RspySignalMapping = setmetatable({}, { __mode = 'kv' })
     RspyOriginalCallbacks = {}
+    RspyDetouredCallbacks = {}
 
     Log(LOG_SUCCESS, 'Remote spy stopped')
 end
 
 function RspyDecompile(ScriptPath)
-    SendRemoteSpyMessage({
-        type = 'rspy_decompiled',
+    SendMessage('rspy_decompiled', {
         scriptPath = ScriptPath,
         source = '-- Decompile not implemented'
     })
 end
 
 function RspyGenerateCode(CallId)
-    SendRemoteSpyMessage({
-        type = 'rspy_generated_code',
+    SendMessage('rspy_generated_code', {
         callId = CallId,
         code = '-- Code generation not implemented'
     })
