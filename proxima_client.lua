@@ -782,16 +782,16 @@ end
 
 --/ Remote Spy /--
 local RemoteSpyActive = false
-local RspyHooks = {}
 local RspyNextCallId = 1
 local RspyRemoteToId = {}
 local RspyNextRemoteId = 1
+local RspyHooks = {}
 local RspyConnections = {}
 local RspyLogConnectionFunctions = {}
-local RspySignalMapping = setmetatable({}, { __mode = 'kv' })
 local RspyOriginalCallbacks = {}
 local RspyDetouredCallbacks = {}
 
+-- Helper: Get or create a unique ID for a remote instance
 local function GetOrCreateRemoteId(RemoteInstance)
     if RspyRemoteToId[RemoteInstance] then
         return RspyRemoteToId[RemoteInstance]
@@ -803,57 +803,69 @@ local function GetOrCreateRemoteId(RemoteInstance)
     return RemoteId
 end
 
+-- Helper: Serialize arguments to a table
+local function SerializeArguments(Args, StartIndex)
+    local Arguments = {}
+    StartIndex = StartIndex or 1
+
+    for i = StartIndex, #Args do
+        table.insert(Arguments, {
+            type = typeof(Args[i]),
+            value = tostring(Args[i])
+        })
+    end
+
+    return Arguments
+end
+
+-- Helper: Get calling script info
+local function GetCallingScriptInfo()
+    local CallingScript = getcallingscript()
+
+    if CallingScript and typeof(CallingScript) == 'Instance' then
+        return CallingScript:GetFullName(), CallingScript.Name
+    end
+
+    return nil, nil
+end
+
+-- Helper: Log a remote call
+local function LogRemoteCall(Instance, ClassName, Direction, Arguments, ReturnValue, CallingScriptPath, CallingScriptName)
+    local CallId = RspyNextCallId
+    RspyNextCallId = RspyNextCallId + 1
+
+    local RemoteId = GetOrCreateRemoteId(Instance)
+
+    SendMessage('rspy_call', {
+        callId = CallId,
+        remoteId = RemoteId,
+        name = Instance.Name,
+        path = Instance:GetFullName(),
+        class = ClassName,
+        direction = Direction,
+        timestamp = os.date('!%Y-%m-%dT%H:%M:%S') .. '.000Z',
+        arguments = Arguments,
+        returnValue = ReturnValue,
+        callingScriptName = CallingScriptName,
+        callingScriptPath = CallingScriptPath,
+    })
+end
+
+-- Incoming: Create connection function for RemoteEvent/UnreliableRemoteEvent
 local function RspyCreateConnectionFunction(Instance, ClassName)
     local ConnectionFunction = function(...)
-        local CallId = RspyNextCallId
-        RspyNextCallId = RspyNextCallId + 1
-
-        local RemoteId = GetOrCreateRemoteId(Instance)
-
-        local Arguments = {}
-        local Args = {...}
-        for i = 1, #Args do
-            table.insert(Arguments, {
-                type = typeof(Args[i]),
-                value = tostring(Args[i])
-            })
-        end
-
-        SendMessage('rspy_call', {
-            callId = CallId,
-            remoteId = RemoteId,
-            name = Instance.Name,
-            path = Instance:GetFullName(),
-            class = ClassName,
-            direction = 'incoming',
-            timestamp = os.date('!%Y-%m-%dT%H:%M:%S') .. '.000Z',
-            arguments = Arguments,
-            returnValue = nil,
-            callingScriptName = nil,
-            callingScriptPath = nil,
-        })
+        local Arguments = SerializeArguments({...})
+        LogRemoteCall(Instance, ClassName, 'incoming', Arguments, nil, nil, nil)
     end
 
     RspyLogConnectionFunctions[ConnectionFunction] = true
     return ConnectionFunction
 end
 
+-- Incoming: Create callback detour for RemoteFunction
 local function RspyCreateCallbackDetour(Instance, ClassName, Callback)
     local Detour = function(...)
-        local CallId = RspyNextCallId
-        RspyNextCallId = RspyNextCallId + 1
-
-        local RemoteId = GetOrCreateRemoteId(Instance)
-
-        local Arguments = {}
-        local Args = {...}
-        for i = 1, #Args do
-            table.insert(Arguments, {
-                type = typeof(Args[i]),
-                value = tostring(Args[i])
-            })
-        end
-
+        local Arguments = SerializeArguments({...})
         local Result = table.pack(Callback(...))
 
         local ReturnValue = nil
@@ -864,47 +876,110 @@ local function RspyCreateCallbackDetour(Instance, ClassName, Callback)
             }
         end
 
-        SendMessage('rspy_call', {
-            callId = CallId,
-            remoteId = RemoteId,
-            name = Instance.Name,
-            path = Instance:GetFullName(),
-            class = ClassName,
-            direction = 'incoming',
-            timestamp = os.date('!%Y-%m-%dT%H:%M:%S') .. '.000Z',
-            arguments = Arguments,
-            returnValue = ReturnValue,
-            callingScriptName = nil,
-            callingScriptPath = nil,
-        })
-
+        LogRemoteCall(Instance, ClassName, 'incoming', Arguments, ReturnValue, nil, nil)
         return table.unpack(Result)
     end
 
     return Detour
 end
 
+-- Incoming: Setup hooks for an instance
 local function RspyHandleInstance(Instance)
     local ClassName = Instance.ClassName
 
     if ClassName == 'RemoteEvent' or ClassName == 'UnreliableRemoteEvent' then
+        -- Hook OnClientEvent signal
         local Connection = Instance.OnClientEvent:Connect(RspyCreateConnectionFunction(Instance, ClassName))
         table.insert(RspyConnections, Connection)
-        RspySignalMapping[Instance.OnClientEvent] = Instance
-    elseif ClassName == 'RemoteFunction' then
-        -- For RemoteFunctions, check if they have an existing callback
-        if not getcallbackvalue then
-            return
-        end
 
+    elseif ClassName == 'RemoteFunction' and getcallbackvalue then
+        -- For existing callbacks, store and re-assign to trigger __newindex hook
         local Success, Callback = pcall(getcallbackvalue, Instance, 'OnClientInvoke')
         if Success and typeof(Callback) == 'function' then
-            -- Store the original callback
             RspyOriginalCallbacks[Instance] = Callback
-            -- Re-assign to trigger __newindex hook (which will wrap it)
             Instance.OnClientInvoke = Callback
         end
     end
+end
+
+-- Outgoing: Setup hooks
+local function RspySetupOutgoingHooks()
+    -- Hook __namecall to catch remote:FireServer() and remote:InvokeServer() calls
+    local OriginalNamecall
+    OriginalNamecall = hookmetamethod(game, '__namecall', function(...)
+        local self = ...
+        local method = getnamecallmethod()
+        local ClassName = typeof(self) == 'Instance' and self.ClassName or nil
+
+        local ShouldLog = (method == 'FireServer' and (ClassName == 'RemoteEvent' or ClassName == 'UnreliableRemoteEvent'))
+            or (method == 'InvokeServer' and ClassName == 'RemoteFunction')
+
+        if ShouldLog then
+            local Args = {...}
+            local Result = table.pack(OriginalNamecall(...))
+
+            local CallingScriptPath, CallingScriptName = GetCallingScriptInfo()
+            local Arguments = SerializeArguments(Args, 2)
+
+            local ReturnValue = nil
+            if ClassName == 'RemoteFunction' and Result.n > 0 and Result[1] ~= nil then
+                ReturnValue = {type = typeof(Result[1]), value = tostring(Result[1])}
+            end
+
+            LogRemoteCall(self, ClassName, 'outgoing', Arguments, ReturnValue, CallingScriptPath, CallingScriptName)
+            return table.unpack(Result)
+        end
+
+        return OriginalNamecall(...)
+    end)
+    RspyHooks.Namecall = OriginalNamecall
+
+    -- Hook direct function calls (e.g., remote.FireServer(...) instead of remote:FireServer(...))
+    local function CreateIndexedHook(ClassName, MethodName, HookName)
+        local Prototype = Instance.new(ClassName)
+        local OriginalMethod = Prototype[MethodName]
+
+        RspyHooks[HookName] = hookfunction(OriginalMethod, function(self, ...)
+            local Args = {...}
+            local Result = table.pack(RspyHooks[HookName](self, ...))
+
+            if typeof(self) == 'Instance' and self.ClassName == ClassName then
+                local CallingScriptPath, CallingScriptName = GetCallingScriptInfo()
+                local Arguments = SerializeArguments(Args)
+
+                local ReturnValue = nil
+                if ClassName == 'RemoteFunction' and Result.n > 0 and Result[1] ~= nil then
+                    ReturnValue = {type = typeof(Result[1]), value = tostring(Result[1])}
+                end
+
+                LogRemoteCall(self, ClassName, 'outgoing', Arguments, ReturnValue, CallingScriptPath, CallingScriptName)
+            end
+
+            return table.unpack(Result)
+        end)
+    end
+
+    CreateIndexedHook('RemoteEvent', 'FireServer', 'FireServer')
+    CreateIndexedHook('UnreliableRemoteEvent', 'FireServer', 'UnreliableFireServer')
+    CreateIndexedHook('RemoteFunction', 'InvokeServer', 'InvokeServer')
+end
+
+-- Incoming: Setup metamethod hooks
+local function RspySetupIncomingHooks()
+    -- Hook __newindex to catch OnClientInvoke assignments
+    local OriginalNewIndex
+    OriginalNewIndex = hookmetamethod(game, '__newindex', function(self, key, value)
+        if typeof(self) == 'Instance' and self.ClassName == 'RemoteFunction' then
+            if key == 'OnClientInvoke' and typeof(value) == 'function' then
+                local Detour = RspyCreateCallbackDetour(self, 'RemoteFunction', value)
+                RspyDetouredCallbacks[self] = {original = value, detour = Detour}
+                return OriginalNewIndex(self, key, Detour)
+            end
+        end
+
+        return OriginalNewIndex(self, key, value)
+    end)
+    RspyHooks.NewIndex = OriginalNewIndex
 end
 
 function RspyStart()
@@ -914,184 +989,9 @@ function RspyStart()
 
     RemoteSpyActive = true
 
-    -- Hook __namecall to catch outgoing namecall remote calls
-    local OriginalNamecall
-    OriginalNamecall = hookmetamethod(game, '__namecall', function(...)
-        local self = ...
-        local method = getnamecallmethod()
-
-        local ShouldLog = false
-        local ClassName = typeof(self) == 'Instance' and self.ClassName or nil
-
-        if method == 'FireServer' and (ClassName == 'RemoteEvent' or ClassName == 'UnreliableRemoteEvent') then
-            ShouldLog = true
-        elseif method == 'InvokeServer' and ClassName == 'RemoteFunction' then
-            ShouldLog = true
-        end
-
-        if ShouldLog then
-            local CallingScript = getcallingscript()
-            local Args = {...}
-
-            local Result = table.pack(OriginalNamecall(...))
-
-            local CallId = RspyNextCallId
-            RspyNextCallId = RspyNextCallId + 1
-
-            local RemoteId = GetOrCreateRemoteId(self)
-
-            local CallingScriptPath = nil
-            local CallingScriptName = nil
-            if CallingScript and typeof(CallingScript) == 'Instance' then
-                CallingScriptPath = CallingScript:GetFullName()
-                CallingScriptName = CallingScript.Name
-            end
-
-            local Arguments = {}
-            for i = 2, #Args do
-                table.insert(Arguments, {
-                    type = typeof(Args[i]),
-                    value = tostring(Args[i])
-                })
-            end
-
-            local ReturnValue = nil
-            if ClassName == 'RemoteFunction' and Result.n > 0 and Result[1] ~= nil then
-                ReturnValue = {
-                    type = typeof(Result[1]),
-                    value = tostring(Result[1])
-                }
-            end
-
-            SendMessage('rspy_call', {
-                callId = CallId,
-                remoteId = RemoteId,
-                name = self.Name,
-                path = self:GetFullName(),
-                class = ClassName,
-                direction = 'outgoing',
-                timestamp = os.date('!%Y-%m-%dT%H:%M:%S') .. '.000Z',
-                arguments = Arguments,
-                returnValue = ReturnValue,
-                callingScriptName = CallingScriptName,
-                callingScriptPath = CallingScriptPath,
-            })
-
-            return table.unpack(Result)
-        end
-
-        return OriginalNamecall(...)
-    end)
-
-    RspyHooks.Namecall = OriginalNamecall
-
-    -- Helper function to create a hook for indexed remote calls
-    local function CreateIndexedHook(ClassName, MethodName, HookName)
-        local Prototype = Instance.new(ClassName)
-        local OriginalMethod = Prototype[MethodName]
-
-        RspyHooks[HookName] = hookfunction(OriginalMethod, function(self, ...)
-            local CallingScript = getcallingscript()
-            local Args = {...}
-
-            -- Call the original method
-            local Result = table.pack(RspyHooks[HookName](self, ...))
-
-            -- Validate this is actually an instance of the correct class
-            if typeof(self) == 'Instance' and self.ClassName == ClassName then
-                local CallId = RspyNextCallId
-                RspyNextCallId = RspyNextCallId + 1
-
-                local RemoteId = GetOrCreateRemoteId(self)
-
-                local CallingScriptPath = nil
-                local CallingScriptName = nil
-                if CallingScript and typeof(CallingScript) == 'Instance' then
-                    CallingScriptPath = CallingScript:GetFullName()
-                    CallingScriptName = CallingScript.Name
-                end
-
-                local Arguments = {}
-                for i = 1, #Args do
-                    table.insert(Arguments, {
-                        type = typeof(Args[i]),
-                        value = tostring(Args[i])
-                    })
-                end
-
-                local ReturnValue = nil
-                if ClassName == 'RemoteFunction' and Result.n > 0 and Result[1] ~= nil then
-                    ReturnValue = {
-                        type = typeof(Result[1]),
-                        value = tostring(Result[1])
-                    }
-                end
-
-                SendMessage('rspy_call', {
-                    callId = CallId,
-                    remoteId = RemoteId,
-                    name = self.Name,
-                    path = self:GetFullName(),
-                    class = ClassName,
-                    direction = 'outgoing',
-                    timestamp = os.date('!%Y-%m-%dT%H:%M:%S') .. '.000Z',
-                    arguments = Arguments,
-                    returnValue = ReturnValue,
-                    callingScriptName = CallingScriptName,
-                    callingScriptPath = CallingScriptPath,
-                })
-            end
-
-            return table.unpack(Result)
-        end)
-    end
-
-    -- Hook direct function calls to catch indexed remote calls
-    CreateIndexedHook('RemoteEvent', 'FireServer', 'FireServer')
-    CreateIndexedHook('UnreliableRemoteEvent', 'FireServer', 'UnreliableFireServer')
-    CreateIndexedHook('RemoteFunction', 'InvokeServer', 'InvokeServer')
-
-    -- Hook __newindex to catch OnClientInvoke assignments
-    local OriginalNewIndex
-    OriginalNewIndex = hookmetamethod(game, '__newindex', function(self, key, value)
-        if typeof(self) == 'Instance' and self.ClassName == 'RemoteFunction' then
-            if key == 'OnClientInvoke' and typeof(value) == 'function' then
-                -- Store the original callback and the detoured one
-                local Detour = RspyCreateCallbackDetour(self, 'RemoteFunction', value)
-                RspyDetouredCallbacks[self] = {original = value, detour = Detour}
-                return OriginalNewIndex(self, key, Detour)
-            end
-        end
-
-        return OriginalNewIndex(self, key, value)
-    end)
-
-    RspyHooks.NewIndex = OriginalNewIndex
-
-    -- Hook Signal metatable to catch Connect calls
-    local SignalMetatable = getrawmetatable(Instance.new('Part').Touched)
-    local OriginalSignalIndex
-    OriginalSignalIndex = hookfunction(SignalMetatable.__index, function(self, key)
-        local Result = OriginalSignalIndex(self, key)
-
-        local ConnectionKeys = {'Connect', 'ConnectParallel', 'connect', 'connectParallel', 'Once', 'once'}
-        if table.find(ConnectionKeys, key) then
-            local Instance = RspySignalMapping[self]
-            if not Instance then
-                return Result
-            end
-
-            -- Wrap the Connect function
-            RspyHooks[Result] = hookfunction(Result, function(signal, callback)
-                local ConnectResult = table.pack(RspyHooks[Result](signal, callback))
-                return table.unpack(ConnectResult)
-            end)
-        end
-
-        return Result
-    end)
-
-    RspyHooks.SignalIndex = OriginalSignalIndex
+    -- Setup metamethod hooks
+    RspySetupOutgoingHooks()
+    RspySetupIncomingHooks()
 
     -- Watch for new remote instances
     local DescendantAddedConnection = game.DescendantAdded:Connect(function(descendant)
@@ -1099,7 +999,6 @@ function RspyStart()
             RspyHandleInstance(descendant)
         end
     end)
-
     table.insert(RspyConnections, DescendantAddedConnection)
 
     -- Hook all existing remote instances
@@ -1119,33 +1018,21 @@ function RspyStop()
 
     RemoteSpyActive = false
 
-    -- Unhook __namecall
+    -- Restore all hooks
     if RspyHooks.Namecall then
         hookmetamethod(game, '__namecall', RspyHooks.Namecall)
     end
-
-    -- Unhook function hooks
-    if RspyHooks.FireServer then
-        hookfunction(Instance.new('RemoteEvent').FireServer, RspyHooks.FireServer)
-    end
-
-    if RspyHooks.UnreliableFireServer then
-        hookfunction(Instance.new('UnreliableRemoteEvent').FireServer, RspyHooks.UnreliableFireServer)
-    end
-
-    if RspyHooks.InvokeServer then
-        hookfunction(Instance.new('RemoteFunction').InvokeServer, RspyHooks.InvokeServer)
-    end
-
-    -- Unhook __newindex
     if RspyHooks.NewIndex then
         hookmetamethod(game, '__newindex', RspyHooks.NewIndex)
     end
-
-    -- Unhook Signal metatable
-    if RspyHooks.SignalIndex then
-        local SignalMetatable = getrawmetatable(Instance.new('Part').Touched)
-        hookfunction(SignalMetatable.__index, RspyHooks.SignalIndex)
+    if RspyHooks.FireServer then
+        hookfunction(Instance.new('RemoteEvent').FireServer, RspyHooks.FireServer)
+    end
+    if RspyHooks.UnreliableFireServer then
+        hookfunction(Instance.new('UnreliableRemoteEvent').FireServer, RspyHooks.UnreliableFireServer)
+    end
+    if RspyHooks.InvokeServer then
+        hookfunction(Instance.new('RemoteFunction').InvokeServer, RspyHooks.InvokeServer)
     end
 
     -- Disconnect all event connections
@@ -1155,36 +1042,27 @@ function RspyStop()
         end
     end
 
-    -- Restore original RemoteFunction callbacks
-    -- First restore from RspyOriginalCallbacks (callbacks that existed before spy started)
+    -- Restore RemoteFunction callbacks
     for instance, originalCallback in pairs(RspyOriginalCallbacks) do
         if instance and typeof(instance) == 'Instance' then
             instance.OnClientInvoke = originalCallback
         end
     end
-
-    -- Then restore callbacks that were set after spy started (via __newindex hook)
-    -- Note: We can't check if current callback is our detour because OnClientInvoke getter throws error
-    -- Just restore all detoured callbacks - if user changed it, RspyOriginalCallbacks won't have it
     for instance, callbacks in pairs(RspyDetouredCallbacks) do
         if instance and typeof(instance) == 'Instance' and not RspyOriginalCallbacks[instance] then
-            -- Only restore if we didn't already restore from RspyOriginalCallbacks
             instance.OnClientInvoke = callbacks.original
         end
     end
 
-    -- Clear session-specific state (hooks, connections, callbacks)
+    -- Clear all session state
+    RspyNextCallId = 1
+    RspyRemoteToId = {}
+    RspyNextRemoteId = 1
     RspyHooks = {}
     RspyConnections = {}
     RspyLogConnectionFunctions = {}
-    RspySignalMapping = setmetatable({}, { __mode = 'kv' })
     RspyOriginalCallbacks = {}
     RspyDetouredCallbacks = {}
-
-    -- Keep persistent state for continuity across sessions:
-    -- - RspyNextCallId (call IDs continue incrementing)
-    -- - RspyRemoteToId (remotes keep their IDs)
-    -- - RspyNextRemoteId (remote ID counter continues)
 
     Log(LOG_SUCCESS, 'Remote spy stopped')
 end
