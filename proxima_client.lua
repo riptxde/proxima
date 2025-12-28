@@ -148,14 +148,24 @@ local function TryCommaSeparatedConstructor(ValueType, ToStringValue)
     return nil
 end
 
-local function FormatNumber(Num)
-    -- Format number to 3 decimal places, removing trailing zeros
-    if Num == math.floor(Num) then
+local function Round(Num, Decimals)
+    -- Round a number to n decimal places (default 3)
+    Decimals = Decimals or 3
+    local Mult = 10 ^ Decimals
+    return math.floor(Num * Mult + 0.5) / Mult
+end
+
+local function FormatNumber(Num, Decimals)
+    -- Format number to n decimal places (default 3), removing trailing zeros
+    Decimals = Decimals or 3
+    local Rounded = Round(Num, Decimals)
+
+    if Rounded == math.floor(Rounded) then
         -- Integer, no decimal needed
-        return tostring(Num)
+        return tostring(Rounded)
     end
 
-    local Formatted = string.format('%.3f', Num)
+    local Formatted = string.format('%.' .. Decimals .. 'f', Rounded)
     -- Remove trailing zeros after decimal point
     Formatted = string.gsub(Formatted, '%.?0+$', '')
     return Formatted
@@ -203,7 +213,7 @@ local function Serialize(Value, Depth, Shown)
     -- Tables
     if type(Value) == 'table' then
         if Shown[Value] then
-            return '{--[[ Cyclic Table ]]--}'
+            return '{--[[ Cyclic Table ]]--}' -- You can't send cyclic tables over remotes anyway so like, this should never happen
         end
         Shown[Value] = true
 
@@ -273,7 +283,14 @@ local function Serialize(Value, Depth, Shown)
     elseif ValueType == 'BrickColor' then
         return 'BrickColor.new(' .. ('%q'):format(Value.Name) .. ')'
     elseif ValueType == 'CFrame' then
-        if Value == CFrame.identity then
+        -- Round components to 3 decimal places and check against identity
+        local Components = table.pack(Value:GetComponents())
+        for i = 1, Components.n do
+            Components[i] = Round(Components[i])
+        end
+        local Rounded = CFrame.new(table.unpack(Components, 1, Components.n))
+
+        if Rounded == CFrame.identity then
             return 'CFrame.identity'
         end
         -- Use position + rotation for more intuitive representation
@@ -282,7 +299,7 @@ local function Serialize(Value, Depth, Shown)
 
         -- Format each angle individually - use degrees with math.rad() if non-zero
         local function FormatAngle(Radians)
-            if math.abs(tonumber(string.format('%.3f', Radians))) > 0 then
+            if math.abs(Round(Radians)) > 0 then
                 -- Non-zero: use degrees with math.rad()
                 return 'math.rad(' .. FormatNumber(math.deg(Radians)) .. ')'
             else
@@ -385,28 +402,34 @@ local function Serialize(Value, Depth, Shown)
         end
         return ('UDim2.new(%s, %s, %s, %s)'):format(FormatNumber(Value.X.Scale), FormatNumber(Value.X.Offset), FormatNumber(Value.Y.Scale), FormatNumber(Value.Y.Offset))
     elseif ValueType == 'Vector2' then
-        if Value == Vector2.zero then
+        -- Round components to 3 decimal places and check against constants
+        local Rounded = Vector2.new(Round(Value.X), Round(Value.Y))
+
+        if Rounded == Vector2.zero then
             return 'Vector2.zero'
-        elseif Value == Vector2.one then
+        elseif Rounded == Vector2.one then
             return 'Vector2.one'
-        elseif Value == Vector2.xAxis then
+        elseif Rounded == Vector2.xAxis then
             return 'Vector2.xAxis'
-        elseif Value == Vector2.yAxis then
+        elseif Rounded == Vector2.yAxis then
             return 'Vector2.yAxis'
         end
         return ('Vector2.new(%s, %s)'):format(FormatNumber(Value.X), FormatNumber(Value.Y))
     elseif ValueType == 'Vector2int16' then
         return ('Vector2int16.new(%s, %s)'):format(Value.X, Value.Y)
     elseif ValueType == 'Vector3' then
-        if Value == Vector3.zero then
+        -- Round components to 3 decimal places and check against constants
+        local Rounded = Vector3.new(Round(Value.X), Round(Value.Y), Round(Value.Z))
+
+        if Rounded == Vector3.zero then
             return 'Vector3.zero'
-        elseif Value == Vector3.one then
+        elseif Rounded == Vector3.one then
             return 'Vector3.one'
-        elseif Value == Vector3.xAxis then
+        elseif Rounded == Vector3.xAxis then
             return 'Vector3.xAxis'
-        elseif Value == Vector3.yAxis then
+        elseif Rounded == Vector3.yAxis then
             return 'Vector3.yAxis'
-        elseif Value == Vector3.zAxis then
+        elseif Rounded == Vector3.zAxis then
             return 'Vector3.zAxis'
         end
         return ('Vector3.new(%s, %s, %s)'):format(FormatNumber(Value.X), FormatNumber(Value.Y), FormatNumber(Value.Z))

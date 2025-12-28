@@ -26,7 +26,7 @@ const props = defineProps<Props>();
 defineEmits<Emits>();
 
 // Pagination
-const CALLS_PER_PAGE = 5;
+const CALLS_PER_PAGE = 50;
 const currentPage = ref(1);
 
 const paginatedCalls = computed(() => {
