@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import { useExplorer } from "../composables/useExplorer";
-import type { ExplorerClient } from "../types/explorer";
+import type { Client } from "@/types/client";
 
 defineProps<{
     open: boolean;
@@ -36,7 +36,7 @@ const filteredClients = computed(() => {
     );
 });
 
-const selectClient = async (client: ExplorerClient) => {
+const selectClient = async (client: Client) => {
     try {
         await expStart(client);
         await expGetTree([]);

@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import { useRemoteSpy } from "../composables/useRemoteSpy";
-import type { RemoteSpyClient } from "../types/remote-spy";
+import type { Client } from "@/types/client";
 
 defineProps<{
     open: boolean;
@@ -35,7 +35,7 @@ const filteredClients = computed(() => {
     );
 });
 
-const selectClient = async (client: RemoteSpyClient) => {
+const selectClient = async (client: Client) => {
     try {
         await startSpy(client);
         toast.success("Remote spy started", {

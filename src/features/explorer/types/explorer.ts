@@ -18,11 +18,6 @@ export interface ExplorerProperty {
   propertyCode: string;
 }
 
-export interface ExplorerClient {
-  id: string;
-  username: string;
-}
-
 export interface ExplorerSearchResult {
   id: string;
   name: string;

@@ -1,18 +1,18 @@
 import { ref, computed, nextTick } from "vue";
 import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { listen } from "@tauri-apps/api/event";
 import { useLogger } from "@/composables/useLogger";
+import type { Client } from "@/types/client";
 import type {
   ExplorerItem,
-  ExplorerClient,
   ExplorerProperty,
   ExplorerSearchResult,
 } from "../types/explorer";
 
 // State
-const selectedClient = ref<ExplorerClient | null>(null);
+const selectedClient = ref<Client | null>(null);
 const explorerItems = ref<ExplorerItem[]>([]);
-const availableClients = ref<ExplorerClient[]>([]);
+const availableClients = ref<Client[]>([]);
 const isExplorerActive = ref(false);
 const selectedItemId = ref<string | null>(null);
 const selectedItemName = ref<string | null>(null);
@@ -25,18 +25,11 @@ const searchResults = ref<ExplorerSearchResult[]>([]);
 const searchQuery = ref<string>("");
 const searchLimited = ref<boolean>(false);
 
-// Event listeners
-let unlistenTree: UnlistenFn | null = null;
-let unlistenProperties: UnlistenFn | null = null;
-let unlistenSearchResults: UnlistenFn | null = null;
-let unlistenTreeChanged: UnlistenFn | null = null;
-let unlistenExplorerStarted: UnlistenFn | null = null;
-
 export function useExplorer() {
   const { addLog } = useLogger();
 
   // Commands
-  const expStart = async (client: ExplorerClient) => {
+  const expStart = async (client: Client) => {
     try {
       await invoke("exp_start", { clientId: client.id });
       selectedClient.value = client;
@@ -179,13 +172,14 @@ export function useExplorer() {
     expandedIds.value.clear();
   };
 
-  // Event listeners
-  const initializeListeners = async () => {
-    unlistenTree = await listen<{ nodes: any[] }>("explorer-tree", (event) => {
+  // Initialize all explorer listeners (called once in App.vue)
+  const init = async () => {
+    // Explorer-specific events
+    await listen<{ nodes: any[] }>("explorer-tree", (event) => {
       explorerItems.value = convertNodesToExplorerItems(event.payload.nodes);
     });
 
-    unlistenProperties = await listen<{
+    await listen<{
       id: number;
       props: Record<string, any>;
       specialProps: Record<string, any>;
@@ -208,7 +202,7 @@ export function useExplorer() {
       }
     });
 
-    unlistenSearchResults = await listen<{
+    await listen<{
       query: string;
       results: any[];
       total: number;
@@ -225,22 +219,19 @@ export function useExplorer() {
       }));
     });
 
-    unlistenTreeChanged = await listen("explorer-tree-changed", () => {
+    await listen("explorer-tree-changed", () => {
       expGetTree(Array.from(expandedIds.value));
     });
 
-    unlistenExplorerStarted = await listen("explorer-started", () => {
+    await listen("explorer-started", () => {
       isExplorerActive.value = true;
     });
-  };
 
-  // Initialize explorer-specific client listeners
-  const initializeExplorerClientListeners = async () => {
     await listen("explorer-stopped", () => {
       resetExplorerState();
     });
 
-    await listen<ExplorerClient[]>("clients-update", (event) => {
+    await listen<Client[]>("clients-update", (event) => {
       availableClients.value = event.payload;
 
       // If the selected client is no longer available, reset explorer state
@@ -254,14 +245,6 @@ export function useExplorer() {
         }
       }
     });
-  };
-
-  const cleanupListeners = () => {
-    unlistenTree?.();
-    unlistenProperties?.();
-    unlistenSearchResults?.();
-    unlistenTreeChanged?.();
-    unlistenExplorerStarted?.();
   };
 
   return {
@@ -291,9 +274,7 @@ export function useExplorer() {
     toggleExpand,
     navigateToSearchResult,
     // Listeners
-    initializeListeners,
-    cleanupListeners,
-    initializeExplorerClientListeners,
+    init,
   };
 }
 

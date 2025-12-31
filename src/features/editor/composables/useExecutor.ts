@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "vue-sonner";
-import type { ExecuteRequest } from "../types/executor";
+import type { ExecuteRequest } from "@/types/executor";
 import { useLogger } from "@/composables/useLogger";
 
 export function useExecutor() {

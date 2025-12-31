@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import ClientList from "./ClientList.vue";
-import { useClients } from "@/features/editor/composables/useClients";
+import { useExecutorClients } from "@/features/editor/composables/useExecutorClients";
 import { Search } from "lucide-vue-next";
 
 defineProps<{
@@ -20,7 +20,7 @@ defineEmits<{
     "update:open": [value: boolean];
 }>();
 
-const { clients } = useClients();
+const { clients } = useExecutorClients();
 const searchQuery = ref("");
 
 const filteredClients = computed(() => {

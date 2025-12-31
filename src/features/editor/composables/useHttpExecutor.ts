@@ -1,6 +1,6 @@
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { useExecutor } from "./useExecutor";
-import { useClients } from "./useClients";
+import { useExecutorClients } from "./useExecutorClients";
 import { useLogger } from "@/composables/useLogger";
 import { useSettings } from "@/features/settings/composables/useSettings";
 import { toast } from "vue-sonner";
@@ -14,11 +14,11 @@ let unlistenFn: UnlistenFn | null = null;
 
 export function useHttpExecutor() {
   const { executeScript } = useExecutor();
-  const { getSelectedClientIds } = useClients();
+  const { getSelectedClientIds } = useExecutorClients();
   const { addLog } = useLogger();
   const { executionSettings } = useSettings();
 
-  const initialize = async () => {
+  const init = async () => {
     if (unlistenFn) return; // Already initialized
 
     unlistenFn = await listen<HttpExecutePayload>(
@@ -56,7 +56,7 @@ export function useHttpExecutor() {
   };
 
   return {
-    initialize,
+    init,
     cleanup,
   };
 }

@@ -11,7 +11,7 @@ import SettingsPage from "@/features/settings/components/SettingsPage.vue";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useNavigation } from "@/composables/useNavigation";
-import { useClients } from "@/features/editor/composables/useClients";
+import { useExecutorClients } from "@/features/editor/composables/useExecutorClients";
 import { useLogs } from "@/features/logs/composables/useLogs";
 import { useHttpExecutor } from "@/features/editor/composables/useHttpExecutor";
 import { useExplorer } from "@/features/explorer/composables/useExplorer";
@@ -19,22 +19,18 @@ import { useRemoteSpy } from "@/features/remote-spy/composables/useRemoteSpy";
 import StartupAnimation from "@/components/shared/StartupAnimation.vue";
 
 const { activePage } = useNavigation();
-const { initialize } = useClients();
-const { initializeLogListener } = useLogs();
-const { initialize: initHttpExecutor } = useHttpExecutor();
-const { initializeExplorerClientListeners } = useExplorer();
-const {
-    initializeRemoteSpyClientListeners,
-    initializeListeners: initRemoteSpyListeners,
-} = useRemoteSpy();
+const { init: initExecutorClients } = useExecutorClients();
+const { init: initLogs } = useLogs();
+const { init: initHttpExecutor } = useHttpExecutor();
+const { init: initExplorer } = useExplorer();
+const { init: initRemoteSpy } = useRemoteSpy();
 
 onMounted(() => {
-    initialize();
-    initializeLogListener();
+    initExecutorClients();
+    initLogs();
     initHttpExecutor();
-    initializeExplorerClientListeners();
-    initializeRemoteSpyClientListeners();
-    initRemoteSpyListeners();
+    initExplorer();
+    initRemoteSpy();
 });
 
 const currentPageComponent = computed(() => {

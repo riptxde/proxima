@@ -2,13 +2,13 @@ import { ref, computed } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useLogger } from "@/composables/useLogger";
+import type { Client } from "@/types/client";
 import type {
   Remote,
   RemoteCall,
   RemoteSpyFilters,
   RemoteDirection,
   RemoteClass,
-  RemoteSpyClient,
 } from "../types/remote-spy";
 
 // State
@@ -17,8 +17,8 @@ const selectedRemoteId = ref<number | null>(null);
 const selectedCallId = ref<number | null>(null);
 const isSpyActive = ref(false);
 const isPaused = ref(false);
-const selectedClient = ref<RemoteSpyClient | null>(null);
-const availableClients = ref<RemoteSpyClient[]>([]);
+const selectedClient = ref<Client | null>(null);
+const availableClients = ref<Client[]>([]);
 
 // Filter state
 const filters = ref<RemoteSpyFilters>({
@@ -192,7 +192,7 @@ export function useRemoteSpy() {
   };
 
   // Commands
-  const rspyStart = async (client: RemoteSpyClient) => {
+  const rspyStart = async (client: Client) => {
     try {
       await invoke("rspy_start", { clientId: client.id });
       selectedClient.value = client;
@@ -246,8 +246,8 @@ export function useRemoteSpy() {
     selectedCallId.value = null;
   };
 
-  // Event listeners
-  const initializeListeners = async () => {
+  // Initialize all remote spy listeners (called once in App.vue)
+  const init = async () => {
     await listen<any>("remote-spy-call", (event) => {
       // If paused, don't add new calls to the UI
       if (isPaused.value) {
@@ -317,11 +317,8 @@ export function useRemoteSpy() {
         }),
       );
     });
-  };
 
-  // Initialize remote spy client listeners
-  const initializeRemoteSpyClientListeners = async () => {
-    await listen<RemoteSpyClient[]>("clients-update", (event) => {
+    await listen<Client[]>("clients-update", (event) => {
       availableClients.value = event.payload;
 
       // If the selected client is no longer available, reset remote spy state
@@ -365,8 +362,7 @@ export function useRemoteSpy() {
     generateCode: rspyGenerateCode,
 
     // Listeners
-    initializeListeners,
-    initializeRemoteSpyClientListeners,
+    init,
 
     // Helpers
     getDirectionCount,

@@ -59,7 +59,7 @@ export function useLogs() {
     });
   };
 
-  const initializeLogListener = async () => {
+  const init = async () => {
     if (unlistenFn) return;
 
     unlistenFn = await listen<{ level: number; message: string }>(
@@ -104,7 +104,7 @@ export function useLogs() {
     allLogs: logs,
     filters,
     addLog,
-    initializeLogListener,
+    init,
     cleanup,
     clearLogs,
     toggleLevelFilter,

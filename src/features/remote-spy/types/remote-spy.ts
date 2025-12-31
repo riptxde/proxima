@@ -44,11 +44,3 @@ export interface RemoteSpyFilters {
   classes: RemoteClass[];
   search: string;
 }
-
-/**
- * Represents an attached client for remote spy
- */
-export interface RemoteSpyClient {
-  id: string;
-  username: string;
-}

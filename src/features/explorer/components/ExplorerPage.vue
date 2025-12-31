@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
 import {
     ResizableHandle,
@@ -33,8 +33,6 @@ const {
     selectedItemProperties,
     selectedProperty,
     expandedIds,
-    initializeListeners,
-    cleanupListeners,
     expGetTree,
     selectProperty,
 } = useExplorer();
@@ -85,8 +83,6 @@ const specialProperties = computed(() => {
 });
 
 onMounted(async () => {
-    await initializeListeners();
-
     // Fetch initial client list
     try {
         const clients = await invoke("get_attached_clients");
@@ -100,10 +96,6 @@ onMounted(async () => {
         // Use existing expanded IDs to preserve expansion state on remount
         expGetTree(Array.from(expandedIds.value));
     }
-});
-
-onUnmounted(() => {
-    cleanupListeners();
 });
 
 const openOfficialDocs = async () => {

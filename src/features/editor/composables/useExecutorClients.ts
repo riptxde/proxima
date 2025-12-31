@@ -3,7 +3,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "vue-sonner";
 import { useLogger } from "@/composables/useLogger";
-import type { Client } from "../types/executor";
+import type { Client } from "@/types/client";
 
 const clients = ref<Client[]>([]);
 const selectedClientIds = ref<Set<string>>(new Set());
@@ -11,10 +11,10 @@ const isInitialized = ref(false);
 
 let unlistenFn: UnlistenFn | null = null;
 
-export function useClients() {
+export function useExecutorClients() {
   const { addLog } = useLogger();
 
-  const initialize = async () => {
+  const init = async () => {
     if (isInitialized.value) return;
 
     try {
@@ -119,7 +119,7 @@ export function useClients() {
     isInitialized,
     selectedCount,
     totalCount,
-    initialize,
+    init,
     cleanup,
     toggleClient,
     selectAll,

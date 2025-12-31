@@ -8,7 +8,7 @@ import DockActions from "./DockActions.vue";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useEditorTabs } from "@/features/editor/composables/useEditorTabs";
 import { useFileOperations } from "@/features/editor/composables/useFileOperations";
-import { useClients } from "@/features/editor/composables/useClients";
+import { useExecutorClients } from "@/features/editor/composables/useExecutorClients";
 import { useExecutor } from "@/features/editor/composables/useExecutor";
 import { useEditorLogs } from "@/features/editor/composables/useEditorLogs";
 
@@ -22,12 +22,11 @@ const props = defineProps<{
 }>();
 
 const { clearActiveTab, getActiveTabContent } = useEditorTabs();
-const { getSelectedClientIds, selectedCount } = useClients();
+const { getSelectedClientIds, selectedCount } = useExecutorClients();
 const { executeScript } = useExecutor();
 const { toggleLogs } = useEditorLogs();
 
 const {
-    fileInputRef,
     saveDialogOpen,
     handleOpenScript,
     handleFileChange,

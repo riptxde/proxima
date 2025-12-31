@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Checkbox } from "@/components/ui/checkbox";
-import type { Client } from "@/features/editor/types/executor";
+import type { Client } from "@/types/client";
 
 defineProps<{
     client: Client;

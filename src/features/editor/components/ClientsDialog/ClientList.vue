@@ -9,14 +9,15 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { useClients } from "@/features/editor/composables/useClients";
-import type { Client } from "@/features/editor/types/executor";
+import { useExecutorClients } from "@/features/editor/composables/useExecutorClients";
+import type { Client } from "@/types/client";
 
 const props = defineProps<{
     clients: Client[];
 }>();
 
-const { isClientSelected, toggleClient, selectAll, deselectAll } = useClients();
+const { isClientSelected, toggleClient, selectAll, deselectAll } =
+    useExecutorClients();
 
 const allSelected = computed(() => {
     return (
