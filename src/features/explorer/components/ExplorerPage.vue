@@ -104,12 +104,12 @@ const openOfficialDocs = async () => {
     const url = `https://create.roblox.com/docs/reference/engine/classes/${selectedItemClassName.value}`;
     try {
         await openUrl(url);
-        addLog("info", `Opening official docs: ${selectedItemClassName.value}`);
+        addLog("info", `Opening in browser: ${url}`);
     } catch (error) {
-        toast.error("Failed to open documentation", {
+        toast.error("Failed to open in browser", {
             description: String(error),
         });
-        addLog("error", `Failed to open official docs: ${error}`);
+        addLog("error", `Failed to open in browser: ${error}`);
     }
 };
 
@@ -119,15 +119,12 @@ const openUnofficialDocs = async () => {
     const url = `https://robloxapi.github.io/ref/class/${selectedItemClassName.value}`;
     try {
         await openUrl(url);
-        addLog(
-            "info",
-            `Opening unofficial docs: ${selectedItemClassName.value}`,
-        );
+        addLog("info", `Opening in browser: ${url}`);
     } catch (error) {
-        toast.error("Failed to open documentation", {
+        toast.error("Failed to open in browser", {
             description: String(error),
         });
-        addLog("error", `Failed to open unofficial docs: ${error}`);
+        addLog("error", `Failed to open in browser: ${error}`);
     }
 };
 </script>
