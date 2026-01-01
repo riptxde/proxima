@@ -1387,9 +1387,29 @@ function RspyStart()
     end
 
     -- Validate required capabilities
-    if not Capabilities.hookmetamethod or not Capabilities.hookfunction or not Capabilities.getnamecallmethod or not Capabilities.newcclosure then
-        Log(LOG_ERROR, 'Remote spy requires hookmetamethod, hookfunction, getnamecallmethod, newcclosure for anti-detection')
+    if not Capabilities.hookmetamethod then
+        Log(LOG_ERROR, "Executor missing function 'hookmetamethod' - required for Remote Spy")
         return
+    end
+    if not Capabilities.hookfunction then
+        Log(LOG_ERROR, "Executor missing function 'hookfunction' - required for Remote Spy")
+        return
+    end
+    if not Capabilities.getnamecallmethod then
+        Log(LOG_ERROR, "Executor missing function 'getnamecallmethod' - required for Remote Spy")
+        return
+    end
+    if not Capabilities.newcclosure then
+        Log(LOG_ERROR, "Executor missing function 'newcclosure' - required for Remote Spy")
+        return
+    end
+
+    -- Warn about missing optional capabilities
+    if not Capabilities.getcallingscript then
+        Log(LOG_WARNING, "Executor missing function 'getcallingscript' - calling script information will not be shown in the Remote Spy")
+    end
+    if not Capabilities.getcallbackvalue then
+        Log(LOG_WARNING, "Executor missing function 'getcallbackvalue' - incoming RemoteFunction calls may not be detected by the Remote Spy")
     end
 
     RemoteSpyActive = true
