@@ -21,6 +21,18 @@ local Username = nil
 -- State
 local Reconnecting = false
 
+-- Capabilities
+local Capabilities = {
+    hookmetamethod = typeof(hookmetamethod) == 'function',
+    hookfunction = typeof(hookfunction) == 'function',
+    getnamecallmethod = typeof(getnamecallmethod) == 'function',
+    getcallbackvalue = typeof(getcallbackvalue) == 'function',
+    newcclosure = typeof(newcclosure) == 'function',
+    getcallingscript = typeof(getcallingscript) == 'function',
+    decompile = typeof(decompile) == 'function',
+    gethiddenproperty = typeof(gethiddenproperty) == 'function',
+}
+
 --/ Utilities /--
 local function EscapeStringLiteral(Name)
     -- Escape special characters
@@ -816,9 +828,6 @@ function ExpGetProperties(Id, Properties, SpecialProperties)
     -- Build the instance path once for all properties
     local InstancePath = BuildInstancePath(Instance)
 
-    -- Check if gethiddenproperty is available for special properties
-    local HasGetHiddenProperty = type(gethiddenproperty) == 'function'
-
     -- Get regular properties
     for _, PropMetadata in ipairs(Properties) do
         local PropName = PropMetadata.name
@@ -896,7 +905,7 @@ instance.%s = %s]]):format(InstancePath, PropName, PropName, SerializedValue)
     end
 
     -- Get special properties (hidden/not scriptable) if executor supports it
-    if HasGetHiddenProperty then
+    if Capabilities.gethiddenproperty then
         for _, PropMetadata in ipairs(SpecialProperties) do
             local PropName = PropMetadata.name
             local Success, Value = pcall(function()
@@ -1132,7 +1141,7 @@ function ExpDecompile(Id)
     -- Try to decompile using the decompile function if available
     local DecompiledSource = '-- Your executor does not support script decompilation'
 
-    if typeof(decompile) == 'function' then
+    if Capabilities.decompile then
         local Success, Result = pcall(decompile, Instance)
         if Success then
             DecompiledSource = Result
@@ -1170,9 +1179,13 @@ local function GetOrCreateRemoteId(RemoteInstance)
 end
 
 local function GetCallingScript()
-    local CallingScript = getcallingscript()
+    if not Capabilities.getcallingscript then
+        return nil
+    end
 
-    if CallingScript and typeof(CallingScript) == 'Instance' then
+    local Success, CallingScript = pcall(getcallingscript)
+
+    if Success and CallingScript and typeof(CallingScript) == 'Instance' then
         return CallingScript
     end
 
@@ -1239,9 +1252,9 @@ end
 
 -- Incoming: Create connection function for RemoteEvent/UnreliableRemoteEvent
 local function RspyCreateConnectionFunction(Instance, ClassName)
-    local ConnectionFunction = function(...)
+    local ConnectionFunction = newcclosure(function(...)
         LogRemoteCall(Instance, ClassName, 'incoming', {...}, nil, nil)
-    end
+    end)
 
     RspyLogConnectionFunctions[ConnectionFunction] = true
     return ConnectionFunction
@@ -1249,7 +1262,7 @@ end
 
 -- Incoming: Create callback detour for RemoteFunction
 local function RspyCreateCallbackDetour(Instance, ClassName, Callback)
-    local Detour = function(...)
+    local Detour = newcclosure(function(...)
         local Result = table.pack(Callback(...))
 
         local ReturnValues = nil
@@ -1262,7 +1275,7 @@ local function RspyCreateCallbackDetour(Instance, ClassName, Callback)
 
         LogRemoteCall(Instance, ClassName, 'incoming', {...}, ReturnValues, nil)
         return table.unpack(Result, 1, Result.n)
-    end
+    end)
 
     return Detour
 end
@@ -1276,13 +1289,11 @@ local function RspyHandleInstance(Instance)
         local Connection = Instance.OnClientEvent:Connect(RspyCreateConnectionFunction(Instance, ClassName))
         table.insert(RspyConnections, Connection)
 
-    elseif ClassName == 'RemoteFunction' and getcallbackvalue then
+    elseif ClassName == 'RemoteFunction' and Capabilities.getcallbackvalue then
         -- For existing callbacks, re-assign to trigger __newindex hook
-        if typeof(getcallbackvalue) == 'function' then
-            local Success, Callback = pcall(getcallbackvalue, Instance, 'OnClientInvoke')
-            if Success and typeof(Callback) == 'function' then
-                Instance.OnClientInvoke = Callback
-            end
+        local Success, Callback = pcall(getcallbackvalue, Instance, 'OnClientInvoke')
+        if Success and typeof(Callback) == 'function' then
+            Instance.OnClientInvoke = Callback
         end
     end
 end
@@ -1291,7 +1302,7 @@ end
 local function RspySetupOutgoingHooks()
     -- Hook __namecall to catch remote:FireServer() and remote:InvokeServer() calls
     local OriginalNamecall
-    OriginalNamecall = hookmetamethod(game, '__namecall', function(...)
+    OriginalNamecall = hookmetamethod(game, '__namecall', newcclosure(function(...)
         local self = ...
         local method = getnamecallmethod()
         local ClassName = typeof(self) == 'Instance' and self.ClassName or nil
@@ -1300,15 +1311,9 @@ local function RspySetupOutgoingHooks()
             or (method == 'InvokeServer' and ClassName == 'RemoteFunction')
 
         if ShouldLog then
-            local Args = {...}
             local Result = table.pack(OriginalNamecall(...))
-
             local CallingScript = GetCallingScript()
-            -- Extract arguments (skip first arg which is 'self')
-            local Arguments = {}
-            for i = 2, #Args do
-                table.insert(Arguments, Args[i])
-            end
+            local Arguments = table.pack(select(2, ...))
 
             local ReturnValues = nil
             if ClassName == 'RemoteFunction' and Result.n > 0 then
@@ -1323,7 +1328,7 @@ local function RspySetupOutgoingHooks()
         end
 
         return OriginalNamecall(...)
-    end)
+    end))
     RspyHooks.Namecall = OriginalNamecall
 
     -- Hook direct function calls (e.g., remote.FireServer(...) instead of remote:FireServer(...))
@@ -1331,11 +1336,12 @@ local function RspySetupOutgoingHooks()
         local Prototype = Instance.new(ClassName)
         local OriginalMethod = Prototype[MethodName]
 
-        RspyHooks[HookName] = hookfunction(OriginalMethod, function(self, ...)
+        RspyHooks[HookName] = hookfunction(OriginalMethod, newcclosure(function(self, ...)
             local Result = table.pack(RspyHooks[HookName](self, ...))
 
             if typeof(self) == 'Instance' and self.ClassName == ClassName then
                 local CallingScript = GetCallingScript()
+                local Arguments = table.pack(...)
 
                 local ReturnValues = nil
                 if ClassName == 'RemoteFunction' and Result.n > 0 then
@@ -1345,11 +1351,11 @@ local function RspySetupOutgoingHooks()
                     end
                 end
 
-                LogRemoteCall(self, ClassName, 'outgoing', {...}, ReturnValues, CallingScript)
+                LogRemoteCall(self, ClassName, 'outgoing', Arguments, ReturnValues, CallingScript)
             end
 
             return table.unpack(Result, 1, Result.n)
-        end)
+        end))
     end
 
     CreateIndexedHook('RemoteEvent', 'FireServer', 'FireServer')
@@ -1361,7 +1367,7 @@ end
 local function RspySetupIncomingHooks()
     -- Hook __newindex to catch OnClientInvoke assignments
     local OriginalNewIndex
-    OriginalNewIndex = hookmetamethod(game, '__newindex', function(self, key, value)
+    OriginalNewIndex = hookmetamethod(game, '__newindex', newcclosure(function(self, key, value)
         if typeof(self) == 'Instance' and self.ClassName == 'RemoteFunction' then
             if key == 'OnClientInvoke' and typeof(value) == 'function' then
                 local Detour = RspyCreateCallbackDetour(self, 'RemoteFunction', value)
@@ -1371,12 +1377,18 @@ local function RspySetupIncomingHooks()
         end
 
         return OriginalNewIndex(self, key, value)
-    end)
+    end))
     RspyHooks.NewIndex = OriginalNewIndex
 end
 
 function RspyStart()
     if RemoteSpyActive then
+        return
+    end
+
+    -- Validate required capabilities
+    if not Capabilities.hookmetamethod or not Capabilities.hookfunction or not Capabilities.getnamecallmethod or not Capabilities.newcclosure then
+        Log(LOG_ERROR, 'Remote spy requires hookmetamethod, hookfunction, getnamecallmethod, newcclosure for anti-detection')
         return
     end
 
@@ -1478,7 +1490,7 @@ function RspyDecompile(CallId)
 
     local Source = '-- Your executor does not support script decompilation'
 
-    if typeof(decompile) == 'function' then
+    if Capabilities.decompile then
         local Success, Result = pcall(decompile, ScriptInstance)
         if Success then
             Source = Result
