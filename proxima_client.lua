@@ -1539,16 +1539,40 @@ function RspyGenerateCode(CallId)
     local RemotePath = BuildInstancePath(CallData.instance)
     local Code = ''
 
-    -- Generate code based on direction and class
     if CallData.direction == 'outgoing' then
         -- Outgoing: remote:FireServer() or remote:InvokeServer()
         local MethodName = (CallData.className == 'RemoteFunction') and 'InvokeServer' or 'FireServer'
 
         -- Build arguments table
-        if #CallData.arguments > 0 then
-            local ArgsRepr = Serialize(CallData.arguments)
+        local ArgCount = CallData.arguments.n or #CallData.arguments
+        if ArgCount > 0 then
+            -- Check if any arguments are nil (requires 'n' field for proper unpacking)
+            local HasNil = false
+            for i = 1, ArgCount do
+                if CallData.arguments[i] == nil then
+                    HasNil = true
+                    break
+                end
+            end
+
+            local ArgsTable = {}
+            for i = 1, ArgCount do
+                ArgsTable[i] = CallData.arguments[i]
+            end
+
+            -- Include 'n' field only if there are nil arguments
+            if HasNil then
+                ArgsTable.n = ArgCount
+            end
+
+            local ArgsRepr = Serialize(ArgsTable)
             Code = 'local args = ' .. ArgsRepr .. '\n\n'
-            Code = Code .. RemotePath .. ':' .. MethodName .. '(table.unpack(args, 1, #args))'
+
+            if HasNil then
+                Code = Code .. RemotePath .. ':' .. MethodName .. '(table.unpack(args, 1, args.n))'
+            else
+                Code = Code .. RemotePath .. ':' .. MethodName .. '(table.unpack(args))'
+            end
         else
             Code = RemotePath .. ':' .. MethodName .. '()'
         end
