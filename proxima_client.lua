@@ -31,6 +31,10 @@ local Capabilities = {
     getcallingscript = typeof(getcallingscript) == 'function',
     decompile = typeof(decompile) == 'function',
     gethiddenproperty = typeof(gethiddenproperty) == 'function',
+    run_on_actor = typeof(run_on_actor) == 'function',
+    getactors = typeof(getactors) == 'function',
+    create_comm_channel = typeof(create_comm_channel) == 'function',
+    get_comm_channel = typeof(get_comm_channel) == 'function',
 }
 
 --/ Utilities /--
@@ -1166,6 +1170,8 @@ local RspyHooks = {}
 local RspyConnections = {}
 local RspyLogConnectionFunctions = {}
 local RspyDetouredCallbacks = {}
+local RspyActorChannel = nil
+local RspyActorChannelConnection = nil
 
 local function GetOrCreateRemoteId(RemoteInstance)
     if RspyRemoteToId[RemoteInstance] then
@@ -1381,6 +1387,320 @@ local function RspySetupIncomingHooks()
     RspyHooks.NewIndex = OriginalNewIndex
 end
 
+-- Actor Support: Setup actor hooks
+local function RspySetupActorSupport()
+    -- Validate actor capabilities
+    if not Capabilities.run_on_actor then
+        Log(LOG_WARNING, "Executor missing function 'run_on_actor' - actor remote calls will not be detected")
+        return
+    end
+    if not Capabilities.getactors then
+        Log(LOG_WARNING, "Executor missing function 'getactors' - actor remote calls will not be detected")
+        return
+    end
+    if not Capabilities.create_comm_channel then
+        Log(LOG_WARNING, "Executor missing function 'create_comm_channel' - actor remote calls will not be detected")
+        return
+    end
+    if not Capabilities.get_comm_channel then
+        Log(LOG_WARNING, "Executor missing function 'get_comm_channel' - actor remote calls will not be detected")
+        return
+    end
+
+    local ChannelID, Channel = create_comm_channel()
+    RspyActorChannel = Channel
+
+    -- Listen for actor remote calls
+    RspyActorChannelConnection = Channel.Event:Connect(function(EventType, ...)
+        if EventType ~= 'ActorCall' then
+            return
+        end
+
+        local RemoteInstance, ClassName, Direction, CallInfo = ...
+
+        -- Ignore if it's our own channel
+        if RemoteInstance == Channel then
+            return
+        end
+
+        local CallId = RspyNextCallId
+        RspyNextCallId = RspyNextCallId + 1
+
+        local RemoteId = GetOrCreateRemoteId(RemoteInstance)
+
+        RspyCallIdToCallData[CallId] = {
+            instance = RemoteInstance,
+            className = ClassName,
+            direction = Direction,
+            arguments = CallInfo.arguments or {},
+            returnValues = CallInfo.returnValues,
+            callingScript = CallInfo.callingScript,
+        }
+
+        -- Serialize arguments and return values
+        local SerializedArguments = {}
+        local Arguments = CallInfo.arguments or {}
+        for i = 1, #Arguments do
+            table.insert(SerializedArguments, {
+                type = typeof(Arguments[i]),
+                value = Serialize(Arguments[i])
+            })
+        end
+
+        local SerializedReturnValues = nil
+        if CallInfo.returnValues ~= nil and #CallInfo.returnValues > 0 then
+            SerializedReturnValues = {}
+            for i = 1, #CallInfo.returnValues do
+                table.insert(SerializedReturnValues, {
+                    type = typeof(CallInfo.returnValues[i]),
+                    value = Serialize(CallInfo.returnValues[i])
+                })
+            end
+        end
+
+        local CallingScriptPath = nil
+        local CallingScriptName = nil
+        if CallInfo.callingScript then
+            CallingScriptPath = BuildInstancePath(CallInfo.callingScript)
+            CallingScriptName = CallInfo.callingScript.Name
+        end
+
+        SendMessage('rspy_call', {
+            callId = CallId,
+            remoteId = RemoteId,
+            name = RemoteInstance.Name,
+            path = BuildInstancePath(RemoteInstance),
+            class = ClassName,
+            direction = Direction,
+            timestamp = os.date('!%Y-%m-%dT%H:%M:%S') .. '.000Z',
+            arguments = SerializedArguments,
+            returnValues = SerializedReturnValues,
+            callingScriptName = CallingScriptName,
+            callingScriptPath = CallingScriptPath,
+        })
+    end)
+
+    -- Generate actor environment code
+    local ActorCode = [[
+        -- Actor Remote Spy Environment
+        if getgenv().ProximaActorInitialized then
+            return
+        end
+        getgenv().ProximaActorInitialized = true
+
+        local Channel = get_comm_channel(PROXIMA_CHANNEL_ID)
+
+        -- State
+        local RspyHooks = {}
+        local RspyConnections = {}
+        local RspyDetouredCallbacks = {}
+
+        -- Helper to get calling script
+        local function GetCallingScript()
+            if typeof(getcallingscript) ~= 'function' then
+                return nil
+            end
+
+            local Success, CallingScript = pcall(getcallingscript)
+
+            if Success and CallingScript and typeof(CallingScript) == 'Instance' then
+                return CallingScript
+            end
+
+            return nil
+        end
+
+        -- Listen for unload signal from main thread
+        Channel.Event:Connect(function(EventType)
+            if EventType == 'Unload' then
+                -- Restore metamethod hooks
+                if RspyHooks.Namecall then
+                    hookmetamethod(game, '__namecall', RspyHooks.Namecall)
+                end
+                if RspyHooks.NewIndex then
+                    hookmetamethod(game, '__newindex', RspyHooks.NewIndex)
+                end
+
+                -- Disconnect all connections
+                for _, connection in ipairs(RspyConnections) do
+                    if connection and connection.Connected then
+                        connection:Disconnect()
+                    end
+                end
+
+                -- Restore RemoteFunction callbacks
+                for instance, callbacks in pairs(RspyDetouredCallbacks) do
+                    if instance and typeof(instance) == 'Instance' then
+                        instance.OnClientInvoke = callbacks.original
+                    end
+                end
+
+                -- Clear all state
+                RspyHooks = {}
+                RspyConnections = {}
+                RspyDetouredCallbacks = {}
+                getgenv().ProximaActorInitialized = nil
+            end
+        end)
+
+        -- Hook outgoing calls
+        RspyHooks.Namecall = hookmetamethod(game, '__namecall', newcclosure(function(...)
+            local self = ...
+            local method = getnamecallmethod()
+            local ClassName = typeof(self) == 'Instance' and self.ClassName or nil
+
+            local ShouldLog = (method == 'FireServer' and (ClassName == 'RemoteEvent' or ClassName == 'UnreliableRemoteEvent'))
+                or (method == 'InvokeServer' and ClassName == 'RemoteFunction')
+
+            if ShouldLog and self ~= Channel then
+                local Result = table.pack(RspyHooks.Namecall(...))
+                local Arguments = table.pack(select(2, ...))
+                local CallingScript = GetCallingScript()
+
+                local ReturnValues = nil
+                if ClassName == 'RemoteFunction' and Result.n > 0 then
+                    ReturnValues = {}
+                    for i = 1, Result.n do
+                        table.insert(ReturnValues, Result[i])
+                    end
+                end
+
+                Channel:Fire('ActorCall', self, ClassName, 'outgoing', {
+                    arguments = Arguments,
+                    returnValues = ReturnValues,
+                    callingScript = CallingScript
+                })
+
+                return table.unpack(Result, 1, Result.n)
+            end
+
+            return RspyHooks.Namecall(...)
+        end))
+
+        -- Incoming: Create connection function for RemoteEvent/UnreliableRemoteEvent
+        local function RspyCreateConnectionFunction(Instance, ClassName)
+            local ConnectionFunction = newcclosure(function(...)
+                local CallingScript = GetCallingScript()
+
+                Channel:Fire('ActorCall', Instance, ClassName, 'incoming', {
+                    arguments = table.pack(...),
+                    callingScript = CallingScript
+                })
+            end)
+
+            return ConnectionFunction
+        end
+
+        -- Incoming: Create callback detour for RemoteFunction
+        local function RspyCreateCallbackDetour(Instance, ClassName, Callback)
+            local Detour = newcclosure(function(...)
+                local Result = table.pack(Callback(...))
+                local CallingScript = GetCallingScript()
+
+                local ReturnValues = nil
+                if Result.n > 0 then
+                    ReturnValues = {}
+                    for i = 1, Result.n do
+                        table.insert(ReturnValues, Result[i])
+                    end
+                end
+
+                Channel:Fire('ActorCall', Instance, ClassName, 'incoming', {
+                    arguments = table.pack(...),
+                    returnValues = ReturnValues,
+                    callingScript = CallingScript
+                })
+
+                return table.unpack(Result, 1, Result.n)
+            end)
+
+            return Detour
+        end
+
+        -- Incoming: Setup hooks for an instance
+        local function RspyHandleInstance(Instance)
+            local ClassName = Instance.ClassName
+
+            if ClassName == 'RemoteEvent' or ClassName == 'UnreliableRemoteEvent' then
+                -- Hook OnClientEvent signal
+                local Connection = Instance.OnClientEvent:Connect(RspyCreateConnectionFunction(Instance, ClassName))
+                table.insert(RspyConnections, Connection)
+
+            elseif ClassName == 'RemoteFunction' and typeof(getcallbackvalue) == 'function' then
+                -- For existing callbacks, re-assign to trigger __newindex hook
+                local Success, Callback = pcall(getcallbackvalue, Instance, 'OnClientInvoke')
+                if Success and typeof(Callback) == 'function' then
+                    local Detour = RspyCreateCallbackDetour(Instance, ClassName, Callback)
+                    RspyDetouredCallbacks[Instance] = {original = Callback, detour = Detour}
+                    Instance.OnClientInvoke = Detour
+                end
+            end
+        end
+
+        -- Incoming: Setup metamethod hooks
+        RspyHooks.NewIndex = hookmetamethod(game, '__newindex', newcclosure(function(self, key, value)
+            if typeof(self) == 'Instance' and self.ClassName == 'RemoteFunction' then
+                if key == 'OnClientInvoke' and typeof(value) == 'function' then
+                    local Detour = RspyCreateCallbackDetour(self, 'RemoteFunction', value)
+                    RspyDetouredCallbacks[self] = {original = value, detour = Detour}
+                    return RspyHooks.NewIndex(self, key, Detour)
+                end
+            end
+
+            return RspyHooks.NewIndex(self, key, value)
+        end))
+
+        -- Hook all existing remote instances
+        for _, descendant in ipairs(game:GetDescendants()) do
+            if descendant.ClassName == 'RemoteEvent' or descendant.ClassName == 'UnreliableRemoteEvent' or descendant.ClassName == 'RemoteFunction' then
+                RspyHandleInstance(descendant)
+            end
+        end
+
+        -- Watch for new remote instances
+        local DescendantConnection = game.DescendantAdded:Connect(function(descendant)
+            if descendant.ClassName == 'RemoteEvent' or descendant.ClassName == 'UnreliableRemoteEvent' or descendant.ClassName == 'RemoteFunction' then
+                RspyHandleInstance(descendant)
+            end
+        end)
+        table.insert(RspyConnections, DescendantConnection)
+    ]]
+
+    -- Replace placeholder with actual channel ID
+    ActorCode = ActorCode:gsub('PROXIMA_CHANNEL_ID', tostring(ChannelID))
+
+    -- Hook all existing actors
+    local function HookActor(Actor)
+        task.spawn(function()
+            local Success = false
+            local Attempts = 0
+
+            repeat
+                Success = pcall(run_on_actor, Actor, ActorCode)
+                if not Success then
+                    Attempts = Attempts + 1
+                    task.wait(0.25)
+                end
+            until Success or Attempts >= 10
+        end)
+    end
+
+    -- Hook existing actors
+    if Capabilities.getactors then
+        for _, Actor in ipairs(getactors()) do
+            HookActor(Actor)
+        end
+    end
+
+    -- Watch for new actors
+    local ActorConnection = game.DescendantAdded:Connect(function(descendant)
+        if descendant:IsA('Actor') then
+            HookActor(descendant)
+        end
+    end)
+    table.insert(RspyConnections, ActorConnection)
+end
+
 function RspyStart()
     if RemoteSpyActive then
         return
@@ -1417,6 +1737,9 @@ function RspyStart()
     -- Setup metamethod hooks
     RspySetupOutgoingHooks()
     RspySetupIncomingHooks()
+
+    -- Setup actor support (if available)
+    RspySetupActorSupport()
 
     -- Watch for new remote instances
     local DescendantAddedConnection = game.DescendantAdded:Connect(function(descendant)
@@ -1473,6 +1796,18 @@ function RspyStop()
             instance.OnClientInvoke = callbacks.original
         end
     end
+
+    -- Send unload signal to actors and disconnect channel
+    if RspyActorChannel then
+        RspyActorChannel:Fire('Unload')
+        task.wait(0.1) -- Give actors time to clean up
+    end
+
+    if RspyActorChannelConnection then
+        RspyActorChannelConnection:Disconnect()
+        RspyActorChannelConnection = nil
+    end
+    RspyActorChannel = nil
 
     -- Clear all session state
     RspyRemoteToId = {}
