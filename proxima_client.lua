@@ -130,6 +130,15 @@ local function BuildInstancePath(Instance)
                     table.remove(PathParts, 1) -- Remove service name from parts
                 end
             end
+        elseif TopParent.Parent == nil then
+            -- Instance has nil parent, just use the escaped name
+            local EscapedName = EscapeInstanceName(TopParent.Name)
+            -- Remove leading dot or return bracket notation as-is
+            if EscapedName:sub(1, 1) == '.' then
+                return EscapedName:sub(2) -- Remove leading dot
+            else
+                return EscapedName:sub(2, -2) -- Remove brackets, keep escaped string
+            end
         end
     end
 
