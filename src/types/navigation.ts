@@ -4,6 +4,7 @@ export type PageType =
   | "explorer"
   | "remote-spy"
   | "logs"
+  | "launcher"
   | "settings";
 
 export interface NavigationState {

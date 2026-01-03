@@ -7,6 +7,7 @@ import ScriptHubPage from "@/features/script-hub/components/ScriptHubPage.vue";
 import ExplorerPage from "@/features/explorer/components/ExplorerPage.vue";
 import RemoteSpyPage from "@/features/remote-spy/components/RemoteSpyPage.vue";
 import LogsPage from "@/features/logs/components/LogsPage.vue";
+import LauncherPage from "@/features/launcher/components/LauncherPage.vue";
 import SettingsPage from "@/features/settings/components/SettingsPage.vue";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +17,7 @@ import { useLogs } from "@/features/logs/composables/useLogs";
 import { useHttpExecutor } from "@/features/editor/composables/useHttpExecutor";
 import { useExplorer } from "@/features/explorer/composables/useExplorer";
 import { useRemoteSpy } from "@/features/remote-spy/composables/useRemoteSpy";
+import { useLauncherProgress } from "@/features/launcher/composables/useLauncherProgress";
 import StartupAnimation from "@/components/shared/StartupAnimation.vue";
 
 const { activePage } = useNavigation();
@@ -24,6 +26,7 @@ const { init: initLogs } = useLogs();
 const { init: initHttpExecutor } = useHttpExecutor();
 const { init: initExplorer } = useExplorer();
 const { init: initRemoteSpy } = useRemoteSpy();
+const { init: initLauncherProgress } = useLauncherProgress();
 
 onMounted(() => {
     initExecutorClients();
@@ -31,6 +34,7 @@ onMounted(() => {
     initHttpExecutor();
     initExplorer();
     initRemoteSpy();
+    initLauncherProgress();
 });
 
 const currentPageComponent = computed(() => {
@@ -45,6 +49,8 @@ const currentPageComponent = computed(() => {
             return RemoteSpyPage;
         case "logs":
             return LogsPage;
+        case "launcher":
+            return LauncherPage;
         case "settings":
             return SettingsPage;
         default:

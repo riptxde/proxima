@@ -2,8 +2,9 @@
 mod utils;
 
 mod commands;
+pub mod launcher_mode;
 mod models;
-mod services;
+pub mod services;
 mod state;
 
 use commands::editor::{
@@ -14,6 +15,7 @@ use commands::executor::{exec, get_attached_clients};
 use commands::explorer::{
     exp_decompile, exp_get_properties, exp_get_tree, exp_search, exp_start, exp_stop,
 };
+use commands::launcher::launcher_register;
 use commands::logs::add_log;
 use commands::remote_spy::{rspy_decompile, rspy_generate_code, rspy_start, rspy_stop};
 use std::collections::HashMap;
@@ -106,6 +108,14 @@ pub fn run() {
                 }
             });
 
+            // Start the launcher WebSocket server
+            let app_handle_launcher = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(e) = services::launcher_ipc::start_launcher_websocket(app_handle_launcher).await {
+                    log::error!("Failed to start launcher WebSocket server: {}", e);
+                }
+            });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -133,6 +143,8 @@ pub fn run() {
             rspy_stop,
             rspy_decompile,
             rspy_generate_code,
+            // Launcher commands
+            launcher_register,
             // Logs commands
             add_log,
             // Script Hub commands (future)

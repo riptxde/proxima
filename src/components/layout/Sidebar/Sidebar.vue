@@ -6,6 +6,7 @@ import {
     Logs,
     ScanSearch,
     Zap,
+    Rocket,
 } from "lucide-vue-next";
 import SidebarButton from "./SidebarButton.vue";
 import { useNavigation } from "@/composables/useNavigation";
@@ -19,6 +20,7 @@ const buttons: SidebarButtonType[] = [
     { id: "explorer", label: "Explorer", icon: ScanSearch },
     { id: "remote-spy", label: "Remote Spy", icon: Zap },
     { id: "logs", label: "Logs", icon: Logs },
+    { id: "launcher", label: "Launcher", icon: Rocket },
     { id: "settings", label: "Settings", icon: Settings },
 ];
 </script>

@@ -17,10 +17,16 @@ export interface ApplicationSettings {
   alwaysOnTop: boolean;
 }
 
+export interface LauncherSettings {
+  channel: string;
+  versionOverride: string;
+}
+
 export interface Settings {
   editor: EditorSettings;
   execution: ExecutionSettings;
   application: ApplicationSettings;
+  launcher: LauncherSettings;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -39,5 +45,9 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   application: {
     alwaysOnTop: false,
+  },
+  launcher: {
+    channel: "",
+    versionOverride: "",
   },
 };

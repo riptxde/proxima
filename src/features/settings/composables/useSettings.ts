@@ -6,6 +6,7 @@ import {
   type EditorSettings,
   type ExecutionSettings,
   type ApplicationSettings,
+  type LauncherSettings,
 } from "../types/settings";
 import { useLogger } from "@/composables/useLogger";
 import { getScriptsPath } from "@/utils/paths";
@@ -21,6 +22,9 @@ const executionSettings: Ref<ExecutionSettings> = ref({
 });
 const applicationSettings: Ref<ApplicationSettings> = ref({
   ...DEFAULT_SETTINGS.application,
+});
+const launcherSettings: Ref<LauncherSettings> = ref({
+  ...DEFAULT_SETTINGS.launcher,
 });
 
 async function initializeStore() {
@@ -51,6 +55,10 @@ async function initializeStore() {
         ...DEFAULT_SETTINGS.application,
         ...savedSettings.application,
       };
+      launcherSettings.value = {
+        ...DEFAULT_SETTINGS.launcher,
+        ...savedSettings.launcher,
+      };
     } else {
       // Save defaults if no settings exist
       await saveSettings();
@@ -58,7 +66,12 @@ async function initializeStore() {
 
     // Watch for changes and persist
     watch(
-      [editorSettings, executionSettings, applicationSettings],
+      [
+        editorSettings,
+        executionSettings,
+        applicationSettings,
+        launcherSettings,
+      ],
       async () => {
         await saveSettings();
       },
@@ -79,6 +92,7 @@ async function saveSettings() {
     editor: editorSettings.value,
     execution: executionSettings.value,
     application: applicationSettings.value,
+    launcher: launcherSettings.value,
   };
 
   await store.set("settings", settings);
@@ -88,6 +102,7 @@ async function resetSettings() {
   editorSettings.value = { ...DEFAULT_SETTINGS.editor };
   executionSettings.value = { ...DEFAULT_SETTINGS.execution };
   applicationSettings.value = { ...DEFAULT_SETTINGS.application };
+  launcherSettings.value = { ...DEFAULT_SETTINGS.launcher };
 
   await saveSettings();
 }
@@ -107,6 +122,9 @@ export function useSettings() {
 
     // Application settings
     applicationSettings,
+
+    // Launcher settings
+    launcherSettings,
 
     // Methods
     resetSettings,

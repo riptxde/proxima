@@ -7,6 +7,7 @@ license = "AGPL-3.0"
 repository = "https://github.com/riptxde/proxima"
 edition = "2021"
 rust-version = "1.77.2"
+default-run = "proxima"
 
 [lib]
 name = "proxima_lib"
@@ -32,5 +33,10 @@ uuid = { version = "1.11", features = ["v4", "serde"] }
 tauri-plugin-store = "2"
 warp = "0.3"
 bytes = "1.7"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "blocking", "json"] }
 rmp-serde = "1.3"
+zip = "2.2"
+winreg = "0.52"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["wincon"] }
