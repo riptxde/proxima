@@ -6,7 +6,7 @@ import { useLogger } from "@/composables/useLogger";
 const isLaunching = ref(false);
 const queueCount = ref(0);
 const launchProgress = ref(0);
-const launchStatus = ref("Ready");
+const launchStatus = ref("Waiting for Cooldown");
 const launchError = ref("");
 
 let unlistenProgressFn: UnlistenFn | null = null;
@@ -42,7 +42,7 @@ export function useLauncherProgress() {
           isLaunching.value = false;
           launchProgress.value = 0;
           if (!event.payload.error) {
-            launchStatus.value = "Ready";
+            launchStatus.value = "Waiting for Cooldown";
           }
         }, 3000);
       }
