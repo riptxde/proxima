@@ -1,11 +1,13 @@
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 use tokio::net::TcpListener;
 use tokio::sync::RwLock;
 use tokio_tungstenite::accept_async;
 use tokio_tungstenite::tungstenite::Message;
+
+use crate::state::{LauncherQueueRegistry, QueuedLauncher};
 
 const LAUNCHER_WS_PORT: u16 = 11375;
 
@@ -20,6 +22,7 @@ pub struct LauncherProgress {
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum LauncherMessage {
     Progress { progress: u8, status: String, error: Option<String> },
+    QueueJoin { launcher_id: String },
 }
 
 /// Start the launcher WebSocket server
@@ -60,6 +63,9 @@ async fn handle_launcher_connection(
 
     let (mut write, mut read) = ws_stream.split();
 
+    // Track the launcher ID for this connection (if it joins the queue)
+    let mut current_launcher_id: Option<String> = None;
+
     while let Some(msg) = read.next().await {
         match msg {
             Ok(Message::Text(text)) => {
@@ -82,6 +88,31 @@ async fn handle_launcher_connection(
                                 log::error!("Failed to emit launcher progress: {}", e);
                             }
                         }
+                        LauncherMessage::QueueJoin { launcher_id } => {
+                            let app = app_handle.read().await;
+
+                            // Track this launcher ID for the connection
+                            current_launcher_id = Some(launcher_id.clone());
+
+                            // Add launcher to queue registry
+                            if let Some(queue_registry) = app.try_state::<LauncherQueueRegistry>() {
+                                let mut registry = queue_registry.write().await;
+                                registry.insert(launcher_id, QueuedLauncher {});
+                                let count = registry.len() as u32;
+
+                                #[derive(Serialize, Clone)]
+                                struct QueueUpdateEvent {
+                                    count: u32,
+                                }
+
+                                let event = QueueUpdateEvent { count };
+
+                                if let Err(e) = app.emit("launcher-queue-update", event) {
+                                    log::error!("Failed to emit launcher queue update: {}", e);
+                                }
+                            }
+                        }
+
                     }
                 }
             }
@@ -100,51 +131,115 @@ async fn handle_launcher_connection(
         }
     }
 
+    // Connection closed - remove launcher from queue if it was queued
+    if let Some(launcher_id) = current_launcher_id {
+        let app = app_handle.read().await;
+        if let Some(queue_registry) = app.try_state::<LauncherQueueRegistry>() {
+            let mut registry = queue_registry.write().await;
+            if registry.remove(&launcher_id).is_some() {
+                let count = registry.len() as u32;
+
+                log::debug!("Removed launcher from queue on disconnect: {}", launcher_id);
+
+                #[derive(Serialize, Clone)]
+                struct QueueUpdateEvent {
+                    count: u32,
+                }
+
+                let event = QueueUpdateEvent { count };
+
+                if let Err(e) = app.emit("launcher-queue-update", event) {
+                    log::error!("Failed to emit launcher queue update: {}", e);
+                }
+            }
+        }
+    }
+
     Ok(())
 }
 
-/// Send progress update from launcher binary to main Proxima app via WebSocket
+use tokio::sync::Mutex as TokioMutex;
+use tokio::runtime::Runtime;
+use tokio_tungstenite::MaybeTlsStream;
+
+type WsStream = tokio_tungstenite::WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
+
+/// Global Tokio runtime for launcher (must persist for WebSocket to work)
+static LAUNCHER_RUNTIME: once_cell::sync::Lazy<Runtime> =
+    once_cell::sync::Lazy::new(|| Runtime::new().expect("Failed to create Tokio runtime"));
+
+/// Global WebSocket connection for launcher (async-safe)
+static LAUNCHER_CONNECTION: once_cell::sync::Lazy<TokioMutex<Option<WsStream>>> =
+    once_cell::sync::Lazy::new(|| TokioMutex::new(None));
+
+/// Establish persistent WebSocket connection (without joining queue)
+pub fn connect() -> Result<(), String> {
+    LAUNCHER_RUNTIME.block_on(async {
+        let url = format!("ws://127.0.0.1:{}", LAUNCHER_WS_PORT);
+
+        let (ws_stream, _) = tokio_tungstenite::connect_async(&url)
+            .await
+            .map_err(|e| format!("Failed to connect to Proxima: {}", e))?;
+
+        // Store connection globally
+        *LAUNCHER_CONNECTION.lock().await = Some(ws_stream);
+
+        Ok(())
+    })
+}
+
+/// Send queue join message through existing connection
+pub fn join_queue(launcher_id: String) -> Result<(), String> {
+    LAUNCHER_RUNTIME.block_on(async {
+        send_message_internal(LauncherMessage::QueueJoin { launcher_id }).await
+    })
+}
+
+/// Send a message through the persistent connection
+async fn send_message_internal(message: LauncherMessage) -> Result<(), String> {
+    let mut conn_guard = LAUNCHER_CONNECTION.lock().await;
+
+    if let Some(ws_stream) = conn_guard.as_mut() {
+        let json = serde_json::to_string(&message)
+            .map_err(|e| format!("Failed to serialize message: {}", e))?;
+
+        ws_stream
+            .send(Message::Text(json))
+            .await
+            .map_err(|e| format!("Failed to send message: {}", e))?;
+    } else {
+        return Err("No WebSocket connection established".to_string());
+    }
+
+    Ok(())
+}
+
+/// Send progress update through persistent connection
 pub fn send_progress(progress: u8, status: &str) -> Result<(), String> {
     send_progress_with_error(progress, status, None)
 }
 
-/// Send progress update with optional error message
+/// Send progress update with optional error message through persistent connection
 pub fn send_progress_with_error(progress: u8, status: &str, error: Option<String>) -> Result<(), String> {
-    // Use blocking runtime for the launcher binary
-    let rt = tokio::runtime::Runtime::new()
-        .map_err(|e| format!("Failed to create runtime: {}", e))?;
-
-    rt.block_on(async {
-        send_progress_async(progress, status, error).await
+    LAUNCHER_RUNTIME.block_on(async {
+        let message = LauncherMessage::Progress {
+            progress,
+            status: status.to_string(),
+            error,
+        };
+        send_message_internal(message).await
     })
 }
 
-async fn send_progress_async(progress: u8, status: &str, error: Option<String>) -> Result<(), String> {
-    let url = format!("ws://127.0.0.1:{}", LAUNCHER_WS_PORT);
+/// Close the persistent connection (automatically removes from queue via disconnect handler)
+pub fn disconnect() -> Result<(), String> {
+    LAUNCHER_RUNTIME.block_on(async {
+        let mut conn_guard = LAUNCHER_CONNECTION.lock().await;
 
-    let (mut ws_stream, _) = tokio_tungstenite::connect_async(&url)
-        .await
-        .map_err(|_| {
-            // Proxima might not be running, silently fail
-            return String::new();
-        })?;
+        if let Some(mut ws_stream) = conn_guard.take() {
+            let _ = ws_stream.close(None).await;
+        }
 
-    let message = LauncherMessage::Progress {
-        progress,
-        status: status.to_string(),
-        error,
-    };
-
-    let json = serde_json::to_string(&message)
-        .map_err(|e| format!("Failed to serialize message: {}", e))?;
-
-    ws_stream
-        .send(Message::Text(json))
-        .await
-        .map_err(|e| format!("Failed to send message: {}", e))?;
-
-    // Close connection
-    let _ = ws_stream.close(None).await;
-
-    Ok(())
+        Ok(())
+    })
 }

@@ -4,20 +4,22 @@ import { useLogger } from "@/composables/useLogger";
 
 // Shared state
 const isLaunching = ref(false);
+const queueCount = ref(0);
 const launchProgress = ref(0);
 const launchStatus = ref("Ready");
 const launchError = ref("");
 
-let unlistenFn: UnlistenFn | null = null;
+let unlistenProgressFn: UnlistenFn | null = null;
+let unlistenQueueFn: UnlistenFn | null = null;
 
 export function useLauncherProgress() {
   const { addLog } = useLogger();
 
   const init = async () => {
-    if (unlistenFn) return; // Already initialized
+    if (unlistenProgressFn) return; // Already initialized
 
     // Listen for launcher progress updates from IPC
-    unlistenFn = await listen<{
+    unlistenProgressFn = await listen<{
       progress: number;
       status: string;
       error?: string;
@@ -45,18 +47,30 @@ export function useLauncherProgress() {
         }, 3000);
       }
     });
+
+    // Listen for launcher queue updates from backend
+    unlistenQueueFn = await listen<{
+      count: number;
+    }>("launcher-queue-update", (event) => {
+      queueCount.value = event.payload.count;
+    });
   };
 
   const cleanup = () => {
-    if (unlistenFn) {
-      unlistenFn();
-      unlistenFn = null;
+    if (unlistenProgressFn) {
+      unlistenProgressFn();
+      unlistenProgressFn = null;
+    }
+    if (unlistenQueueFn) {
+      unlistenQueueFn();
+      unlistenQueueFn = null;
     }
   };
 
   return {
     // State
     isLaunching,
+    queueCount,
     launchProgress,
     launchStatus,
     launchError,

@@ -49,6 +49,10 @@ pub fn run() {
                 }));
             app.manage(active_clients.clone());
 
+            // Initialize launcher queue registry
+            let launcher_queue_registry: state::LauncherQueueRegistry = Arc::new(RwLock::new(HashMap::new()));
+            app.manage(launcher_queue_registry.clone());
+
             let api_dump_cache: state::ApiDumpCache =
                 Arc::new(RwLock::new(services::api_dump::ApiDumpService::new()));
             app.manage(api_dump_cache.clone());

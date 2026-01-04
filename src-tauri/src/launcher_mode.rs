@@ -9,11 +9,100 @@ use std::process::{Command, Stdio};
 
 use crate::services::launcher_ipc;
 
+#[cfg(windows)]
+use winapi::um::synchapi::{CreateMutexW, WaitForSingleObject, ReleaseMutex};
+#[cfg(windows)]
+use winapi::um::winbase::{WAIT_OBJECT_0, INFINITE};
+#[cfg(windows)]
+use winapi::um::handleapi::CloseHandle;
+#[cfg(windows)]
+use winapi::um::errhandlingapi::GetLastError;
+#[cfg(windows)]
+use winapi::shared::winerror::ERROR_ALREADY_EXISTS;
+#[cfg(windows)]
+use std::ptr::null_mut;
+
+/// RAII wrapper for Windows named mutex
+#[cfg(windows)]
+struct NamedMutex {
+    handle: winapi::shared::ntdef::HANDLE,
+}
+
+#[cfg(windows)]
+impl NamedMutex {
+    /// Try to acquire the named mutex
+    /// Returns Ok(NamedMutex) if acquired, Err if mutex is locked
+    fn try_acquire(name: &str) -> Result<Self, bool> {
+        unsafe {
+            // Convert name to wide string
+            let wide_name: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
+
+            // Create or open the named mutex
+            let handle = CreateMutexW(null_mut(), 1, wide_name.as_ptr());
+
+            if handle.is_null() {
+                return Err(false);
+            }
+
+            // Check if mutex already existed
+            let last_error = GetLastError();
+            if last_error == ERROR_ALREADY_EXISTS {
+                // Mutex exists, meaning another launcher is running
+                CloseHandle(handle);
+                return Err(true);
+            }
+
+            Ok(NamedMutex { handle })
+        }
+    }
+
+    /// Wait for the mutex to become available, then acquire it
+    fn wait_and_acquire(name: &str) -> Result<Self, String> {
+        unsafe {
+            // Convert name to wide string
+            let wide_name: Vec<u16> = name.encode_utf16().chain(std::iter::once(0)).collect();
+
+            // Open the existing mutex
+            let handle = CreateMutexW(null_mut(), 0, wide_name.as_ptr());
+
+            if handle.is_null() {
+                return Err("Failed to open mutex".to_string());
+            }
+
+            // Wait indefinitely for the mutex
+            let wait_result = WaitForSingleObject(handle, INFINITE);
+
+            if wait_result != WAIT_OBJECT_0 {
+                CloseHandle(handle);
+                return Err("Failed to wait for mutex".to_string());
+            }
+
+            Ok(NamedMutex { handle })
+        }
+    }
+}
+
+#[cfg(windows)]
+impl Drop for NamedMutex {
+    fn drop(&mut self) {
+        unsafe {
+            ReleaseMutex(self.handle);
+            CloseHandle(self.handle);
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct LauncherSettings {
     channel: String,
     version_override: String,
+    #[serde(default = "default_cooldown")]
+    cooldown: u64,
+}
+
+fn default_cooldown() -> u64 {
+    60
 }
 
 struct LauncherPaths {
@@ -82,6 +171,7 @@ fn load_settings(paths: &LauncherPaths) -> LauncherSettings {
     LauncherSettings {
         channel: String::new(),
         version_override: String::new(),
+        cooldown: default_cooldown(),
     }
 }
 
@@ -310,6 +400,47 @@ pub fn run_launcher(args: &[String]) {
     println!("Proxima Roblox Launcher");
     println!("========================================");
 
+    // Establish persistent WebSocket connection for progress updates
+    let _ = launcher_ipc::connect();
+
+    // Try to acquire the launcher mutex
+    const MUTEX_NAME: &str = "Global\\ProximaRobloxLauncher";
+
+    #[cfg(windows)]
+    let _mutex = match NamedMutex::try_acquire(MUTEX_NAME) {
+        Ok(mutex) => {
+            println!("[*] Launcher mutex acquired, proceeding...");
+            mutex
+        }
+        Err(is_locked) => {
+            if is_locked {
+                println!("[*] Another launcher is running, waiting in queue...");
+
+                // Join the queue
+                let launcher_id = uuid::Uuid::new_v4().to_string();
+                let _ = launcher_ipc::join_queue(launcher_id.clone());
+
+                // Wait for the mutex to become available
+                // The WebSocket connection remains open, keeping us in the queue
+                match NamedMutex::wait_and_acquire(MUTEX_NAME) {
+                    Ok(mutex) => {
+                        println!("[*] Launcher mutex acquired after waiting");
+                        mutex
+                    }
+                    Err(e) => {
+                        eprintln!("[!] Failed to wait for launcher mutex: {}", e);
+                        let _ = launcher_ipc::disconnect();
+                        std::process::exit(1);
+                    }
+                }
+            } else {
+                eprintln!("[!] Failed to create launcher mutex");
+                let _ = launcher_ipc::disconnect();
+                std::process::exit(1);
+            }
+        }
+    };
+
     let paths = LauncherPaths::new();
     let settings = load_settings(&paths);
 
@@ -371,5 +502,20 @@ pub fn run_launcher(args: &[String]) {
         std::process::exit(1);
     }
 
+    // Close WebSocket connection to remove from queue immediately
+    let _ = launcher_ipc::disconnect();
+
+    // Apply cooldown before releasing mutex
+    // This keeps the mutex locked to prevent other launchers from starting
+    if settings.cooldown > 0 {
+        println!("[*] Applying cooldown of {} seconds...", settings.cooldown);
+
+        // Sleep for cooldown duration while holding the mutex
+        std::thread::sleep(std::time::Duration::from_secs(settings.cooldown));
+
+        println!("[*] Cooldown complete");
+    }
+
     println!("[*] Done!");
+    // Mutex will be automatically released here when _mutex goes out of scope
 }

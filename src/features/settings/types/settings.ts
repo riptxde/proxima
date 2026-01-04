@@ -20,6 +20,7 @@ export interface ApplicationSettings {
 export interface LauncherSettings {
   channel: string;
   versionOverride: string;
+  cooldown: number;
 }
 
 export interface Settings {
@@ -49,5 +50,6 @@ export const DEFAULT_SETTINGS: Settings = {
   launcher: {
     channel: "",
     versionOverride: "",
+    cooldown: 60,
   },
 };

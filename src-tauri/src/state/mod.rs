@@ -34,3 +34,17 @@ pub struct ActiveClients {
 }
 
 pub type ActiveClientsState = Arc<RwLock<ActiveClients>>;
+
+/// Queued launcher information
+///
+/// Tracks a launcher that is waiting in queue.
+/// The launcher is automatically removed when its WebSocket connection closes.
+pub struct QueuedLauncher {
+    // Placeholder struct - connection tracking handled by WebSocket
+}
+
+/// Launcher queue registry
+///
+/// Maps launcher ID to queued launcher info with heartbeat tracking.
+/// Launchers are removed if they don't send heartbeats or explicitly leave.
+pub type LauncherQueueRegistry = Arc<RwLock<HashMap<String, QueuedLauncher>>>;

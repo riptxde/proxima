@@ -15,7 +15,7 @@ import { toast } from "vue-sonner";
 
 const { launcherSettings } = useSettings();
 const { addLog } = useLogger();
-const { isLaunching, launchProgress, launchStatus, launchError } =
+const { isLaunching, queueCount, launchProgress, launchStatus, launchError } =
     useLauncherProgress();
 const isRegistering = ref(false);
 
@@ -68,17 +68,27 @@ async function handleRegister() {
                     ></div>
                     <p
                         class="text-sm font-medium transition-colors"
-                        :class="{ 'text-destructive': launchError }"
+                        :class="{
+                            'text-destructive': launchError,
+                        }"
                     >
                         {{ launchError || launchStatus }}
                     </p>
                 </div>
-                <span
-                    v-if="isLaunching && !launchError"
-                    class="text-xs text-muted-foreground font-mono"
-                >
-                    {{ launchProgress }}%
-                </span>
+                <div class="flex items-center gap-3">
+                    <span
+                        v-if="queueCount > 0"
+                        class="text-xs text-muted-foreground"
+                    >
+                        {{ queueCount }} in queue
+                    </span>
+                    <span
+                        v-if="isLaunching && !launchError"
+                        class="text-xs text-muted-foreground font-mono"
+                    >
+                        {{ launchProgress }}%
+                    </span>
+                </div>
             </div>
             <Progress
                 :model-value="launchProgress"
@@ -153,6 +163,33 @@ async function handleRegister() {
                                     id="version-override"
                                     v-model="launcherSettings.versionOverride"
                                     placeholder="Leave empty for latest"
+                                    class="w-full"
+                                />
+                            </div>
+
+                            <Separator />
+
+                            <!-- Cooldown Setting -->
+                            <div class="space-y-2 py-1.5">
+                                <div class="space-y-0 select-none">
+                                    <Label for="cooldown" class="text-sm">
+                                        Launch Cooldown (seconds)
+                                    </Label>
+                                    <p
+                                        class="text-xs text-muted-foreground font-normal"
+                                    >
+                                        Delay between launches to prevent
+                                        authentication errors when using alt
+                                        managers (recommended: 60s)
+                                    </p>
+                                </div>
+                                <Input
+                                    id="cooldown"
+                                    v-model.number="launcherSettings.cooldown"
+                                    type="number"
+                                    min="0"
+                                    max="300"
+                                    placeholder="60"
                                     class="w-full"
                                 />
                             </div>
