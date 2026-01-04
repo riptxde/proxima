@@ -6,6 +6,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use sysinfo::System;
 
 use crate::services::launcher_ipc;
 
@@ -26,6 +27,7 @@ use std::ptr::null_mut;
 #[cfg(windows)]
 struct NamedMutex {
     handle: winapi::shared::ntdef::HANDLE,
+    is_master: bool,
 }
 
 #[cfg(windows)]
@@ -46,13 +48,15 @@ impl NamedMutex {
 
             // Check if mutex already existed
             let last_error = GetLastError();
-            if last_error == ERROR_ALREADY_EXISTS {
+            let is_master = last_error != ERROR_ALREADY_EXISTS;
+
+            if !is_master {
                 // Mutex exists, meaning another launcher is running
                 CloseHandle(handle);
                 return Err(true);
             }
 
-            Ok(NamedMutex { handle })
+            Ok(NamedMutex { handle, is_master })
         }
     }
 
@@ -77,7 +81,57 @@ impl NamedMutex {
                 return Err("Failed to wait for mutex".to_string());
             }
 
-            Ok(NamedMutex { handle })
+            Ok(NamedMutex { handle, is_master: false })
+        }
+    }
+
+    /// Try to acquire the Roblox singleton mutex (for multi-instance)
+    /// Returns Some(mutex) if we became master, None if slave (mutex already held)
+    fn try_acquire_roblox_singleton() -> Option<Self> {
+        unsafe {
+            const ROBLOX_MUTEX: &str = "ROBLOX_singletonMutex";
+            let wide_name: Vec<u16> = ROBLOX_MUTEX.encode_utf16().chain(std::iter::once(0)).collect();
+
+            // Try to create the mutex
+            let handle = CreateMutexW(null_mut(), 1, wide_name.as_ptr());
+
+            if handle.is_null() {
+                return None;
+            }
+
+            // Check if we created it (master) or it already existed (slave)
+            let last_error = GetLastError();
+
+            if last_error == ERROR_ALREADY_EXISTS {
+                // We're a slave - close handle and return None
+                CloseHandle(handle);
+                None
+            } else {
+                // We're the master - kill existing Roblox processes
+                kill_all_roblox_processes();
+                Some(NamedMutex { handle, is_master: true })
+            }
+        }
+    }
+
+    /// Keep the mutex held while any RobloxPlayerBeta.exe processes are running
+    /// Checks every 500ms and releases when all processes exit
+    fn hold_while_roblox_running(&self) {
+        if !self.is_master {
+            return;
+        }
+
+        println!("[*] Holding Roblox singleton mutex while instances are running...");
+
+        loop {
+            // Check if any Roblox processes are still running
+            if !has_roblox_processes() {
+                println!("[*] No Roblox processes detected, releasing mutex");
+                break;
+            }
+
+            // Sleep for 500ms before checking again
+            std::thread::sleep(std::time::Duration::from_millis(500));
         }
     }
 }
@@ -99,10 +153,42 @@ struct LauncherSettings {
     version_override: String,
     #[serde(default = "default_cooldown")]
     cooldown: u64,
+    #[serde(default)]
+    multi_instance: bool,
 }
 
 fn default_cooldown() -> u64 {
     60
+}
+
+/// Kill all running Roblox processes (Master only)
+#[cfg(windows)]
+fn kill_all_roblox_processes() {
+    println!("[*] Killing all existing Roblox processes...");
+
+    let process_names = [
+        "RobloxPlayerBeta.exe",
+        "Roblox.exe",
+        "RobloxCrashHandler.exe",
+    ];
+
+    for process_name in &process_names {
+        let _ = Command::new("taskkill")
+            .args(&["/F", "/IM", process_name])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status();
+    }
+}
+
+/// Check if any RobloxPlayerBeta.exe processes are running
+fn has_roblox_processes() -> bool {
+    let mut system = System::new_all();
+    system.refresh_all();
+
+    system.processes().values().any(|process| {
+        process.name().to_string_lossy().eq_ignore_ascii_case("RobloxPlayerBeta.exe")
+    })
 }
 
 struct LauncherPaths {
@@ -172,6 +258,7 @@ fn load_settings(paths: &LauncherPaths) -> LauncherSettings {
         channel: String::new(),
         version_override: String::new(),
         cooldown: default_cooldown(),
+        multi_instance: false,
     }
 }
 
@@ -447,8 +534,29 @@ pub fn run_launcher(args: &[String]) {
     println!("[*] Settings loaded:");
     println!("    - Channel: {}", if settings.channel.is_empty() { "live" } else { &settings.channel });
     println!("    - Version Override: {}", if settings.version_override.is_empty() { "None" } else { &settings.version_override });
+    println!("    - Multi-Instance: {}", settings.multi_instance);
+    println!("    - Cooldown: {} seconds", settings.cooldown);
 
     let _ = launcher_ipc::send_progress(0, "Initializing launcher...");
+
+    // Try to acquire Roblox singleton mutex if multi-instance is enabled
+    #[cfg(windows)]
+    let roblox_singleton = if settings.multi_instance {
+        match NamedMutex::try_acquire_roblox_singleton() {
+            Some(mutex) => {
+                println!("[*] Multi-instance enabled - Instance type: Master");
+                let _ = launcher_ipc::send_progress(0, "Initializing launcher (Master)...");
+                Some(mutex)
+            }
+            None => {
+                println!("[*] Multi-instance enabled - Instance type: Slave");
+                let _ = launcher_ipc::send_progress(0, "Initializing launcher (Slave)...");
+                None
+            }
+        }
+    } else {
+        None
+    };
 
     // Parse launch URI from arguments
     // Args structure: [exe_path, "--launch", "roblox-player://..."]
@@ -505,8 +613,8 @@ pub fn run_launcher(args: &[String]) {
     // Close WebSocket connection to remove from queue immediately
     let _ = launcher_ipc::disconnect();
 
-    // Apply cooldown before releasing mutex
-    // This keeps the mutex locked to prevent other launchers from starting
+    // Apply cooldown before releasing launcher mutex
+    // This keeps the launcher mutex locked to prevent other launchers from starting
     if settings.cooldown > 0 {
         println!("[*] Applying cooldown of {} seconds...", settings.cooldown);
 
@@ -516,6 +624,16 @@ pub fn run_launcher(args: &[String]) {
         println!("[*] Cooldown complete");
     }
 
+    // Explicitly drop the launcher mutex to release it BEFORE holding Roblox mutex
+    drop(_mutex);
+    println!("[*] Launcher mutex released");
+
+    // If we're the master instance, hold the Roblox singleton while processes are running
+    // We do this AFTER releasing launcher mutex so other launchers can proceed
+    #[cfg(windows)]
+    if let Some(ref roblox_mutex) = roblox_singleton {
+        roblox_mutex.hold_while_roblox_running();
+    }
+
     println!("[*] Done!");
-    // Mutex will be automatically released here when _mutex goes out of scope
 }

@@ -21,6 +21,7 @@ export interface LauncherSettings {
   channel: string;
   versionOverride: string;
   cooldown: number;
+  multiInstance: boolean;
 }
 
 export interface Settings {
@@ -51,5 +52,6 @@ export const DEFAULT_SETTINGS: Settings = {
     channel: "",
     versionOverride: "",
     cooldown: 60,
+    multiInstance: false,
   },
 };

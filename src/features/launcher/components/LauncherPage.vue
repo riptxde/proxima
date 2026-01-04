@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import { Rocket } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 
@@ -164,6 +165,29 @@ async function handleRegister() {
                                     v-model="launcherSettings.versionOverride"
                                     placeholder="Leave empty for latest"
                                     class="w-full"
+                                />
+                            </div>
+
+                            <Separator />
+
+                            <!-- Multi-Instance Setting -->
+                            <div
+                                class="flex items-center justify-between py-1.5"
+                            >
+                                <div class="space-y-0 select-none flex-1">
+                                    <Label for="multi-instance" class="text-sm">
+                                        Multi-Instance
+                                    </Label>
+                                    <p
+                                        class="text-xs text-muted-foreground font-normal"
+                                    >
+                                        Allow multiple Roblox instances to run
+                                        simultaneously
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="multi-instance"
+                                    v-model="launcherSettings.multiInstance"
                                 />
                             </div>
 
