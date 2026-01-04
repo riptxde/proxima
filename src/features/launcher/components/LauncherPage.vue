@@ -15,6 +15,7 @@ import { toast } from "vue-sonner";
 const { launcherSettings } = useSettings();
 const { addLog } = useLogger();
 const isRegistering = ref(false);
+const isLaunching = ref(false);
 
 async function handleRegister() {
     isRegistering.value = true;
@@ -35,6 +36,26 @@ async function handleRegister() {
         });
     } finally {
         isRegistering.value = false;
+    }
+}
+
+async function handleLaunch() {
+    isLaunching.value = true;
+
+    try {
+        await invoke("launcher_launch");
+        toast.success("Launching Roblox", {
+            description: "Roblox is being launched",
+        });
+    } catch (error) {
+        const errorMessage =
+            error instanceof Error ? error.message : String(error);
+        addLog("error", `Failed to launch Roblox: ${errorMessage}`);
+        toast.error("Launch Failed", {
+            description: errorMessage,
+        });
+    } finally {
+        isLaunching.value = false;
     }
 }
 </script>
@@ -152,6 +173,27 @@ async function handleRegister() {
                                 placeholder="60"
                                 class="w-full"
                             />
+                        </div>
+
+                        <Separator />
+
+                        <!-- Launch Roblox -->
+                        <div class="flex items-center justify-between py-1.5">
+                            <div class="space-y-0 select-none">
+                                <Label class="text-sm">Launch Roblox</Label>
+                                <p
+                                    class="text-xs text-muted-foreground font-normal"
+                                >
+                                    Launch Roblox directly without a game URI
+                                </p>
+                            </div>
+                            <Button
+                                @click="handleLaunch"
+                                :disabled="isLaunching"
+                                size="sm"
+                            >
+                                Launch
+                            </Button>
                         </div>
 
                         <Separator />

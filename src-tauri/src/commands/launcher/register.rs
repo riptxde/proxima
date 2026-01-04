@@ -41,7 +41,7 @@ fn register_protocol() -> Result<(), String> {
         .create_subkey("Software\\Classes\\roblox-player\\shell\\open\\command")
         .map_err(|e| format!("Failed to create command key: {}", e))?;
 
-    let command = format!(r#"cmd /c start "" "{}" --launch "%1""#, exe_path_str);
+    let command = format!(r#""{}" --launch "%1""#, exe_path_str);
     cmd_key
         .set_value("", &command)
         .map_err(|e| format!("Failed to set command: {}", e))?;

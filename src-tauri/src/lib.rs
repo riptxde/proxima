@@ -15,7 +15,7 @@ use commands::executor::{exec, get_attached_clients};
 use commands::explorer::{
     exp_decompile, exp_get_properties, exp_get_tree, exp_search, exp_start, exp_stop,
 };
-use commands::launcher::launcher_register;
+use commands::launcher::{launcher_register, launcher_launch};
 use commands::logs::add_log;
 use commands::remote_spy::{rspy_decompile, rspy_generate_code, rspy_start, rspy_stop};
 use std::collections::HashMap;
@@ -149,6 +149,7 @@ pub fn run() {
             rspy_generate_code,
             // Launcher commands
             launcher_register,
+            launcher_launch,
             // Logs commands
             add_log,
             // Script Hub commands (future)
