@@ -10,15 +10,6 @@ fn main() {
 
     // If --launch flag is present, run in launcher mode
     if args.contains(&"--launch".to_string()) {
-        // Re-enable console in launcher mode for output visibility
-        #[cfg(not(debug_assertions))]
-        {
-            use winapi::um::wincon::{AttachConsole, ATTACH_PARENT_PROCESS};
-            unsafe {
-                AttachConsole(ATTACH_PARENT_PROCESS);
-            }
-        }
-
         proxima_lib::launcher::run_launcher(&args);
         return;
     }
