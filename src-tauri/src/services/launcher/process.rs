@@ -1,5 +1,5 @@
 use std::process::{Command, Stdio};
-use sysinfo::System;
+use sysinfo::{Signal, System};
 
 use super::ipc;
 use super::paths::LauncherPaths;
@@ -40,9 +40,11 @@ pub fn launch_roblox(
 }
 
 /// Kill all running Roblox processes (Master only)
-#[cfg(windows)]
 pub fn kill_all_roblox_processes() {
     println!("[*] Killing all existing Roblox processes...");
+
+    let mut system = System::new_all();
+    system.refresh_all();
 
     let process_names = [
         "RobloxPlayerBeta.exe",
@@ -50,12 +52,11 @@ pub fn kill_all_roblox_processes() {
         "RobloxCrashHandler.exe",
     ];
 
-    for process_name in &process_names {
-        let _ = Command::new("taskkill")
-            .args(&["/F", "/IM", process_name])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status();
+    for (_, process) in system.processes() {
+        let name = process.name().to_string_lossy();
+        if process_names.iter().any(|pn| name.eq_ignore_ascii_case(pn)) {
+            let _ = process.kill_with(Signal::Kill);
+        }
     }
 }
 

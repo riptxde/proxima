@@ -1,6 +1,6 @@
-// Prevents additional console window on Windows in release, DO NOT REMOVE!!
-// Note: This is disabled when running in launcher mode to show console output
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// Prevents additional console window on Windows
+// Comment out the line below to see force consoles to display launcher output
+#![cfg_attr(all(windows), windows_subsystem = "windows")]
 
 use std::env;
 
