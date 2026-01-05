@@ -327,43 +327,6 @@ async function handleLaunch() {
                 </div>
             </div>
             <div v-else class="flex flex-col gap-6 h-full content-start">
-                <!-- Multi-Instance -->
-                <div class="space-y-2">
-                    <div class="flex items-center justify-between">
-                        <Label for="multi-instance" class="text-sm">
-                            Multi-Instance
-                        </Label>
-                        <Switch
-                            id="multi-instance"
-                            v-model="launcherSettings.multiInstance"
-                        />
-                    </div>
-                    <p class="text-xs text-muted-foreground">
-                        Run multiple instances simultaneously
-                    </p>
-                </div>
-
-                <!-- Cooldown -->
-                <div class="space-y-2">
-                    <Label for="cooldown" class="text-sm">
-                        Launch Cooldown (seconds)
-                    </Label>
-                    <Input
-                        id="cooldown"
-                        v-model.number="launcherSettings.cooldown"
-                        type="number"
-                        min="0"
-                        max="300"
-                        placeholder="60"
-                        autocomplete="off"
-                        class="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <p class="text-xs text-muted-foreground">
-                        Specify a delay between launches, which can prevent
-                        authentication errors when using Roblox alt managers
-                    </p>
-                </div>
-
                 <!-- Channel -->
                 <div class="space-y-2">
                     <Label for="channel" class="text-sm">Channel</Label>
@@ -431,6 +394,43 @@ async function handleLaunch() {
                     <p class="text-xs text-muted-foreground">
                         Use a specific version-hash to downgrade to or use a
                         specific Roblox version
+                    </p>
+                </div>
+
+                <!-- Cooldown -->
+                <div class="space-y-2">
+                    <Label for="cooldown" class="text-sm">
+                        Launch Cooldown (seconds)
+                    </Label>
+                    <Input
+                        id="cooldown"
+                        v-model.number="launcherSettings.cooldown"
+                        type="number"
+                        min="0"
+                        max="300"
+                        placeholder="60"
+                        autocomplete="off"
+                        class="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <p class="text-xs text-muted-foreground">
+                        Specify a delay between launches, which can prevent
+                        authentication errors when using Roblox alt managers
+                    </p>
+                </div>
+
+                <!-- Multi-Instance -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <Label for="multi-instance" class="text-sm">
+                            Multi-Instance
+                        </Label>
+                        <Switch
+                            id="multi-instance"
+                            v-model="launcherSettings.multiInstance"
+                        />
+                    </div>
+                    <p class="text-xs text-muted-foreground">
+                        Run multiple instances simultaneously
                     </p>
                 </div>
             </div>

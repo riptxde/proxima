@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import type { Component } from "vue";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Props {
     icon: Component;
@@ -15,15 +21,24 @@ defineEmits<{
 </script>
 
 <template>
-    <button
-        @click="$emit('click')"
-        :class="[
-            'h-12 w-12 flex items-center justify-center rounded-lg transition-opacity',
-            isActive
-                ? 'bg-app-shell-accent text-app-shell-accent-foreground'
-                : 'text-app-shell-foreground opacity-60 hover:opacity-100',
-        ]"
-    >
-        <component :is="icon" :size="20" />
-    </button>
+    <TooltipProvider>
+        <Tooltip>
+            <TooltipTrigger as-child>
+                <button
+                    @click="$emit('click')"
+                    :class="[
+                        'h-12 w-12 flex items-center justify-center rounded-lg transition-all duration-300 relative z-10',
+                        isActive
+                            ? 'text-app-shell-accent-foreground'
+                            : 'text-app-shell-foreground opacity-60 hover:opacity-100',
+                    ]"
+                >
+                    <component :is="icon" :size="20" />
+                </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+                <p>{{ label }}</p>
+            </TooltipContent>
+        </Tooltip>
+    </TooltipProvider>
 </template>

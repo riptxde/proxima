@@ -63,8 +63,33 @@ const currentPageComponent = computed(() => {
     <StartupAnimation />
     <TooltipProvider>
         <AppShell>
-            <component :is="currentPageComponent" />
+            <Transition name="page" mode="out-in">
+                <component :is="currentPageComponent" :key="activePage" />
+            </Transition>
         </AppShell>
         <Toaster position="top-center" :duration="2000" />
     </TooltipProvider>
 </template>
+
+<style scoped>
+.page-enter-active,
+.page-leave-active {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.page-enter-from {
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.page-leave-to {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+.page-enter-to,
+.page-leave-from {
+    opacity: 1;
+    transform: translateY(0);
+}
+</style>
