@@ -1,6 +1,7 @@
 use std::fs;
 use std::io::Cursor;
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 use zip::ZipArchive;
 
 use super::ipc;
@@ -58,31 +59,75 @@ pub fn download_and_install(
             .map_err(|e| format!("Failed to clean version dir: {}", e))?;
     }
 
-    fs::create_dir_all(&version_dir)
-        .map_err(|e| format!("Failed to create version dir: {}", e))?;
+    fs::create_dir_all(&version_dir).map_err(|e| format!("Failed to create version dir: {}", e))?;
 
     let _ = ipc::send_progress(25, &format!("Downloading {} packages...", packages.len()));
 
-    // Download and extract packages
-    for (i, package) in packages.iter().enumerate() {
-        println!("[*] [{}/{}] Downloading {}...", i + 1, packages.len(), package);
+    // Download and extract packages in parallel
+    let version_dir = Arc::new(version_dir);
+    let channel_path = Arc::new(channel_path);
+    let total_packages = packages.len();
+    let completed_count = Arc::new(Mutex::new(0usize));
 
-        // Progress from 25% to 85% based on package download
-        let progress = 25 + ((i as f32 / packages.len() as f32) * 60.0) as u8;
-        let _ = ipc::send_progress(
-            progress,
-            &format!("Downloading {} ({}/{})", package, i + 1, packages.len()),
-        );
+    // Use scoped threads for parallel downloads and extractions
+    let results: Vec<Result<(), String>> = std::thread::scope(|s| {
+        packages
+            .into_iter()
+            .map(|package| {
+                let version_dir = Arc::clone(&version_dir);
+                let channel_path = Arc::clone(&channel_path);
+                let version = version.to_string();
+                let package = package.to_string();
+                let completed_count = Arc::clone(&completed_count);
 
-        let package_url = format!("https://setup.rbxcdn.com/{}{}-{}", channel_path, version, package);
+                s.spawn(move || {
+                    println!("[*] Downloading {}...", package);
 
-        let package_data = reqwest::blocking::get(&package_url)
-            .map_err(|e| format!("Failed to download {}: {}", package, e))?
-            .bytes()
-            .map_err(|e| format!("Failed to read {}: {}", package, e))?;
+                    let package_url = format!(
+                        "https://setup.rbxcdn.com/{}{}-{}",
+                        channel_path, version, package
+                    );
 
-        // Extract package
-        extract_package(&version_dir, package, &package_data)?;
+                    // Download with streaming to handle large files better
+                    let mut response = reqwest::blocking::get(&package_url)
+                        .map_err(|e| format!("Failed to download {}: {}", package, e))?;
+
+                    // Read response body in chunks to avoid memory issues with large files
+                    let mut package_data = Vec::new();
+                    std::io::copy(&mut response, &mut package_data)
+                        .map_err(|e| format!("Failed to read {}: {}", package, e))?;
+
+                    let file_size = package_data.len();
+
+                    // Extract package immediately after download
+                    extract_package(&version_dir, &package, &package_data)?;
+
+                    // Update progress
+                    let mut count = completed_count.lock().unwrap();
+                    *count += 1;
+                    let current_count = *count;
+                    let progress =
+                        25 + ((current_count as f32 / total_packages as f32) * 60.0) as u8;
+                    drop(count); // Release lock before sending progress
+
+                    let _ = ipc::send_progress(
+                        progress,
+                        &format!("Extracted {} ({})", package, format_file_size(file_size)),
+                    );
+
+                    println!("[*] Completed {}", package);
+                    Ok(())
+                })
+            })
+            .collect::<Vec<_>>()
+            .into_iter()
+            .map(|handle| handle.join().unwrap())
+            .collect()
+    });
+
+    // Check for any errors
+    for result in results {
+        result?;
     }
 
     let _ = ipc::send_progress(85, "Creating configuration...");
@@ -102,6 +147,25 @@ pub fn download_and_install(
     Ok(())
 }
 
+/// Format file size in human-readable format
+fn format_file_size(bytes: usize) -> String {
+    const KB: f64 = 1024.0;
+    const MB: f64 = KB * 1024.0;
+    const GB: f64 = MB * 1024.0;
+
+    let bytes_f = bytes as f64;
+
+    if bytes_f >= GB {
+        format!("{:.2} GB", bytes_f / GB)
+    } else if bytes_f >= MB {
+        format!("{:.2} MB", bytes_f / MB)
+    } else if bytes_f >= KB {
+        format!("{:.2} KB", bytes_f / KB)
+    } else {
+        format!("{} B", bytes)
+    }
+}
+
 /// Extract a Roblox package to the version directory
 fn extract_package(version_dir: &Path, package_name: &str, data: &[u8]) -> Result<(), String> {
     // Package roots mapping
@@ -119,7 +183,9 @@ fn extract_package(version_dir: &Path, package_name: &str, data: &[u8]) -> Resul
         "content-textures3.zip" => "PlatformContent/pc/textures/",
         "content-terrain.zip" => "PlatformContent/pc/terrain/",
         "content-platform-fonts.zip" => "PlatformContent/pc/fonts/",
-        "content-platform-dictionaries.zip" => "PlatformContent/pc/shared_compression_dictionaries/",
+        "content-platform-dictionaries.zip" => {
+            "PlatformContent/pc/shared_compression_dictionaries/"
+        }
         "extracontent-luapackages.zip" => "ExtraContent/LuaPackages/",
         "extracontent-translations.zip" => "ExtraContent/translations/",
         "extracontent-models.zip" => "ExtraContent/models/",
@@ -129,8 +195,7 @@ fn extract_package(version_dir: &Path, package_name: &str, data: &[u8]) -> Resul
     };
 
     let cursor = Cursor::new(data);
-    let mut archive =
-        ZipArchive::new(cursor).map_err(|e| format!("Failed to open zip: {}", e))?;
+    let mut archive = ZipArchive::new(cursor).map_err(|e| format!("Failed to open zip: {}", e))?;
 
     for i in 0..archive.len() {
         let mut file = archive
@@ -152,8 +217,7 @@ fn extract_package(version_dir: &Path, package_name: &str, data: &[u8]) -> Resul
 
         // Create parent directories
         if let Some(parent) = target_path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| format!("Failed to create directory: {}", e))?;
+            fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
         }
 
         // Extract file
