@@ -3,9 +3,10 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager};
 use tokio::net::TcpListener;
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex as TokioMutex, RwLock};
 use tokio_tungstenite::accept_async;
 use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::MaybeTlsStream;
 
 use crate::state::{LauncherQueueRegistry, QueuedLauncher};
 
@@ -21,8 +22,14 @@ pub struct LauncherProgress {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum LauncherMessage {
-    Progress { progress: u8, status: String, error: Option<String> },
-    QueueJoin { launcher_id: String },
+    Progress {
+        progress: u8,
+        status: String,
+        error: Option<String>,
+    },
+    QueueJoin {
+        launcher_id: String,
+    },
 }
 
 /// Start the launcher WebSocket server
@@ -71,7 +78,11 @@ async fn handle_launcher_connection(
             Ok(Message::Text(text)) => {
                 if let Ok(launcher_msg) = serde_json::from_str::<LauncherMessage>(&text) {
                     match launcher_msg {
-                        LauncherMessage::Progress { progress, status, error } => {
+                        LauncherMessage::Progress {
+                            progress,
+                            status,
+                            error,
+                        } => {
                             let app = app_handle.read().await;
 
                             #[derive(Serialize, Clone)]
@@ -82,7 +93,11 @@ async fn handle_launcher_connection(
                                 error: Option<String>,
                             }
 
-                            let event = ProgressEvent { progress, status, error };
+                            let event = ProgressEvent {
+                                progress,
+                                status,
+                                error,
+                            };
 
                             if let Err(e) = app.emit("launcher-progress", event) {
                                 log::error!("Failed to emit launcher progress: {}", e);
@@ -95,7 +110,8 @@ async fn handle_launcher_connection(
                             current_launcher_id = Some(launcher_id.clone());
 
                             // Add launcher to queue registry
-                            if let Some(queue_registry) = app.try_state::<LauncherQueueRegistry>() {
+                            if let Some(queue_registry) = app.try_state::<LauncherQueueRegistry>()
+                            {
                                 let mut registry = queue_registry.write().await;
                                 registry.insert(launcher_id, QueuedLauncher {});
                                 let count = registry.len() as u32;
@@ -112,7 +128,6 @@ async fn handle_launcher_connection(
                                 }
                             }
                         }
-
                     }
                 }
             }
@@ -158,15 +173,13 @@ async fn handle_launcher_connection(
     Ok(())
 }
 
-use tokio::sync::Mutex as TokioMutex;
-use tokio::runtime::Runtime;
-use tokio_tungstenite::MaybeTlsStream;
-
 type WsStream = tokio_tungstenite::WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
 
 /// Global Tokio runtime for launcher (must persist for WebSocket to work)
-static LAUNCHER_RUNTIME: once_cell::sync::Lazy<Runtime> =
-    once_cell::sync::Lazy::new(|| Runtime::new().expect("Failed to create Tokio runtime"));
+static LAUNCHER_RUNTIME: once_cell::sync::Lazy<tokio::runtime::Runtime> =
+    once_cell::sync::Lazy::new(|| {
+        tokio::runtime::Runtime::new().expect("Failed to create Tokio runtime")
+    });
 
 /// Global WebSocket connection for launcher (async-safe)
 static LAUNCHER_CONNECTION: once_cell::sync::Lazy<TokioMutex<Option<WsStream>>> =
@@ -190,9 +203,7 @@ pub fn connect() -> Result<(), String> {
 
 /// Send queue join message through existing connection
 pub fn join_queue(launcher_id: String) -> Result<(), String> {
-    LAUNCHER_RUNTIME.block_on(async {
-        send_message_internal(LauncherMessage::QueueJoin { launcher_id }).await
-    })
+    LAUNCHER_RUNTIME.block_on(async { send_message_internal(LauncherMessage::QueueJoin { launcher_id }).await })
 }
 
 /// Send a message through the persistent connection
@@ -220,7 +231,11 @@ pub fn send_progress(progress: u8, status: &str) -> Result<(), String> {
 }
 
 /// Send progress update with optional error message through persistent connection
-pub fn send_progress_with_error(progress: u8, status: &str, error: Option<String>) -> Result<(), String> {
+pub fn send_progress_with_error(
+    progress: u8,
+    status: &str,
+    error: Option<String>,
+) -> Result<(), String> {
     LAUNCHER_RUNTIME.block_on(async {
         let message = LauncherMessage::Progress {
             progress,

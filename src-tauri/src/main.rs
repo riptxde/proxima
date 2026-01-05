@@ -19,7 +19,7 @@ fn main() {
             }
         }
 
-        proxima_lib::launcher_mode::run_launcher(&args);
+        proxima_lib::launcher::run_launcher(&args);
         return;
     }
 

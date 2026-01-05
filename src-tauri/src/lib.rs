@@ -2,7 +2,7 @@
 mod utils;
 
 mod commands;
-pub mod launcher_mode;
+pub mod launcher;
 mod models;
 pub mod services;
 mod state;
@@ -115,7 +115,7 @@ pub fn run() {
             // Start the launcher WebSocket server
             let app_handle_launcher = app.handle().clone();
             tauri::async_runtime::spawn(async move {
-                if let Err(e) = services::launcher_ipc::start_launcher_websocket(app_handle_launcher).await {
+                if let Err(e) = services::launcher::start_launcher_websocket(app_handle_launcher).await {
                     log::error!("Failed to start launcher WebSocket server: {}", e);
                 }
             });
