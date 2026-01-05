@@ -16,10 +16,10 @@ const { navigate, isActive } = useNavigation();
 
 const buttons: SidebarButtonType[] = [
     { id: "editor", label: "Editor", icon: CodeXml },
+    { id: "logs", label: "Logs", icon: Logs },
     { id: "script-hub", label: "Script Hub", icon: Library },
     { id: "explorer", label: "Explorer", icon: ScanSearch },
     { id: "remote-spy", label: "Remote Spy", icon: Zap },
-    { id: "logs", label: "Logs", icon: Logs },
     { id: "launcher", label: "Launcher", icon: Rocket },
     { id: "settings", label: "Settings", icon: Settings },
 ];
