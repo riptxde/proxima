@@ -5,6 +5,11 @@ pub fn launcher_register(_app: tauri::AppHandle) -> Result<(), String> {
     register_protocol()
 }
 
+#[tauri::command]
+pub fn launcher_check_registration() -> Result<bool, String> {
+    check_registration()
+}
+
 fn register_protocol() -> Result<(), String> {
     use winreg::enums::*;
     use winreg::RegKey;
@@ -47,4 +52,32 @@ fn register_protocol() -> Result<(), String> {
         .map_err(|e| format!("Failed to set command: {}", e))?;
 
     Ok(())
+}
+
+fn check_registration() -> Result<bool, String> {
+    use winreg::enums::*;
+    use winreg::RegKey;
+
+    let exe_path = env::current_exe()
+        .map_err(|e| format!("Failed to get executable path: {}", e))?;
+
+    let exe_path_str = exe_path
+        .to_str()
+        .ok_or("Executable path contains invalid characters")?;
+
+    let expected_command = format!(r#""{}" --launch "%1""#, exe_path_str);
+
+    let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+
+    // Try to open the command key
+    match hkcu.open_subkey("Software\\Classes\\roblox-player\\shell\\open\\command") {
+        Ok(cmd_key) => {
+            // Key exists, check the command value
+            match cmd_key.get_value::<String, _>("") {
+                Ok(current_command) => Ok(current_command == expected_command),
+                Err(_) => Ok(false),
+            }
+        }
+        Err(_) => Ok(false),
+    }
 }

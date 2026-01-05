@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { useSettings } from "@/features/settings/composables/useSettings";
 import { useLogger } from "@/composables/useLogger";
+import { useLauncherRegistration } from "@/features/launcher/composables/useLauncherRegistration";
 import { invoke } from "@tauri-apps/api/core";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,13 +10,19 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import { Rocket } from "lucide-vue-next";
+import { Rocket, CheckCircle2, XCircle } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 
 const { launcherSettings } = useSettings();
 const { addLog } = useLogger();
+const { isCurrentLauncher, isChecking, checkRegistration } =
+    useLauncherRegistration();
 const isRegistering = ref(false);
 const isLaunching = ref(false);
+
+onMounted(() => {
+    checkRegistration();
+});
 
 async function handleRegister() {
     isRegistering.value = true;
@@ -27,6 +34,7 @@ async function handleRegister() {
             description:
                 "Proxima is now the default handler for roblox-player:// URLs",
         });
+        await checkRegistration();
     } catch (error) {
         const errorMessage =
             error instanceof Error ? error.message : String(error);
@@ -194,6 +202,41 @@ async function handleLaunch() {
                             >
                                 Launch
                             </Button>
+                        </div>
+
+                        <Separator />
+
+                        <!-- Registration Status Indicator -->
+                        <div class="py-2">
+                            <div class="flex items-center gap-2">
+                                <template v-if="isChecking">
+                                    <div
+                                        class="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"
+                                    ></div>
+                                    <span class="text-xs text-muted-foreground"
+                                        >Checking registration...</span
+                                    >
+                                </template>
+                                <template v-else-if="isCurrentLauncher">
+                                    <CheckCircle2
+                                        class="w-4 h-4 text-green-500"
+                                    />
+                                    <span
+                                        class="text-xs text-green-500 font-medium"
+                                        >Proxima is the current launcher</span
+                                    >
+                                </template>
+                                <template v-else>
+                                    <XCircle
+                                        class="w-4 h-4 text-muted-foreground"
+                                    />
+                                    <span
+                                        class="text-xs text-muted-foreground font-medium"
+                                        >Proxima is not the current
+                                        launcher</span
+                                    >
+                                </template>
+                            </div>
                         </div>
 
                         <Separator />
