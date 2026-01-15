@@ -1,4 +1,8 @@
 # Proxima
+![GitHub Repo stars](https://img.shields.io/github/stars/riptxde/proxima)
+![GitHub License](https://img.shields.io/github/license/riptxde/proxima)
+![GitHub top language](https://img.shields.io/github/languages/top/riptxde/proxima)
+![GitHub Release](https://img.shields.io/github/v/release/riptxde/proxima)
 
 > A modern, feature-rich interface for Roblox script execution with advanced tools for developers and power users. "An all-in-one custom UI compatible with any script executor."
 
