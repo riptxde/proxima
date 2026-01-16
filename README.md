@@ -5,12 +5,10 @@
 ![GitHub Release](https://img.shields.io/github/v/release/riptxde/proxima)
 
 > A modern, feature-rich interface for Roblox script execution with advanced tools for developers and power users. "An all-in-one custom UI compatible with any script executor."
-
 ---
-
 <p align="center">
   <a href="https://www.youtube.com/watch?v=3ijhFtBPY8U" target="_blank">
-    <img src="https://github.com/user-attachments/assets/76a258a0-4cd0-43d1-bfcb-e28577eb213a" alt="Proxima Screenshot" width="560"/>
+    <img src="https://github.com/user-attachments/assets/2496ede3-79f4-4fae-aaa8-207a1f624a75" alt="Proxima Screenshot" width="800"/>
     <br>
     <b>Watch the Demo</b>
   </a>
