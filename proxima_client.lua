@@ -12,6 +12,7 @@ local Players = game:GetService('Players')
 local HttpService = game:GetService('HttpService')
 
 -- Objects
+local Env = getgenv()
 local LocalPlayer = Players.LocalPlayer
 local Socket = nil
 
@@ -544,7 +545,7 @@ local function Pong()
     SendMessage('pong')
 end
 
-local function Exec(Script)
+local function Exec(Script, Redirect)
     local Func, Err = loadstring(Script)
 
     if not Func then
@@ -552,9 +553,43 @@ local function Exec(Script)
         return
     end
 
-    xpcall(Func, function(Err)
-        Log(LOG_ERROR, tostring(Err))
-    end)
+    -- If redirect is enabled, wrap in coroutine and override print, warn, and error
+    if Redirect then
+        local OldPrint = Env.print
+        local OldWarn = Env.warn
+        local OldError = Env.error
+
+        Env.print = function(...)
+            Log(LOG_INFO, ...)
+        end
+
+        Env.warn = function(...)
+            Log(LOG_WARNING, ...)
+        end
+
+        Env.error = function(...)
+            Log(LOG_ERROR, ...)
+            -- Stop execution by yielding the coroutine
+            coroutine.yield()
+        end
+
+        -- Run in coroutine so we can yield on error
+        coroutine.wrap(function()
+            xpcall(Func, function(Err)
+                Log(LOG_ERROR, tostring(Err))
+            end)
+        end)()
+
+        -- Restore original functions
+        Env.print = OldPrint
+        Env.warn = OldWarn
+        Env.error = OldError
+    else
+        -- Normal execution without redirect
+        xpcall(Func, function(Err)
+            Log(LOG_ERROR, tostring(Err))
+        end)
+    end
 end
 
 local function HandleMessage(Message)
@@ -569,7 +604,7 @@ local function HandleMessage(Message)
     if Data.type == 'ping' then
         Pong()
     elseif Data.type == 'exec' then
-        Exec(Data.script)
+        Exec(Data.script, Data.redirect)
     elseif Data.type == 'exp_start' then
         ExpStart()
     elseif Data.type == 'exp_stop' then
@@ -1970,8 +2005,6 @@ function RspyGenerateCode(CallId)
 end
 
 --/ Main /--
-local Env = getgenv()
-
 Env.printconsole = function(...)
     Log(LOG_INFO, ...)
 end

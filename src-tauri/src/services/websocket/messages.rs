@@ -97,7 +97,7 @@ pub(super) enum ClientMessage {
 #[serde(tag = "type")]
 pub(super) enum ServerMessage {
     #[serde(rename = "exec")]
-    Exec { script: String },
+    Exec { script: String, redirect: bool },
     #[serde(rename = "ping")]
     Ping,
     #[serde(rename = "exp_start")]

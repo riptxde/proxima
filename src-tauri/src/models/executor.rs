@@ -10,4 +10,5 @@ pub struct Client {
 pub struct ExecuteRequest {
     pub client_ids: Vec<String>,
     pub script: String,
+    pub redirect: bool,
 }

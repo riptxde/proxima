@@ -289,6 +289,32 @@ const fontSize = computed({
                                     "
                                 />
                             </div>
+
+                            <Separator />
+
+                            <!-- Print Redirection -->
+                            <div
+                                class="flex items-center justify-between py-1.5"
+                            >
+                                <div class="space-y-0 select-none">
+                                    <Label
+                                        for="redirect-print"
+                                        class="text-sm cursor-pointer"
+                                    >
+                                        Print Redirection
+                                    </Label>
+                                    <p
+                                        class="text-xs text-muted-foreground font-normal"
+                                    >
+                                        Redirect print, warn, and error calls to
+                                        Proxima console
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="redirect-print"
+                                    v-model="executionSettings.redirectPrint"
+                                />
+                            </div>
                         </div>
                     </div>
                 </Card>

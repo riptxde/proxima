@@ -10,11 +10,12 @@ use super::messages::ServerMessage;
 pub async fn broadcast_to_clients(
     client_ids: Vec<String>,
     script: String,
+    redirect: bool,
     clients: ClientRegistry,
 ) -> Result<(), String> {
     log::info!("Broadcasting script to {} client(s)", client_ids.len());
 
-    let execute_msg = ServerMessage::Exec { script };
+    let execute_msg = ServerMessage::Exec { script, redirect };
     let message_text = serde_json::to_string(&execute_msg)
         .map_err(|e| format!("Failed to serialize exec message: {}", e))?;
 

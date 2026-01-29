@@ -11,6 +11,7 @@ export interface EditorSettings {
 export interface ExecutionSettings {
   autoExecute: boolean;
   httpRequestExecution: boolean;
+  redirectPrint: boolean;
 }
 
 export interface ApplicationSettings {
@@ -44,6 +45,7 @@ export const DEFAULT_SETTINGS: Settings = {
   execution: {
     autoExecute: true,
     httpRequestExecution: false,
+    redirectPrint: false,
   },
   application: {
     alwaysOnTop: false,

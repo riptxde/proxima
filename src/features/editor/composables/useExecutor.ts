@@ -2,9 +2,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { toast } from "vue-sonner";
 import type { ExecuteRequest } from "@/types/executor";
 import { useLogger } from "@/composables/useLogger";
+import { useSettings } from "@/features/settings/composables/useSettings";
 
 export function useExecutor() {
   const { addLog } = useLogger();
+  const { executionSettings } = useSettings();
 
   const executeScript = async (
     script: string,
@@ -31,6 +33,7 @@ export function useExecutor() {
       const request: ExecuteRequest = {
         client_ids: clientIds,
         script: script,
+        redirect: executionSettings.value.redirectPrint,
       };
 
       await invoke("exec", { request });

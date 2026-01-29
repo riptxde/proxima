@@ -13,7 +13,7 @@ pub async fn handle_ready(tx: &UnboundedSender<Message>, app_handle: &AppHandle)
     log::info!("Client ready, sending auto-execute scripts");
 
     // Check if auto-execute is enabled
-    let auto_execute = get_auto_execute_setting(app_handle).await;
+    let (auto_execute, redirect_print) = get_execution_settings(app_handle).await;
 
     if auto_execute {
         // Get autoexec scripts
@@ -37,7 +37,10 @@ pub async fn handle_ready(tx: &UnboundedSender<Message>, app_handle: &AppHandle)
 
             // Execute each script on this client
             for script in scripts {
-                let execute_msg = ServerMessage::Exec { script };
+                let execute_msg = ServerMessage::Exec {
+                    script,
+                    redirect: redirect_print,
+                };
                 if let Ok(msg_text) = serde_json::to_string(&execute_msg) {
                     if tx.send(Message::Text(msg_text)).is_err() {
                         log::error!("Failed to send autoexec script");
@@ -49,14 +52,15 @@ pub async fn handle_ready(tx: &UnboundedSender<Message>, app_handle: &AppHandle)
     }
 }
 
-/// Read the autoExecute setting from the Tauri store
-async fn get_auto_execute_setting(app: &AppHandle) -> bool {
+/// Read the execution settings from the Tauri store
+/// Returns (autoExecute, redirectPrint)
+async fn get_execution_settings(app: &AppHandle) -> (bool, bool) {
     // Get the base directory (same as scripts/autoexec location)
     let base_dir = match paths::get_base_directory(app) {
         Ok(dir) => dir,
         Err(e) => {
             log::error!("Failed to get base directory: {}", e);
-            return true; // Default to true on error
+            return (true, false); // Default to auto_execute=true, redirect=false on error
         }
     };
 
@@ -67,9 +71,15 @@ async fn get_auto_execute_setting(app: &AppHandle) -> bool {
         Ok(store) => match store.get("settings") {
             Some(Value::Object(settings)) => {
                 if let Some(Value::Object(execution)) = settings.get("execution") {
-                    if let Some(Value::Bool(auto_execute)) = execution.get("autoExecute") {
-                        return *auto_execute;
-                    }
+                    let auto_execute = execution
+                        .get("autoExecute")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(true);
+                    let redirect_print = execution
+                        .get("redirectPrint")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false);
+                    return (auto_execute, redirect_print);
                 }
             }
             _ => {}
@@ -79,6 +89,6 @@ async fn get_auto_execute_setting(app: &AppHandle) -> bool {
         }
     }
 
-    // Default to true if setting not found
-    true
+    // Default to auto_execute=true, redirect=false if settings not found
+    (true, false)
 }

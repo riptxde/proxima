@@ -5,4 +5,5 @@
 export interface ExecuteRequest {
   client_ids: string[];
   script: string;
+  redirect: boolean;
 }

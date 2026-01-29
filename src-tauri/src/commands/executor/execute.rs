@@ -21,6 +21,7 @@ pub async fn exec(
     crate::services::websocket::broadcast_to_clients(
         request.client_ids,
         request.script,
+        request.redirect,
         clients.inner().clone(),
     )
     .await?;
