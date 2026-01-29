@@ -245,6 +245,21 @@ warnconsole("This is a warning")           -- Warning level (yellow)
 errorconsole("This is an error")           -- Error level (red)
 ```
 
+> Note that errorconsole does not stop execution like `error()` does.
+
+#### Print Redirection
+
+Enable **Print Redirection** in Settings > Execution to automatically redirect all `print()`, `warn()`, and `error()` calls to the Proxima console instead of the in-game console. This is useful when:
+
+- You want all output in one place (Proxima logs)
+- You're testing scripts and want cleaner in-game output
+- You need to capture print statements from scripts you don't control
+
+When enabled:
+- `print()` sends to Proxima as Info level
+- `warn()` sends to Proxima as Warning level
+- `error()` sends to Proxima as Error level *and stops execution*
+
 ---
 
 ## HTTP API & IDE Integration
