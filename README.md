@@ -113,6 +113,74 @@ Your main workspace for writing, managing, and executing scripts.
 
 ---
 
+### Logs
+
+Track everything happening in Proxima.
+
+#### Features
+
+- Real-time log updates
+- Four log levels: Info, Success, Warning, Error
+- Filter by log level
+- Search through logs
+- See log counts by level
+- Clear logs when needed
+
+#### Log Sources
+
+- Proxima application events
+- Executor connections and disconnections
+- Script execution results
+- Custom logs from your Lua scripts
+
+#### Log Functions
+
+You can send logs from Roblox to Proxima using these functions:
+
+```lua
+printconsole("This is an info message") -- Info level (blue)
+warnconsole("This is a warning")        -- Warning level (yellow)
+errorconsole("This is an error")        -- Error level (red)
+```
+
+> Note that `errorconsole()` does not stop execution like `error()` does.
+
+#### Print Redirection
+
+Enable **Print Redirection** in Settings > Execution to automatically redirect all `print()`, `warn()`, and `error()` calls to the Proxima console instead of the in-game console. This is useful when:
+
+- You want all output in one place (Proxima logs)
+- You're testing scripts and want cleaner in-game output
+- You need to capture print statements from scripts you don't control
+
+When enabled:
+- `print()` sends to Proxima as Info level
+- `warn()` sends to Proxima as Warning level
+- `error()` sends to Proxima as Error level *and stops execution*
+
+---
+
+### Script Hub
+
+Access thousands of scripts without leaving Proxima.
+
+#### Features
+
+- Browse scripts from ScriptBlox
+- Search by game name
+- Filter by category and tags
+- View script details and descriptions
+- Send scripts directly to editor
+- Quick execute without opening editor
+
+#### How to Use
+
+1. Navigate to the Script Hub page
+2. Search for a game or browse categories
+3. Click the "Send to Editor" (the paper airplane icon) button to open it in a new tab, or click the "Info" (the *i* icon) button to view more details about the script on ScriptBlox
+
+---
+
 ### Instance Explorer
 
 Explore the Roblox game tree.
@@ -183,27 +251,6 @@ Monitor all network traffic between client and server.
 
 ---
 
-### Script Hub
-
-Access thousands of scripts without leaving Proxima.
-
-#### Features
-
-- Browse scripts from ScriptBlox
-- Search by game name
-- Filter by category and tags
-- View script details and descriptions
-- Send scripts directly to editor
-- Quick execute without opening editor
-
-#### How to Use
-
-1. Navigate to the Script Hub page
-2. Search for a game or browse categories
-3. Click the "Send to Editor" (the paper airplane icon) button to open it in a new tab, or click the "Info" (the *i* icon) button to view more details about the script on ScriptBlox
-
----
-
 ### Custom Launcher
 
 Take control of how you launch Roblox.
@@ -248,53 +295,6 @@ Enable to run multiple Roblox clients simultaneously - useful for testing with m
 
 - If multiple launches happen at once, they're queued and launch one-by-one, separated by the cooldown time. This prevents authentication errors when launching multiple accounts.
 - See your position in the queue
-
----
-
-### Logs
-
-Track everything happening in Proxima.
-
-#### Features
-
-- Real-time log updates
-- Four log levels: Info, Success, Warning, Error
-- Filter by log level
-- Search through logs
-- See log counts by level
-- Clear logs when needed
-
-#### Log Sources
-
-- Proxima application events
-- Executor connections and disconnections
-- Script execution results
-- Custom logs from your Lua scripts
-
-#### Log Functions
-
-You can send logs from Roblox to Proxima using these functions:
-
-```lua
-printconsole("This is an info message") -- Info level (blue)
-warnconsole("This is a warning")        -- Warning level (yellow)
-errorconsole("This is an error")        -- Error level (red)
-```
-
-> Note that `errorconsole()` does not stop execution like `error()` does.
-
-#### Print Redirection
-
-Enable **Print Redirection** in Settings > Execution to automatically redirect all `print()`, `warn()`, and `error()` calls to the Proxima console instead of the in-game console. This is useful when:
-
-- You want all output in one place (Proxima logs)
-- You're testing scripts and want cleaner in-game output
-- You need to capture print statements from scripts you don't control
-
-When enabled:
-- `print()` sends to Proxima as Info level
-- `warn()` sends to Proxima as Warning level
-- `error()` sends to Proxima as Error level *and stops execution*
 
 ---
 
