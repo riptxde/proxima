@@ -29,6 +29,7 @@ Proxima is a universal custom UI that works with almost **any script executor**.
 - **Instance Explorer:** Browse the Roblox game tree, view hidden properties, search for instances, and decompile local scripts
 - **Remote Spy:** Monitor all `RemoteEvent`, `RemoteFunction`, and `UnreliableRemoteEvent`, and generate calling code
 - **Custom Launcher:** Easily downgrade to previous Roblox versions and enable Roblox multi-instancing from inside Proxima
+- **Additional Classes:** Adds useful classes your executor doesn't have, such as `ProximaRelay` for multi-instance communciation
 - **HTTP API:** Execute scripts from external editors like VS Code or Sublime
 
 ---
@@ -295,6 +296,46 @@ Enable to run multiple Roblox clients simultaneously - useful for testing with m
 
 - If multiple launches happen at once, they're queued and launch one-by-one, separated by the cooldown time. This prevents authentication errors when launching multiple accounts.
 - See your position in the queue
+
+---
+
+### Additional Classes
+
+Proxima provides additional Lua classes that extend your executor's capabilities.
+
+#### ProximaRelay
+
+A communication class for broadcasting messages to all other attached Roblox clients without a separate program or file operations.
+
+**Events**
+
+| Event | Description |
+|-------|-------------|
+| `OnBroadcast:Connect(function(Content: string))` | Triggered when a message is received from another client |
+
+**Methods**
+
+| Method | Description |
+|--------|-------------|
+| `Broadcast(Content: string)` | Sends a message to all other connected clients (not including the sender) |
+
+**Notes:**
+- Broadcasts are sent to all **other clients** (not back to the sender)
+- Only string content is supported
+
+**Example - Coordinating Multiple Clients**
+
+```lua
+-- Client 1: Broadcast a message to all other clients
+ProximaRelay.Broadcast("start")
+
+-- Client 2: Listen for messages and react
+ProximaRelay.OnBroadcast:Connect(function(Content)
+    if Content == "start" then
+        print("Do stuff...")
+    end
+end)
+```
 
 ---
 
