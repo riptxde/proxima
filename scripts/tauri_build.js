@@ -22,14 +22,22 @@ const proximaDir = join(distTauriDir, "proxima");
 const scriptsDir = join(proximaDir, "scripts");
 const autoexecDir = join(proximaDir, "autoexec");
 const releaseDir = join(rootDir, "src-tauri", "target", "release");
-const nsisDir = join(releaseDir, "bundle", "nsis");
+const bundleDir = join(releaseDir, "bundle");
+const nsisDir = join(bundleDir, "nsis");
 const exePath = join(releaseDir, "proxima.exe");
 const zipPath = join(distTauriDir, "proxima.zip");
 
-function cleanDistTauriDir() {
+function cleanBuildDirectories() {
+  // Clean dist-tauri
   if (existsSync(distTauriDir)) {
     console.log("Cleaning existing dist-tauri directory...");
     rmSync(distTauriDir, { recursive: true, force: true });
+  }
+
+  // Clean bundle directory to prevent old artifacts
+  if (existsSync(bundleDir)) {
+    console.log("Cleaning existing bundle directory...");
+    rmSync(bundleDir, { recursive: true, force: true });
   }
 }
 
@@ -116,7 +124,10 @@ function createZip() {
 
 async function main() {
   try {
-    // Step 1: Run Tauri build
+    // Step 1: Clean build directories
+    cleanBuildDirectories();
+
+    // Step 2: Run Tauri build
     console.log("Starting Tauri build...");
     console.log("Running: tauri build");
     execSync("tauri build", {
@@ -126,15 +137,14 @@ async function main() {
 
     console.log("\nTauri build completed successfully\n");
 
-    // Step 2: Clean and create distribution structure
-    cleanDistTauriDir();
+    // Step 3: Create distribution structure
     createDirectories();
 
-    // Step 3: Copy files
+    // Step 4: Copy files
     copyExe();
     copyNsisFiles();
 
-    // Step 4: Create zip
+    // Step 5: Create zip
     await createZip();
 
     console.log("\nDistribution package created successfully");
