@@ -11,7 +11,7 @@ use tokio_tungstenite::{accept_async, tungstenite::Message};
 use uuid::Uuid;
 
 use super::client_manager::emit_clients_update;
-use super::handlers::{executor, explorer, logging, remote_spy};
+use super::handlers::{executor, explorer, logging, relay, remote_spy};
 use super::heartbeat::start_heartbeat_monitor;
 use super::messages::ClientMessage;
 
@@ -244,6 +244,11 @@ async fn handle_message(
         }
         ClientMessage::RspyGeneratedCode { call_id, code } => {
             remote_spy::handle_rspy_generated_code(app_handle, call_id, code);
+        }
+        ClientMessage::Relay { content } => {
+            if let Some(id) = client_id {
+                relay::handle_relay(id, content, clients).await;
+            }
         }
     }
 }

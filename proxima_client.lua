@@ -14,6 +14,7 @@ local HttpService = game:GetService('HttpService')
 -- Objects
 local Env = getgenv()
 local LocalPlayer = Players.LocalPlayer
+local ProximaRelayEvent = Instance.new('BindableEvent')
 local Socket = nil
 
 -- User Data (will be set during registration)
@@ -553,12 +554,50 @@ local function Exec(Script, Redirect)
         return
     end
 
-    -- If redirect is enabled, wrap in coroutine and override print, warn, and error
-    if Redirect then
-        local OldPrint = Env.print
-        local OldWarn = Env.warn
-        local OldError = Env.error
+    -- Save old functions
+    local OldPrint = Env.print
+    local OldWarn = Env.warn
+    local OldError = Env.error
+    local OldProximaRelay = Env.ProximaRelay
+    local OldPrintConsole = Env.printconsole
+    local OldSuccessConsole = Env.successconsole
+    local OldWarnConsole = Env.warnconsole
+    local OldErrorConsole = Env.errorconsole
 
+    -- Setup console logging functions
+    Env.printconsole = function(...)
+        Log(LOG_INFO, ...)
+    end
+
+    Env.successconsole = function(...)
+        Log(LOG_SUCCESS, ...)
+    end
+
+    Env.warnconsole = function(...)
+        Log(LOG_WARNING, ...)
+    end
+
+    Env.errorconsole = function(...)
+        Log(LOG_ERROR, ...)
+    end
+
+    -- Setup ProximaRelay for this execution
+    Env.ProximaRelay = table.freeze({
+        OnBroadcast = ProximaRelayEvent.Event,
+        Broadcast = function(Content)
+            if type(Content) ~= 'string' then
+                Log(LOG_ERROR, 'ProximaRelay.Broadcast expects a string argument')
+                return
+            end
+
+            SendMessage('relay', {
+                content = Content
+            })
+        end
+    })
+
+    -- Override print, warn, error if redirect is enabled
+    if Redirect then
         Env.print = function(...)
             Log(LOG_INFO, ...)
         end
@@ -569,7 +608,6 @@ local function Exec(Script, Redirect)
 
         Env.error = function(...)
             Log(LOG_ERROR, ...)
-            -- Stop execution by yielding the coroutine
             coroutine.yield()
         end
 
@@ -579,17 +617,22 @@ local function Exec(Script, Redirect)
                 Log(LOG_ERROR, tostring(Err))
             end)
         end)()
-
-        -- Restore original functions
-        Env.print = OldPrint
-        Env.warn = OldWarn
-        Env.error = OldError
     else
         -- Normal execution without redirect
         xpcall(Func, function(Err)
             Log(LOG_ERROR, tostring(Err))
         end)
     end
+
+    -- Restore original functions
+    Env.print = OldPrint
+    Env.warn = OldWarn
+    Env.error = OldError
+    Env.ProximaRelay = OldProximaRelay
+    Env.printconsole = OldPrintConsole
+    Env.successconsole = OldSuccessConsole
+    Env.warnconsole = OldWarnConsole
+    Env.errorconsole = OldErrorConsole
 end
 
 local function HandleMessage(Message)
@@ -605,6 +648,8 @@ local function HandleMessage(Message)
         Pong()
     elseif Data.type == 'exec' then
         Exec(Data.script, Data.redirect)
+    elseif Data.type == 'relay' then
+        ProximaRelayEvent:Fire(Data.content)
     elseif Data.type == 'exp_start' then
         ExpStart()
     elseif Data.type == 'exp_stop' then
@@ -2005,20 +2050,4 @@ function RspyGenerateCode(CallId)
 end
 
 --/ Main /--
-Env.printconsole = function(...)
-    Log(LOG_INFO, ...)
-end
-
-Env.successconsole = function(...)
-    Log(LOG_SUCCESS, ...)
-end
-
-Env.warnconsole = function(...)
-    Log(LOG_WARNING, ...)
-end
-
-Env.errorconsole = function(...)
-    Log(LOG_ERROR, ...)
-end
-
 Connect()

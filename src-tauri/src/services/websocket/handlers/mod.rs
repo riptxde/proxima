@@ -11,4 +11,5 @@
 pub mod executor;
 pub mod explorer;
 pub mod logging;
+pub mod relay;
 pub mod remote_spy;

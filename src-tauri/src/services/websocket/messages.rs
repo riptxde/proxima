@@ -90,6 +90,8 @@ pub(super) enum ClientMessage {
         call_id: u32,
         code: String,
     },
+    #[serde(rename = "relay")]
+    Relay { content: String },
 }
 
 /// Messages sent from server to WebSocket clients
@@ -120,4 +122,6 @@ pub(super) enum ServerMessage {
         #[serde(rename = "callId")]
         call_id: u32,
     },
+    #[serde(rename = "relay")]
+    Relay { content: String },
 }
