@@ -37,7 +37,7 @@ Proxima is a universal custom UI that works with almost **any script executor**.
 
 ### 1. Download and Install
 
-1. Download the latest release from [GitHub Releases](https://github.com/riptxde/proxima/releases)
+1. Download the latest `proxima.zip` from [GitHub Releases](https://github.com/riptxde/proxima/releases)
 2. Extract the archive to a folder
 3. Run the `proxima_{version}-setup.exe` setup file
 4. Proceed with the installation wizard.
