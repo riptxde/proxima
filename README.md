@@ -1,33 +1,35 @@
 # Proxima
+
 ![GitHub Repo stars](https://img.shields.io/github/stars/riptxde/proxima)
 ![GitHub License](https://img.shields.io/github/license/riptxde/proxima)
 ![GitHub top language](https://img.shields.io/github/languages/top/riptxde/proxima)
 ![GitHub Release](https://img.shields.io/github/v/release/riptxde/proxima)
 
-> A modern, feature-rich interface for Roblox script execution with advanced tools for developers and power users. "An all-in-one custom UI compatible with any script executor."
+<img src="src-tauri/icons/icon.png" height="120" alt="PACE Logo" align="right"/>
+
+> A modern, feature-rich interface for Roblox script execution with advanced tools for developers and power users.
+
+Proxima is a universal custom UI that works with almost **any script executor**. There's no need to be locked into using the UI of the executor you're using. Now, you can use the same familiar, feature-rich, and powerful UI with multiple executors.
+
 ---
+
 <p align="center">
   <a href="https://www.youtube.com/watch?v=3ijhFtBPY8U" target="_blank">
-    <img src="https://github.com/user-attachments/assets/2496ede3-79f4-4fae-aaa8-207a1f624a75" alt="Proxima Screenshot" width="800"/>
+    <img src="https://github.com/user-attachments/assets/f89dbe44-a79f-4f61-b79b-e9e343e05fdf" alt="Proxima Screenshot" width="800"/>
     <br>
     <b>Watch the Demo</b>
   </a>
 </p>
 
-## Why Proxima?
+## Features
 
-Proxima is a universal custom UI that works with **any script executor** - no need to be locked into a specific executor's interface. Get a professional, feature-packed experience with tools that go far beyond basic script execution.
-
-### Key Features
-
-- **Monaco Editor:** The same editor used in VS Code, with Lua syntax highlighting and IntelliSense
-- **Universal Compatibility:** Works with any executor through a simple Lua client script
-- **Instance Explorer:** Browse the entire Roblox game tree with property inspection and search
-- **Remote Spy:** Monitor all RemoteEvent and RemoteFunction calls in real-time, with codegen capabilities
-- **Script Hub:** Built-in browser for thousands of scripts from ScriptBlox
-- **Custom Launcher:** Control which Roblox version you use, downgrade to previous versions if your executor is not updated, enable Roblox multi-instancing
+- **Monaco Editor:** The same editor used in VS Code, with Lua syntax highlighting and support for other languages
+- **Logs:** Track what happens in your executor and redirect console output to Proxima's console instead of the in-game console
+- **Script Hub:** Built-in browser for thousands of scripts from [ScriptBlox](https://scriptblox.com)
+- **Instance Explorer:** Browse the Roblox game tree, view hidden properties, search for instances, and decompile local scripts
+- **Remote Spy:** Monitor all `RemoteEvent`, `RemoteFunction`, and `UnreliableRemoteEvent`, and generate calling code
+- **Custom Launcher:** Easily downgrade to previous Roblox versions and enable Roblox multi-instancing from inside Proxima
 - **HTTP API:** Execute scripts from external editors like VS Code or Sublime
-- **Real-Time Logging:** Track everything happening in your executor and scripts
 
 ---
 
@@ -37,16 +39,51 @@ Proxima is a universal custom UI that works with **any script executor** - no ne
 
 1. Download the latest release from [GitHub Releases](https://github.com/riptxde/proxima/releases)
 2. Extract the archive to a folder
-3. Run `proxima.exe`
+3. Run the `proxima_{version}-setup.exe` setup file
+4. Proceed with the installation wizard.
+
+> Note that the installer simply creates a portable installation of Proxima and installs missing dependencies such as [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2) and [vcredist](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170) if you are running an outdated version of Windows.
 
 ### 2. Connect Your Executor
 
 1. Download `proxima_client.lua` from the [latest release](https://github.com/riptxde/proxima/releases)
 2. Place it in your executor's auto-execute folder (e.g., `autoexec/`, `AutoExec/`, `AutoExecute/`)
-3. Join any Roblox game
+3. Join any Roblox game and attach your real executor to Roblox
 4. You'll see a connection notification in Proxima
 
-That's it! You're ready to use all of Proxima's features.
+---
+
+## Requirements
+
+### System Requirements
+
+- Windows 10 (64-bit) or later
+- 4 GB RAM
+- 200 MB disk space
+
+### Executor Requirements
+Your Roblox executor must support the following functions:
+
+- **`WebSocket.connect`** - Connect to WebSocket servers
+- **`WebSocket.OnMessage`** - Receive messages from the server
+- **`WebSocket.OnClose`** - Detect connection closures
+
+#### Remote Spy
+These functions are required to use the Remote Spy:
+
+- **`hookmetamethod`** - Intercept and modify metatable operations
+- **`hookfunction`** - Intercept and modify function calls
+- **`getnamecallmethod`** - Get the namecall method to only intercept Remote calls
+- **`newcclosure`** - Create a closure that can be used to intercept function calls safely
+
+#### Subfeatures
+If your executor is missing any of these functions, certain subfeatures may be limited
+
+- **`gethiddenproperty`** - If your executor is missing this function, the Explorer will not display hidden or unscriptable properties, only ordinary properties
+- **`decompile`** - If your executor is missing this function, decompilation of local scripts via the Explorer or Remote Spy will not work
+- **`getcallingscript`** - If your executor is missing this function, the Explorer will not display which script made a remote call
+- **`getcallbackvalue`** - If your executor is missing this function, the Remote Spy will not detect *incoming* RemoteFunction calls
+- **`run_on_actor`, `getactors`, `create_comm_channel`, `get_comm_channel`** - If your executor is missing any of these functions, Remote Spy will not monitor remote calls made in actor contexts
 
 ---
 
@@ -54,7 +91,7 @@ That's it! You're ready to use all of Proxima's features.
 
 ### Editor
 
-Your main workspace for writing and managing scripts.
+Your main workspace for writing, managing, and executing scripts.
 
 #### Multi-Tab Editor
 
@@ -78,7 +115,7 @@ Your main workspace for writing and managing scripts.
 
 ### Instance Explorer
 
-Explore the Roblox game tree like never before.
+Explore the Roblox game tree.
 
 #### Features
 
@@ -87,7 +124,7 @@ Explore the Roblox game tree like never before.
 - **Property inspector:** View all properties of any instance
 - **Property search:** Filter properties by name
 - **Documentation links:** Quick access to official and community docs
-- **Script decompilation:** View source code of Scripts and LocalScripts
+- **Script decompilation:** View source code of local scripts
 - **Search:** Find instances by name or class name
 - **Path display:** See the full Lua path to any instance
 
@@ -103,7 +140,7 @@ Explore the Roblox game tree like never before.
 - **Deprecated:** Property is deprecated by Roblox
 - **ReadOnly:** Property cannot be modified
 - **Hidden:** Property is hidden in Studio
-- **Unscriptable:** Property cannot be accessed via scripts
+- **Unscriptable:** Property cannot normally be accessed via scripts
 
 ---
 
@@ -113,9 +150,9 @@ Monitor all network traffic between client and server.
 
 #### What You Can See
 
-- `RemoteEvent:FireServer()` calls
-- `RemoteFunction:InvokeServer()` calls
-- `UnreliableRemoteEvent` calls
+- `RemoteEvent:FireServer()` and `RemoteEvent:FireClient()` calls
+- `RemoteFunction:InvokeServer()` and `RemoteFunction:InvokeClient()` calls
+- `UnreliableRemoteEvent:FireServer()` and `UnreliableRemoteEvent:FireClient()` calls
 - All arguments passed to remotes
 - Return values from RemoteFunctions
 - Which script fired each remote
@@ -163,7 +200,7 @@ Access thousands of scripts without leaving Proxima.
 
 1. Navigate to the Script Hub page
 2. Search for a game or browse categories
-3. Click the "Send to Editor" button to open it in a new tab, or click the "Info" button to view more details about the script
+3. Click the "Send to Editor" (the paper airplane icon) button to open it in a new tab, or click the "Info" (the *i* icon) button to view more details about the script on ScriptBlox
 
 ---
 
@@ -194,7 +231,7 @@ Leave empty for LIVE (default), or enter a custom channel name
 Leave empty to always use latest version, or enter a specific version hash to lock to that version
 
 **Cooldown**
-Seconds to wait after launching (default: 60) - prevents authentication errors with rapid launches
+How many seconds since the last launch must pass until launching another client (default: 60) - prevents authentication errors with rapid launches
 
 **Multi-Instance**
 Enable to run multiple Roblox clients simultaneously - useful for testing with multiple accounts
@@ -209,9 +246,8 @@ Enable to run multiple Roblox clients simultaneously - useful for testing with m
 
 #### Queue System
 
-- If multiple launches happen at once, they're queued
+- If multiple launches happen at once, they're queued and launch one-by-one, separated by the cooldown time. This prevents authentication errors when launching multiple accounts.
 - See your position in the queue
-- Previous launches must complete before next starts
 
 ---
 
@@ -235,17 +271,17 @@ Track everything happening in Proxima.
 - Script execution results
 - Custom logs from your Lua scripts
 
-#### Logging from Your Scripts
+#### Log Functions
 
 You can send logs from Roblox to Proxima using these functions:
 
 ```lua
-printconsole("This is an info message")    -- Info level (blue)
-warnconsole("This is a warning")           -- Warning level (yellow)
-errorconsole("This is an error")           -- Error level (red)
+printconsole("This is an info message") -- Info level (blue)
+warnconsole("This is a warning")        -- Warning level (yellow)
+errorconsole("This is an error")        -- Error level (red)
 ```
 
-> Note that errorconsole does not stop execution like `error()` does.
+> Note that `errorconsole()` does not stop execution like `error()` does.
 
 #### Print Redirection
 
@@ -266,15 +302,12 @@ When enabled:
 
 Proxima includes an HTTP API for executing scripts from external editors and tools.
 
-For complete documentation, examples, and IDE integration guides, see:
+This provides endpoints `http://localhost:13377/execute` and `http://localhost:13377/execute_file` which work identically to the endpoints from the **[Roblox Executor Proxy](https://github.com/riptxde/roblox_executor_proxy)**.
 
-**[Roblox Executor Proxy](https://github.com/riptxde/roblox_executor_proxy)**
-
-This repository provides:
+Please see the repository mentioned above for:
 - Detailed HTTP API documentation
-- Integration examples for VS Code, Sublime Text, and more
+- Examples of how to integrate Roblox execution into VS Code, Sublime Text, Zed, Neovim, and more
 - Sample code for custom integrations
-- Proxy server for advanced use cases
 
 ---
 
@@ -303,33 +336,6 @@ This repository provides:
 
 ---
 
-## Requirements
-
-### System Requirements
-
-- Windows 10 (64-bit) or later
-- 4 GB RAM
-- 200 MB disk space
-- Internet connection (for Script Hub and Launcher)
-
-### Executor Requirements
-Your Roblox executor must support the following functions:
-
-- **`WebSocket.connect(url)`** - Connect to WebSocket servers
-- **`WebSocket.OnMessage`** - Receive messages from the server
-- **`WebSocket.OnClose`** - Detect connection closures
-- **`loadstring(script)`** - Execute Lua code from strings
-- **Auto-execute support** - Ability to run scripts automatically on game join
-
-#### Remote Spy
-
-- **`hookmetamethod`** - Intercept and modify metatable operations
-- **`hookfunction`** - Intercept and modify function calls
-- **`getnamecallmethod`** - Get the namecall method to only intercept Remote calls
-- **`newcclosure`** - Create a closure that can be used to intercept function calls safely
-
----
-
 ## License
 
 This project is licensed under the AGPL-3.0 License.
@@ -342,8 +348,8 @@ This project is licensed under the AGPL-3.0 License.
 
 **Built With:**
 
-- [Tauri](https://tauri.app/) - Desktop application framework
-- [Vue 3](https://vuejs.org/) - Frontend framework
+- [Tauri](https://tauri.app/) - Rust desktop application framework
+- [Vue 3](https://vuejs.org/) - Frontend JavaScript framework
 - [Monaco Editor](https://microsoft.github.io/monaco-editor/) - Code editor (VS Code's editor)
 - [ScriptBlox](https://scriptblox.com/) - Script repository API
 
