@@ -554,63 +554,55 @@ local function Exec(Script, Redirect)
         return
     end
 
-    -- Save old functions
-    local OldPrint = Env.print
-    local OldWarn = Env.warn
-    local OldError = Env.error
-    local OldProximaRelay = Env.ProximaRelay
-    local OldPrintConsole = Env.printconsole
-    local OldSuccessConsole = Env.successconsole
-    local OldWarnConsole = Env.warnconsole
-    local OldErrorConsole = Env.errorconsole
+    -- Build a per-execution sandbox that inherits from the global env.
+    -- This avoids mutating getgenv(), so overrides persist across yields
+    -- without needing save/restore.
+    local Sandbox = setmetatable({
+        printconsole = function(...)
+            Log(LOG_INFO, ...)
+        end,
+        successconsole = function(...)
+            Log(LOG_SUCCESS, ...)
+        end,
+        warnconsole = function(...)
+            Log(LOG_WARNING, ...)
+        end,
+        errorconsole = function(...)
+            Log(LOG_ERROR, ...)
+        end,
+        ProximaRelay = table.freeze({
+            OnBroadcast = ProximaRelayEvent.Event,
+            Broadcast = function(Content)
+                if type(Content) ~= 'string' then
+                    Log(LOG_ERROR, 'ProximaRelay.Broadcast expects a string argument')
+                    return
+                end
 
-    -- Setup console logging functions
-    Env.printconsole = function(...)
-        Log(LOG_INFO, ...)
-    end
-
-    Env.successconsole = function(...)
-        Log(LOG_SUCCESS, ...)
-    end
-
-    Env.warnconsole = function(...)
-        Log(LOG_WARNING, ...)
-    end
-
-    Env.errorconsole = function(...)
-        Log(LOG_ERROR, ...)
-    end
-
-    -- Setup ProximaRelay for this execution
-    Env.ProximaRelay = table.freeze({
-        OnBroadcast = ProximaRelayEvent.Event,
-        Broadcast = function(Content)
-            if type(Content) ~= 'string' then
-                Log(LOG_ERROR, 'ProximaRelay.Broadcast expects a string argument')
-                return
+                SendMessage('relay', {
+                    content = Content
+                })
             end
+        }),
+    }, { __index = Env })
 
-            SendMessage('relay', {
-                content = Content
-            })
-        end
-    })
-
-    -- Override print, warn, error if redirect is enabled
     if Redirect then
-        Env.print = function(...)
+        Sandbox.print = function(...)
             Log(LOG_INFO, ...)
         end
 
-        Env.warn = function(...)
+        Sandbox.warn = function(...)
             Log(LOG_WARNING, ...)
         end
 
-        Env.error = function(...)
+        Sandbox.error = function(...)
             Log(LOG_ERROR, ...)
             coroutine.yield()
         end
+    end
 
+    setfenv(Func, Sandbox)
+
+    if Redirect then
         -- Run in coroutine so we can yield on error
         coroutine.wrap(function()
             xpcall(Func, function(Err)
@@ -618,21 +610,10 @@ local function Exec(Script, Redirect)
             end)
         end)()
     else
-        -- Normal execution without redirect
         xpcall(Func, function(Err)
             Log(LOG_ERROR, tostring(Err))
         end)
     end
-
-    -- Restore original functions
-    Env.print = OldPrint
-    Env.warn = OldWarn
-    Env.error = OldError
-    Env.ProximaRelay = OldProximaRelay
-    Env.printconsole = OldPrintConsole
-    Env.successconsole = OldSuccessConsole
-    Env.warnconsole = OldWarnConsole
-    Env.errorconsole = OldErrorConsole
 end
 
 local function HandleMessage(Message)
